@@ -11,8 +11,6 @@
 		char *descr;
 		char *author;
 		char *year;
-		char *args;
-		int *argc;
 
 		int (*plugin_process)(const IMAGE *img, IMAGE *img_dest);
 		int (*plugin_setup)(void);
@@ -23,5 +21,7 @@
 	typedef struct STRUCT_PLUGIN {
 		PLUGIN_PARAMS *p_params;
 		void *p_handle;
+		char **args;
+		unsigned int argc;
 	} PLUGIN;
 #endif

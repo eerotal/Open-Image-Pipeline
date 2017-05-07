@@ -114,8 +114,10 @@ int plugin_load(char *dirpath, char *name) {
 		printf("%s: Loaded!\n", path);
 		free(path);
 		free(params_struct_name);
+		return 0;
 	}
-	return 0;
+	printf("Plugin doesn't exist.\n");
+	return 1;
 }
 
 void print_plugin_config(void) {
@@ -127,11 +129,18 @@ void print_plugin_config(void) {
 		printf("    Descr:  %s\n", plugins[i]->p_params->descr);
 		printf("    Author: %s\n", plugins[i]->p_params->author);
 		printf("    Year:   %s\n", plugins[i]->p_params->year);
-		printf("    Args:   %s\n", plugins[i]->p_params->args);
+		printf("    Args: \n");
+		for (unsigned int arg = 0; arg < plugins[i]->argc; arg++) {
+			printf("        %s: %s\n", plugins[i]->args[arg*2 + 1],
+				plugins[i]->args[arg*2]);
+		}
 	}
 }
 
 int plugin_feed(unsigned int index, const IMAGE *img, IMAGE *res) {
+	/*
+	*  Feed image data to a plugin.
+	*/
 	if (index < plugin_count) {
 		plugins[index]->p_params->plugin_process(img, res);
 		return 0;
@@ -142,6 +151,56 @@ int plugin_feed(unsigned int index, const IMAGE *img, IMAGE *res) {
 
 unsigned int plugins_get_count(void) {
 	return plugin_count;
+}
+
+int plugin_set_arg(const unsigned int index, const char *arg,
+			const char *value) {
+	/*
+	*  Set the plugin argument 'arg' to 'value' for plugin
+	*  with the index 'index'.
+	*/
+	unsigned int *p_argc = 0;
+	char **p_args = NULL;
+	char **tmp_args;
+
+	if (index < plugin_count) {
+		p_argc = &plugins[index]->argc;
+		p_args = plugins[index]->args;
+
+		// Extend argument array.
+		(*p_argc)++;
+		tmp_args = realloc(p_args, (*p_argc)*2);
+		if (!tmp_args) {
+			return 1;
+		}
+		p_args = tmp_args;
+		/*
+		* Copy the argument array pointer back to the
+		* original structure too.
+		*/
+		plugins[index]->args = p_args;
+
+		// Allocate space for strings.
+		p_args[(*p_argc)*2 - 2] = malloc(strlen(arg)*sizeof(char));
+		if (!p_args[(*p_argc)*2 - 2]) {
+			(*p_argc)--;
+			tmp_args = realloc(p_args, (*p_argc)*2);
+			return 1;
+		}
+		p_args[(*p_argc)*2 - 1] = malloc(strlen(value)*sizeof(char));
+		if (!p_args[(*p_argc)*2 - 1]) {
+			(*p_argc)--;
+			tmp_args = realloc(p_args, (*p_argc)*2);
+			return 1;
+		}
+
+		// Copy data.
+		strcpy(p_args[(*p_argc)*2 - 2], arg);
+		strcpy(p_args[(*p_argc)*2 - 1], value);
+		return 0;
+	} else {
+		return 1;
+	}
 }
 
 void plugins_cleanup(void) {
@@ -157,6 +216,8 @@ void plugins_cleanup(void) {
 			free(plugins[i]);
 		}
 	}
-	free(plugins);
+	if (plugins) {
+		free(plugins);
+	}
 	printf("All plugins free'd.\n");
 }

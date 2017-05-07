@@ -16,6 +16,9 @@ int main(int argc, char **argv) {
 	printf("Loaded image.\n");
 
 	plugin_load("plugins/", "convolution");
+	plugin_load("plugins/", "convolution");
+	plugin_load("plugins/", "convolution");
+	plugin_set_arg(0, "asd", "test");
 	print_plugin_config();
 	pipeline_feed(src, result);
 
