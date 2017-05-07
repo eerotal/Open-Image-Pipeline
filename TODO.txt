@@ -1,0 +1,2 @@
+- Plugins are loaded and free'd twice even if they are the same plugin. Fix this.
+- The program segfaults when 4 or more plugins are loaded. Fix this.
