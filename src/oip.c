@@ -19,6 +19,7 @@ int main(int argc, char **argv) {
 	print_plugin_config();
 	pipeline_feed(src, result);
 
+	img_save(result, "res/kernel_output.jpg");
 	img_free(src);
 	plugins_cleanup();
 	return 0;

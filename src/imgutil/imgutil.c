@@ -6,6 +6,9 @@
 #include <errno.h>
 #include "imgutil/imgutil.h"
 
+#define IMGUTIL_OUTPUT_FORMAT FIF_JPEG
+#define IMGUTIL_INTERNAL_BPP 32
+
 IMAGE *img_load(char *path) {
 	FREE_IMAGE_FORMAT ftype = FIF_UNKNOWN;
 	FIBITMAP *fimage = NULL;
@@ -54,6 +57,20 @@ IMAGE *img_load(char *path) {
 	}
 	printf("img_load(): Image plugin doesn't support reading.\n");
 	return NULL;
+}
+
+int img_save(const IMAGE *img, const char *filename) {
+	FIBITMAP *bitmap = FreeImage_Allocate(img->w, img->h, IMGUTIL_INTERNAL_BPP, 0, 0, 0);
+	if (!bitmap) {
+		return 1;
+	}
+	memcpy(FreeImage_GetBits(bitmap), img->img, img_bytelen(img));
+	if (!FreeImage_Save(IMGUTIL_OUTPUT_FORMAT, FreeImage_ConvertTo24Bits(bitmap), filename, 0)) {
+		FreeImage_Unload(bitmap);
+		return 1;
+	}
+	FreeImage_Unload(bitmap);
+	return 0;
 }
 
 IMAGE *img_alloc(uint32_t w, uint32_t h) {

@@ -15,5 +15,6 @@
 	int img_realloc(IMAGE *img, uint32_t w, uint32_t h);
 	IMAGE *img_alloc(uint32_t w, uint32_t h);
 	IMAGE *img_load(char *path);
-
+	int img_save(const IMAGE *img, const char *filename);
 #endif
+
