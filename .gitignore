@@ -1,0 +1,8 @@
+bin
+res
+plugins
+*.out
+*.o
+*.gch
+*.a
+*.so
