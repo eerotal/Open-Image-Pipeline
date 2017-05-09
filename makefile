@@ -24,3 +24,6 @@ modules:
 	for DIR in $(SUBMODULES); do\
 		make -C $$DIR;\
 	done
+
+LOC:
+	wc -l $(SRCFILES)

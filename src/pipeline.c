@@ -22,7 +22,8 @@ int pipeline_feed(const IMAGE *img, IMAGE *result) {
 		for (unsigned int i = 0; i < plugins_get_count(); i++) {
 			printf("pipeline: Feeding image data to plugin %i.\n", i);
 			t_start = clock();
-			if (plugin_feed(i, buf_ptr_1, buf_ptr_2) != 0) {
+			if (plugin_feed(i, (const char**)plugin_args_get(i), plugin_args_get_count(i),
+					buf_ptr_1, buf_ptr_2) != 0) {
 				return 1;
 			}
 			printf("pipeline: Data processed in %f CPU seconds.\n",

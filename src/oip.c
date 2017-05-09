@@ -17,8 +17,7 @@ int main(int argc, char **argv) {
 
 	plugin_load("plugins/", "convolution");
 	plugin_load("plugins/", "convolution");
-	plugin_load("plugins/", "convolution");
-	plugin_set_arg(0, "asd", "test");
+	plugin_set_arg(0, "kernel", "1, 1, 1, 1, 1, 1, 1, 1, 1");
 	print_plugin_config();
 	pipeline_feed(src, result);
 

@@ -12,10 +12,14 @@
 		char *author;
 		char *year;
 
-		int (*plugin_process)(const IMAGE *img, IMAGE *img_dest);
+		char **valid_args;
+		unsigned int valid_args_count;
+
+		int (*plugin_process)(const IMAGE *img, IMAGE *img_dest,
+					const char **plugin_args,
+					const unsigned int plugin_args_count);
 		int (*plugin_setup)(void);
 		void (*plugin_cleanup)(void);
-
 	} PLUGIN_PARAMS;
 
 	typedef struct STRUCT_PLUGIN {
