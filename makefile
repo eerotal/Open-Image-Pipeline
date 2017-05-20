@@ -1,5 +1,5 @@
 CC=gcc
-CCFLAGS=-Wall -Wpedantic -std=gnu99
+CCFLAGS=-Wall -Wpedantic -std=gnu99 -g
 LFLAGS=-ldl -lfreeimage
 NAME=oip
 
@@ -17,6 +17,7 @@ main: $(SRCFILES)
 	$(info [INFO]: Submodules are compiled into the main binary automatically.\
 	If you need them as separate libraries, run 'make modules' too.)
 
+	mkdir -p $(BINDIR)
 	$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
 
 modules: 

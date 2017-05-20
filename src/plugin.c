@@ -62,6 +62,9 @@ int plugin_load(char *dirpath, char *name) {
 
 	printf("Loading plugin %s from directory %s.\n", name, dirpath);
 
+	// Set plugin data struct to all zeroes initially.
+	memset(&plugin, 0, sizeof(PLUGIN));
+
 	// Construct plugin path.
 	path_len = strlen(dirpath) + strlen("lib") + strlen(name) + strlen(".so") + 1;
 	path = calloc(path_len, sizeof(char));
@@ -184,29 +187,28 @@ int plugin_set_arg(const unsigned int index, const char *arg,
 		}
 
 		p_argc = &plugins[index]->argc;
-		p_args = plugins[index]->args;
 
 		// Extend argument array.
 		(*p_argc)++;
-		tmp_args = realloc(p_args, (*p_argc)*2);
+		tmp_args = realloc(plugins[index]->args, (*p_argc)*2*sizeof(char**));
 		if (!tmp_args) {
 			return 1;
 		}
-		p_args = tmp_args;
 		/*
-		* Copy the argument array pointer back to the
-		* original structure too.
+		*  Copy the argument array pointer into a temp variable
+		*  and into the original struct too.
 		*/
-		plugins[index]->args = p_args;
+		p_args = tmp_args;
+		plugins[index]->args = tmp_args;
 
 		// Allocate space for strings.
-		p_args[(*p_argc)*2 - 2] = malloc(strlen(arg)*sizeof(char));
+		p_args[(*p_argc)*2 - 2] = malloc(strlen(arg)*sizeof(char) + 1);
 		if (!p_args[(*p_argc)*2 - 2]) {
 			(*p_argc)--;
 			tmp_args = realloc(p_args, (*p_argc)*2);
 			return 1;
 		}
-		p_args[(*p_argc)*2 - 1] = malloc(strlen(value)*sizeof(char));
+		p_args[(*p_argc)*2 - 1] = malloc(strlen(value)*sizeof(char) + 1);
 		if (!p_args[(*p_argc)*2 - 1]) {
 			(*p_argc)--;
 			tmp_args = realloc(p_args, (*p_argc)*2);
@@ -247,11 +249,14 @@ void plugins_cleanup(void) {
 	for (unsigned int i = 0; i < plugin_count; i++) {
 		if (plugins[i]) {
 			plugins[i]->p_params->plugin_cleanup();
+			free(plugins[i]->args);
 			dlclose(plugins[i]->p_handle);
 			free(plugins[i]);
+			plugins[i] = NULL;
 		}
 	}
 	if (plugins) {
+		printf("Free plugin data array.\n");
 		free(plugins);
 	}
 	printf("All plugins free'd.\n");
