@@ -5,10 +5,21 @@
 
 #include "plugin_priv.h"
 #include "pipeline_priv.h"
+#include "cli_priv.h"
 #include "imgutil/imgutil.h"
 
 int main(int argc, char **argv) {
-	IMAGE *src = img_load("res/scenery.jpg");
+	if (cli_parse_opts(argc, argv) != 0) {
+		printf("CLI argument parsing failed.\n");
+		return 1;
+	}
+
+	if (cli_opts.opt_image_path == NULL) {
+		fprintf(stderr, "No input image specified. Exiting.\n");
+		return 1;
+	}
+
+	IMAGE *src = img_load(cli_opts.opt_image_path);
 	if (src == NULL) {
 		return 1;
 	}
@@ -33,5 +44,6 @@ int main(int argc, char **argv) {
 	img_save(result, "res/kernel_output.jpg");
 	img_free(src);
 	plugins_cleanup();
+	cli_opts_cleanup();
 	return 0;
 }
