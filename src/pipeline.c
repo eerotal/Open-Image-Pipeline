@@ -12,6 +12,10 @@ int pipeline_feed(const IMAGE *img, IMAGE *result) {
 	IMAGE *buf_ptr_1 = NULL;
 	IMAGE *buf_ptr_2 = NULL;
 
+	if (img == NULL || result == NULL) {
+		return 1;
+	}
+
 	if (plugins_get_count() != 0) {
 		buf_ptr_1 = (IMAGE*) img;
 		buf_ptr_2 = img_alloc(0, 0);
@@ -24,12 +28,17 @@ int pipeline_feed(const IMAGE *img, IMAGE *result) {
 			t_start = clock();
 			if (plugin_feed(i, (const char**)plugin_args_get(i), plugin_args_get_count(i),
 					buf_ptr_1, buf_ptr_2) != 0) {
-				return 1;
+
+				printf("pipeline: Failed to use plugin %i.\n", i);
+				continue;
 			}
 			printf("pipeline: Data processed in %f CPU seconds.\n",
 				(float) (clock() - t_start)/CLOCKS_PER_SEC);
 
-			// This takes care of the constness of 'img'.
+			/*
+			*  Only free buf_ptr_1 if it doesn't point to
+			*  the original image, which is declared const.
+			*/
 			if (buf_ptr_1 != img) {
 				img_free(buf_ptr_1);
 			}
@@ -47,7 +56,12 @@ int pipeline_feed(const IMAGE *img, IMAGE *result) {
 		} else {
 			ret = 1;
 		}
-		img_free(buf_ptr_1);
+
+		// Cleanup
+		if (buf_ptr_1 != img) {
+			img_free(buf_ptr_1);
+		}
+		img_free(buf_ptr_2);
 		return ret;
 	} else {
 		return 1;
