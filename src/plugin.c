@@ -6,6 +6,7 @@
 
 #include "headers/plugin.h"
 #include "plugin_priv.h"
+#include "cache_priv.h"
 
 static PLUGIN **plugins;
 static unsigned int plugin_count = 0;
@@ -108,6 +109,9 @@ int plugin_load(char *dirpath, char *name) {
 
 		// Append the plugin data to the plugin array.
 		plugin_data_append(&plugin);
+
+		// Create plugin cache.
+		cache_create(name, plugin_count - 1);
 
 		// Run the setup function.
 		plugin.p_params->plugin_setup();
@@ -256,8 +260,15 @@ void plugins_cleanup(void) {
 		}
 	}
 	if (plugins) {
-		printf("Free plugin data array.\n");
+		printf("Freeing plugin data array...\n");
 		free(plugins);
 	}
-	printf("All plugins free'd.\n");
+	printf("All plugins free'd!\n");
+
+	printf("Deleting cache files...\n");
+	if (cache_delete_all() != 0) {
+		printf("Failed to delete cache files.\n");
+	}
+
+	printf("Cleanup done!\n");
 }

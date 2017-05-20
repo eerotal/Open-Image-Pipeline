@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
 #include "pipeline_priv.h"
 #include "plugin_priv.h"
@@ -9,6 +10,7 @@
 int pipeline_feed(const IMAGE *img, IMAGE *result) {
 	int ret = 0;
 	clock_t t_start = 0;
+	float delta_t = 0;
 	IMAGE *buf_ptr_1 = NULL;
 	IMAGE *buf_ptr_2 = NULL;
 
@@ -32,8 +34,10 @@ int pipeline_feed(const IMAGE *img, IMAGE *result) {
 				printf("pipeline: Failed to use plugin %i.\n", i);
 				continue;
 			}
-			printf("pipeline: Data processed in %f CPU seconds.\n",
-				(float) (clock() - t_start)/CLOCKS_PER_SEC);
+			delta_t = (float) (clock() - t_start)/CLOCKS_PER_SEC;
+			printf("pipeline: Data processed in %f CPU seconds.\n", delta_t);
+			printf("pipeline: Avg throughput: %i B/s.\n",
+				(int) round(img_bytelen(buf_ptr_1)/delta_t));
 
 			/*
 			*  Only free buf_ptr_1 if it doesn't point to
