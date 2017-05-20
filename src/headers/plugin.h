@@ -27,5 +27,6 @@
 		void *p_handle;
 		char **args;
 		unsigned int argc;
+		char *cache_path;
 	} PLUGIN;
 #endif

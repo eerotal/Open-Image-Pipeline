@@ -10,7 +10,7 @@
 #define CACHE_DIR "plugins/cache/"
 #define CACHE_PERMISSIONS S_IRWXU
 
-int cache_create(const char *name, unsigned int id) {
+char *cache_create(const char *name, unsigned int id) {
 	// Construct full cache path.
 	unsigned int id_str_len = 0;
 	char *id_str = NULL;
@@ -26,7 +26,7 @@ int cache_create(const char *name, unsigned int id) {
 	id_str = calloc(id_str_len, sizeof(char));
 	if (id_str == NULL) {
 		fprintf(stderr, "calloc(): Failed to allocate memory.\n");
-		return 1;
+		return NULL;
 	}
 	sprintf(id_str, "%i", id);
 
@@ -38,12 +38,13 @@ int cache_create(const char *name, unsigned int id) {
 	if (path == NULL) {
 		fprintf(stderr, "calloc(): Failed to allocate memory.\n");
 		free(id_str);
-		return 1;
+		return NULL;
 	}
 	strcat(path, CACHE_DIR);
 	strcat(path, name);
 	strcat(path, "-");
 	strcat(path, id_str);
+	free(id_str);
 
 	printf("cache: Creating cache directory: %s\n", path);
 
@@ -53,19 +54,22 @@ int cache_create(const char *name, unsigned int id) {
 			if (mkdir(path, CACHE_PERMISSIONS) == -1) {
 				perror("mkdir(): ");
 				free(path);
-				return 1;
+				return NULL;
 			}
+			return path;
 		} else {
 			// An error occured.
 			perror("access(): ");
 			free(path);
-			return 1;
+			return NULL;
 		}
 	} else {
 		// Cache exists.
 		printf("cache: Cache already exists.\n");
+		return path;
 	}
-	return 0;
+	free(path);
+	return NULL;
 }
 
 int cache_delete_all(void) {

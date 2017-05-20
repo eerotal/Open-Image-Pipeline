@@ -46,6 +46,7 @@ static int plugin_data_append(PLUGIN *plugin) {
 	// Copy plugin data.
 	plugins[plugin_count - 1]->p_handle = plugin->p_handle;
 	plugins[plugin_count - 1]->p_params = plugin->p_params;
+	plugins[plugin_count - 1]->cache_path = plugin->cache_path;
 	return 0;
 }
 
@@ -57,6 +58,7 @@ int plugin_load(char *dirpath, char *name) {
 	PLUGIN plugin;
 	char *path = NULL;
 	char *params_struct_name = NULL;
+	char *cache_path = NULL;
 
 	unsigned int path_len = 0;
 	unsigned int params_struct_name_len = 0;
@@ -107,11 +109,20 @@ int plugin_load(char *dirpath, char *name) {
 			return 1;
 		}
 
+		// Create plugin cache.
+		cache_path = cache_create(name, plugin_count);
+		if (cache_path == NULL) {
+			printf("Failed to create cache directory.\n");
+			free(path);
+			free(params_struct_name);
+			dlclose(plugin.p_handle);
+			return 1;
+		} else {
+			plugin.cache_path = cache_path;
+		}
+
 		// Append the plugin data to the plugin array.
 		plugin_data_append(&plugin);
-
-		// Create plugin cache.
-		cache_create(name, plugin_count - 1);
 
 		// Run the setup function.
 		plugin.p_params->plugin_setup();
@@ -139,6 +150,7 @@ void print_plugin_config(void) {
 			printf("        %s: %s\n", plugins[i]->args[arg*2],
 				plugins[i]->args[arg*2 + 1]);
 		}
+		printf("    Cache: %s\n", plugins[i]->cache_path);
 	}
 }
 
@@ -254,6 +266,7 @@ void plugins_cleanup(void) {
 		if (plugins[i]) {
 			plugins[i]->p_params->plugin_cleanup();
 			free(plugins[i]->args);
+			free(plugins[i]->cache_path);
 			dlclose(plugins[i]->p_handle);
 			free(plugins[i]);
 			plugins[i] = NULL;
