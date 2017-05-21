@@ -278,7 +278,6 @@ void plugins_cleanup(void) {
 	}
 	printf("All plugins free'd!\n");
 
-	printf("Deleting cache files...\n");
 	if (cache_delete_all() != 0) {
 		printf("Failed to delete cache files.\n");
 	}
