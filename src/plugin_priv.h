@@ -15,5 +15,6 @@
 	const PLUGIN_PARAMS *plugin_get_params(unsigned int index);
 	unsigned int plugins_get_count(void);
 	char *plugin_get_full_identifier(const char *name, unsigned int index);
+	char *plugin_get_cache_path(unsigned int index);
 	void plugins_cleanup(void);
 #endif

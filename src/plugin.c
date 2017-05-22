@@ -295,6 +295,13 @@ const PLUGIN_PARAMS *plugin_get_params(unsigned int index) {
 	}
 }
 
+char *plugin_get_cache_path(unsigned int index) {
+	if (index < plugin_count) {
+		return plugins[index]->cache_path;
+	}
+	return NULL;
+}
+
 char *plugin_get_full_identifier(const char *name, unsigned int index) {
 	/*
 	*  Build a plugin indentifier string of the

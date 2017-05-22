@@ -45,6 +45,11 @@ char *cache_create(const char *name) {
 				free(path);
 				return NULL;
 			}
+		} else {
+			// Error occured.
+			perror("access(): ");
+			free(path);
+			return NULL;
 		}
 	}
 

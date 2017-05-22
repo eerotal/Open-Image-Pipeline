@@ -1,0 +1,2 @@
+ - cache.c - LN: 40 ==> Check for errno values other than ENOENT too and properly exit on error.
+

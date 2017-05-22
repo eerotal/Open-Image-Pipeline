@@ -16,31 +16,22 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index) {
 	*  Write the supplied image into the cache of the supplied plugin.
 	*  This function returns 0 on success and 1 on failure.
 	*/
+	char *c_dir = NULL;
+	char *c_fullpath = NULL;
 
-	char *tmp_cachedir = NULL;
-	char *tmp_opath = NULL;
-	char *tmp_plugin_id = NULL;
-
-	tmp_plugin_id = plugin_get_full_identifier(plugin_get_params(p_index)->name, p_index);
-	if (tmp_plugin_id == NULL) {
+	c_dir = plugin_get_cache_path(p_index);
+	if (c_dir == NULL) {
 		return 1;
 	}
 
-	tmp_cachedir = file_path_join(cache_get_dir(), tmp_plugin_id);
-	free(tmp_plugin_id);
-	if (tmp_cachedir == NULL) {
+	c_fullpath = file_path_join(c_dir, "cache.jpg");
+	if (c_fullpath == NULL) {
 		return 1;
 	}
 
-	tmp_opath = file_path_join(tmp_cachedir, "cache.jpg");
-	free(tmp_cachedir);
-	if (tmp_opath == NULL) {
-		return 1;
-	}
-
-	printf("pipeline: Cache image: %s\n", tmp_opath);
-	img_save(img, tmp_opath);
-	free(tmp_opath);
+	printf("pipeline: Cache image: %s\n", c_fullpath);
+	img_save(img, c_fullpath);
+	free(c_fullpath);
 
 	return 0;
 }
