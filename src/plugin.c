@@ -16,6 +16,10 @@ static unsigned int plugin_count = 0;
 
 static int plugin_data_append(PLUGIN *plugin);
 
+static int plugin_set_dirty_args(unsigned int index);
+static int plugin_clear_dirty_args(unsigned int index);
+static int plugin_has_dirty_args(unsigned int index);
+
 static int plugin_data_append(PLUGIN *plugin) {
 	/*
 	*  Copy the plugin data in 'plugin' to
@@ -175,13 +179,21 @@ int plugin_feed(unsigned int index, const char **plugin_args,
 	/*
 	*  Feed image data to a plugin.
 	*/
+	unsigned int ret = 0;
 	if (index < plugin_count) {
-		plugins[index]->p_params->plugin_process(img, res,
+		if (!plugin_has_dirty_args(index)) {
+			printf("plugin: This plugin doesn't have the dirty args flag set.\n");
+			printf("plugin: You're making me do extra work, aren't you? *mumble*\n");
+		}
+
+		ret = plugins[index]->p_params->plugin_process(img, res,
 				plugin_args, plugin_args_count);
-		return 0;
-	} else {
-		return 1;
+		if (ret == 0) {
+			plugin_clear_dirty_args(index);
+			return 0;
+		}
 	}
+	return 1;
 }
 
 unsigned int plugins_get_count(void) {
@@ -249,6 +261,10 @@ int plugin_set_arg(const unsigned int index, const char *arg,
 		// Copy data.
 		strcpy(p_args[(*p_argc)*2 - 2], arg);
 		strcpy(p_args[(*p_argc)*2 - 1], value);
+
+		// Set the dirty args flag.
+		plugin_set_dirty_args(index);
+
 		return 0;
 	} else {
 		return 1;
@@ -320,6 +336,47 @@ char *plugin_get_full_identifier(const char *name, unsigned int index) {
 	free(index_str);
 
 	return identifier;
+}
+
+static int plugin_has_dirty_args(unsigned int index) {
+	/*
+	*  Return 1 if the plugin args have changed since
+	*  the plugin last processed an image and 0 otherwise.
+	*  This is mainly used by the caching code to check
+	*  whether an image should be processed again.
+	*/
+	if (index < plugin_count) {
+		return plugins[index]->dirty_args;
+	}
+	return 0;
+}
+
+static int plugin_set_dirty_args(unsigned int index) {
+	/*
+	*  Set the dirty args flag of a plugin. See
+	*  plugin_has_dirty_args() for an explanation of
+	*  the dirty flag. Returns 0 on success and 1 on
+	*  failure.
+	*/
+	if (index < plugin_count) {
+		plugins[index]->dirty_args = 1;
+		return 0;
+	}
+	return 1;
+}
+
+static int plugin_clear_dirty_args(unsigned int index) {
+	/*
+	*  Clear the dirty args flag of a plugin. See
+	*  plugin_has_dirty_args() for an explanation of
+	*  the dirty flag. Returns 0 on success and 1 on
+	*  failure.
+	*/
+	if (index < plugin_count) {
+		plugins[index]->dirty_args = 0;
+		return 0;
+	}
+	return 1;
 }
 
 void plugins_cleanup(void) {
