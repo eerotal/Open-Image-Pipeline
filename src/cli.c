@@ -6,7 +6,7 @@
 
 #include "cli_priv.h"
 
-#define CLI_GETOPT_OPTS "pvi:"
+#define CLI_GETOPT_OPTS "pvi:o:"
 
 static struct CLI_OPTS cli_opts;
 
@@ -22,19 +22,17 @@ int cli_parse_opts(int argc, char **argv) {
 				cli_opts.opt_verbose = CLI_OPT_ENABLED;
 				break;
 			case 'i':
-				cli_opts.opt_image_path = calloc(strlen(optarg) + 1, sizeof(char));
-				if (cli_opts.opt_image_path == NULL) {
-					fprintf(stderr, "calloc(): Failed to allocate memory.\n");
-					return 1;
-				}
-				strcpy(cli_opts.opt_image_path, optarg);
+				cli_opts.opt_in_path = optarg;
+				break;
+			case 'o':
+				cli_opts.opt_out_path = optarg;
 				break;
 			case 'p':
 				printf("cli: Cache preserve enabled!");
 				cli_opts.opt_preserve_cache = CLI_OPT_ENABLED;
 				break;
 			case '?':
-				if (optopt == 'i') {
+				if (optopt == 'i' || optopt == 'o') {
 					fprintf(stderr, "Option -%c requires an argument.\n", optopt);
 				} else if (isprint(optopt)) {
 					fprintf(stderr, "Unknown option -%c.\n", optopt);
@@ -57,7 +55,5 @@ const struct CLI_OPTS *cli_get_opts(void) {
 }
 
 void cli_opts_cleanup(void) {
-	if (cli_opts.opt_image_path != NULL) {
-		free(cli_opts.opt_image_path);
-	}
+
 }

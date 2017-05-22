@@ -8,7 +8,8 @@
 		unsigned int opt_preserve_cache;
 		unsigned int opt_verbose;
 		unsigned int opt_dryrun;
-		char *opt_image_path;
+		char *opt_in_path;
+		char *opt_out_path;
 	};
 
 	int cli_parse_opts(int argc, char **argv);

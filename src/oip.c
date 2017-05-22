@@ -14,12 +14,12 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	if (cli_get_opts()->opt_image_path == NULL) {
+	if (cli_get_opts()->opt_in_path == NULL) {
 		fprintf(stderr, "No input image specified. Exiting.\n");
 		return 1;
 	}
 
-	IMAGE *src = img_load(cli_get_opts()->opt_image_path);
+	IMAGE *src = img_load(cli_get_opts()->opt_in_path);
 	if (src == NULL) {
 		return 1;
 	}
@@ -33,15 +33,19 @@ int main(int argc, char **argv) {
 	plugin_load("plugins/", "convolution");
 
 	plugin_set_arg(0, "kernel", "0,-1,0,-1,5,-1,0,-1,0");
-	plugin_set_arg(0, "divisor", "2.0");
+	plugin_set_arg(0, "divisor", "1.0");
 
 	plugin_set_arg(1, "kernel", "0,-1,0,-1,5,-1,0,-1,0");
-	plugin_set_arg(1, "divisor", "2.0");
+	plugin_set_arg(1, "divisor", "1.0");
 
 	print_plugin_config();
 	pipeline_feed(src, result);
 
-	img_save(result, "res/kernel_output.jpg");
+	if (cli_get_opts()->opt_out_path != NULL) {
+		img_save(result, cli_get_opts()->opt_out_path);
+	} else {
+		img_save(result, "res/out.jpg");
+	}
 	img_free(src);
 	plugins_cleanup();
 	cli_opts_cleanup();
