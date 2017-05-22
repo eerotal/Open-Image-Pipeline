@@ -13,43 +13,26 @@
 #define CACHE_DIR "plugins/cache/"
 #define CACHE_PERMISSIONS S_IRWXU
 
-char *cache_create(const char *name, unsigned int id) {
+char *cache_get_dir(void) {
+	return CACHE_DIR;
+}
+
+char *cache_create(const char *name) {
 	// Construct full cache path.
-	unsigned int id_str_len = 0;
-	char *id_str = NULL;
 	char *path = NULL;
-
-	if (id == 0) {
-		id_str_len = 2;
-	} else {
-		id_str_len = floor(log10(id)) + 2;
-	}
-
-	// Allocate memory for the ID string.
-	errno = 0;
-	id_str = calloc(id_str_len, sizeof(char));
-	if (id_str == NULL) {
-		perror("calloc(): ");
-		return NULL;
-	}
-	sprintf(id_str, "%i", id);
 
 	/*
 	*  Allocate memory for the whole path string.
-	*  The string is of the form "<Cache Dir>/<plugin>-<ID>".
+	*  The string is of the form "<Cache Dir>/<Cache Name>".
 	*/
 	errno = 0;
-	path = calloc(strlen(CACHE_DIR) + strlen(name) + 1 + id_str_len + 1, sizeof(char));
+	path = calloc(strlen(CACHE_DIR) + strlen(name) + 1, sizeof(char));
 	if (path == NULL) {
 		perror("calloc(): ");
-		free(id_str);
 		return NULL;
 	}
 	strcat(path, CACHE_DIR);
 	strcat(path, name);
-	strcat(path, "-");
-	strcat(path, id_str);
-	free(id_str);
 
 	printf("cache: Creating cache directory: %s\n", path);
 

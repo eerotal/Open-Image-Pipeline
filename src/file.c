@@ -37,6 +37,39 @@ char *path_ensure_trailing_slash(const char *path) {
 	return path_proper;
 }
 
+char *file_path_join(const char *s1, const char *s2) {
+	/*
+	*  Join two strings into a filepath. This function
+	*  returns a pointer to a new string on success and
+	*  NULL on failure. Note that this function will fail
+	*  if either one of the arguments are NULL.
+	*/
+
+	char *ret = NULL;
+	char *s1_proper = NULL;
+	if (s1 == NULL || s2 == NULL) {
+		return NULL;
+	}
+
+	s1_proper = path_ensure_trailing_slash(s1);
+	if (s1_proper == NULL) {
+		return NULL;
+	}
+
+	ret = calloc(strlen(s1_proper) + strlen(s2) + 1, sizeof(char));
+	if (ret == NULL) {
+		perror("calloc(): ");
+		free(s1_proper);
+		return NULL;
+	}
+
+	strcat(ret, s1_proper);
+	strcat(ret, s2);
+	free(s1_proper);
+
+	return ret;
+}
+
 int rmdir_recursive(const char *rpath) {
 	struct stat statbuf;
 	struct dirent *f = NULL;

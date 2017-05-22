@@ -14,12 +14,12 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	if (cli_opts.opt_image_path == NULL) {
+	if (cli_get_opts()->opt_image_path == NULL) {
 		fprintf(stderr, "No input image specified. Exiting.\n");
 		return 1;
 	}
 
-	IMAGE *src = img_load(cli_opts.opt_image_path);
+	IMAGE *src = img_load(cli_get_opts()->opt_image_path);
 	if (src == NULL) {
 		return 1;
 	}

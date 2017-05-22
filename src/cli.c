@@ -6,7 +6,9 @@
 
 #include "cli_priv.h"
 
-#define CLI_GETOPT_OPTS "vi:"
+#define CLI_GETOPT_OPTS "pvi:"
+
+static struct CLI_OPTS cli_opts;
 
 int cli_parse_opts(int argc, char **argv) {
 	int ret;
@@ -27,6 +29,10 @@ int cli_parse_opts(int argc, char **argv) {
 				}
 				strcpy(cli_opts.opt_image_path, optarg);
 				break;
+			case 'p':
+				printf("cli: Cache preserve enabled!");
+				cli_opts.opt_preserve_cache = CLI_OPT_ENABLED;
+				break;
 			case '?':
 				if (optopt == 'i') {
 					fprintf(stderr, "Option -%c requires an argument.\n", optopt);
@@ -44,6 +50,10 @@ int cli_parse_opts(int argc, char **argv) {
 		printf("Non-option argument %s discarded.\n", argv[i]);
 	}
 	return 0;
+}
+
+const struct CLI_OPTS *cli_get_opts(void) {
+	return &cli_opts;
 }
 
 void cli_opts_cleanup(void) {
