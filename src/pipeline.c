@@ -19,7 +19,7 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 	char *c_dir = NULL;
 	char *c_fullpath = NULL;
 
-	c_dir = plugin_get_cache_path(p_index);
+	c_dir = plugin_get(p_index)->cache_path;
 	if (c_dir == NULL) {
 		return 1;
 	}
@@ -68,12 +68,12 @@ int pipeline_feed(const IMAGE *img, IMAGE *result, char *cache_id) {
 			t_start = clock();
 
 			// Check if a cached output file for this plugin already exists.
-			if (cache_file_exists(plugin_get_cache_name(i), cache_id)) {
+			if (cache_file_exists(plugin_get(i)->cache_name, cache_id)) {
 				printf("pipeline: Cache file exists.\n");
 			}
 
 			// Feed the image data to individual plugins.
-			if (plugin_feed(i, (const char**)plugin_args_get(i), plugin_args_get_count(i),
+			if (plugin_feed(i, (const char**)plugin_get(i)->args, plugin_get(i)->argc,
 					buf_ptr_1, buf_ptr_2) != 0) {
 
 				printf("pipeline: Failed to use plugin %i.\n", i);
