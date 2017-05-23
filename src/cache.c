@@ -36,6 +36,27 @@ char *cache_get_path(const char *cache_name) {
 	return fullpath;
 }
 
+char *cache_get_file_path(const char *cache_name, const char *cache_id) {
+	/*
+	*  Get the path to the file 'cache_id' in a named cache.
+	*  Returns a pointer to a string containing the path or
+	*  NULL on failure.
+	*/
+	char *cache_path = NULL;
+	char *cache_file = NULL;
+	cache_path = cache_get_path(cache_name);
+	if (cache_path == NULL) {
+		return NULL;
+	}
+
+	cache_file = file_path_join(cache_path, cache_id);
+	if (cache_file == NULL) {
+		free(cache_path);
+		return NULL;
+	}
+	return cache_file;
+}
+
 char *cache_create(const char *cache_name) {
 	/*
 	*  Create a named cache.
@@ -93,31 +114,16 @@ char *cache_create(const char *cache_name) {
 	return NULL;
 }
 
-int cache_file_exists(char *cache_name, char *cache_id) {
+int cache_file_exists(const char *cache_name, const char *cache_id) {
 	/*
 	*  Check if the file cache_id exists in cache_name.
 	*  Returns 1 in case it does and 0 otherwise.
 	*/
-	char *cache_full_path = NULL;
-	char *cache_file_path = NULL;
-
-	cache_full_path = cache_get_path(cache_name);
-	if (cache_full_path == NULL) {
-		return 0;
-	}
-
-	cache_file_path = file_path_join(cache_full_path, cache_id);
-	if (cache_file_path == NULL) {
-		free(cache_full_path);
-		return 0;
-	}
-
+	char *cache_file_path = cache_get_file_path(cache_name, cache_id);
 	if (access(cache_file_path, F_OK) == 0) {
-		free(cache_full_path);
 		free(cache_file_path);
 		return 1;
 	}
-	free(cache_full_path);
 	free(cache_file_path);
 	return 0;
 }

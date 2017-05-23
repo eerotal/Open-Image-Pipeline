@@ -10,6 +10,7 @@
 #include "cache_priv.h"
 
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *uuid);
+static unsigned int pipeline_get_first_dirty_plugin(const char *cache_id);
 
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *cache_id) {
 	/*
@@ -36,6 +37,22 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 	return 0;
 }
 
+static unsigned int pipeline_get_first_dirty_plugin(const char *cache_id) {
+	/*
+	*  Get the first dirty plugin in the pipeline. Cache_id
+	*  is the cache file to search for. Returns the index of
+	*  the plugin or zero if the plugin array is empty.
+	*/
+	for (unsigned int i = 0; i < plugins_get_count(); i++) {
+		if (plugin_get(i)->dirty_args ||
+			!cache_file_exists(plugin_get(i)->cache_name, cache_id)) {
+			printf("pipeline: First dirty plugin is %u.\n", i);
+			return i;
+		}
+	}
+	return 0;
+}
+
 int pipeline_feed(const IMAGE *img, IMAGE *result, char *cache_id) {
 	/*
 	*  Feed an image to the processing pipeline.
@@ -46,6 +63,7 @@ int pipeline_feed(const IMAGE *img, IMAGE *result, char *cache_id) {
 	*  and 1 on failure.
 	*/
 
+	char *cache_file_path = NULL;
 	int ret = 0;
 	clock_t t_start = 0;
 	float delta_t = 0;
@@ -63,14 +81,22 @@ int pipeline_feed(const IMAGE *img, IMAGE *result, char *cache_id) {
 			return 1;
 		}
 
-		for (unsigned int i = 0; i < plugins_get_count(); i++) {
+		// Loop over the plugins starting from the first dirty plugin.
+		unsigned int i = pipeline_get_first_dirty_plugin(cache_id);
+
+		// Plugins were skipped => Load image from cache.
+		if (i != 0) {
+			cache_file_path = cache_get_file_path(plugin_get(i)->cache_name, cache_id);
+			printf("pipeline: Loading image from cache: %s\n", cache_file_path);
+			buf_ptr_1 = img_load(cache_file_path);
+			if (buf_ptr_1 == NULL) {
+				return 1;
+			}
+		}
+
+		for (; i < plugins_get_count(); i++) {
 			printf("pipeline: Feeding image data to plugin %i.\n", i);
 			t_start = clock();
-
-			// Check if a cached output file for this plugin already exists.
-			if (cache_file_exists(plugin_get(i)->cache_name, cache_id)) {
-				printf("pipeline: Cache file exists.\n");
-			}
 
 			// Feed the image data to individual plugins.
 			if (plugin_feed(i, (const char**)plugin_get(i)->args, plugin_get(i)->argc,

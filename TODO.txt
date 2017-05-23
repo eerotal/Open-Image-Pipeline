@@ -1,2 +1,1 @@
-- Simplify plugin data access by creating a function for getting the PLUGIN struct
-  of a plugin and removing the individual functions for accessing different data.
+- Set the dirty flag on plugin creation.
