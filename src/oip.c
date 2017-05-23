@@ -2,13 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
 
 #include "plugin_priv.h"
 #include "pipeline_priv.h"
 #include "cli_priv.h"
 #include "imgutil/imgutil.h"
 
+static pthread_t *thread_cli_shell;
+
 int main(int argc, char **argv) {
+	// Read CLI options.
 	if (cli_parse_opts(argc, argv) != 0) {
 		printf("CLI argument parsing failed.\n");
 		return 1;
@@ -17,6 +21,12 @@ int main(int argc, char **argv) {
 	if (cli_opts.opt_image_path == NULL) {
 		fprintf(stderr, "No input image specified. Exiting.\n");
 		return 1;
+	}
+
+	// Init CLI shell.
+	thread_cli_shell = cli_shell_init();
+	if (thread_cli_shell == NULL) {
+		cli_opts_cleanup();
 	}
 
 	IMAGE *src = img_load(cli_opts.opt_image_path);
@@ -43,6 +53,7 @@ int main(int argc, char **argv) {
 
 	img_save(result, "res/kernel_output.jpg");
 	img_free(src);
+
 	plugins_cleanup();
 	cli_opts_cleanup();
 	return 0;
