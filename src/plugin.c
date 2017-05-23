@@ -54,6 +54,7 @@ static int plugin_data_append(PLUGIN *plugin) {
 	plugins[plugin_count - 1]->p_handle = plugin->p_handle;
 	plugins[plugin_count - 1]->p_params = plugin->p_params;
 	plugins[plugin_count - 1]->cache_path = plugin->cache_path;
+	plugins[plugin_count - 1]->cache_name = plugin->cache_name;
 	return 0;
 }
 
@@ -95,7 +96,7 @@ int plugin_load(char *dirpath, char *name) {
 		}
 
 		// Construct plugin parameter structure name.
-		params_struct_name_len = strlen(name) + strlen(PLUGIN_PARAMS_NAME_SUFFIX) + 1;
+		params_struct_name_len = strlen(name) + strlen(PLUGIN_INFO_NAME_SUFFIX) + 1;
 		params_struct_name = calloc(params_struct_name_len, sizeof(char));
 		if (!params_struct_name) {
 			printf("malloc(): Failed to allocate memory for params_struct_name.\n");
@@ -104,7 +105,7 @@ int plugin_load(char *dirpath, char *name) {
 			return 1;
 		}
 		strcat(params_struct_name, name);
-		strcat(params_struct_name, PLUGIN_PARAMS_NAME_SUFFIX);
+		strcat(params_struct_name, PLUGIN_INFO_NAME_SUFFIX);
 
 		// Store the plugin parameter pointer in plugin.p_params.
 		dlerror();
@@ -126,10 +127,9 @@ int plugin_load(char *dirpath, char *name) {
 			dlclose(plugin.p_handle);
 			return 1;
 		}
+		plugin.cache_name = cache_name;
 
 		cache_path = cache_create(cache_name);
-		free(cache_name);
-
 		if (cache_path == NULL) {
 			printf("Failed to create cache directory.\n");
 			free(path);
@@ -169,7 +169,8 @@ void print_plugin_config(void) {
 			printf("        %s: %s\n", plugins[i]->args[arg*2],
 				plugins[i]->args[arg*2 + 1]);
 		}
-		printf("    Cache: %s\n", plugins[i]->cache_path);
+		printf("    Cache name: %s\n", plugins[i]->cache_name);
+		printf("    Cache path: %s\n", plugins[i]->cache_path);
 	}
 }
 
@@ -287,7 +288,7 @@ int plugin_has_arg(const unsigned int index, const char *arg) {
 	return 0;
 }
 
-const PLUGIN_PARAMS *plugin_get_params(unsigned int index) {
+const PLUGIN_INFO *plugin_get_params(unsigned int index) {
 	if (index < plugin_count) {
 		return plugins[index]->p_params;
 	} else {
@@ -298,6 +299,13 @@ const PLUGIN_PARAMS *plugin_get_params(unsigned int index) {
 char *plugin_get_cache_path(unsigned int index) {
 	if (index < plugin_count) {
 		return plugins[index]->cache_path;
+	}
+	return NULL;
+}
+
+char *plugin_get_cache_name(unsigned int index) {
+	if (index < plugin_count) {
+		return plugins[index]->cache_name;
 	}
 	return NULL;
 }

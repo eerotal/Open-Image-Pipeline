@@ -1,2 +1,2 @@
- - cache.c - LN: 40 ==> Check for errno values other than ENOENT too and properly exit on error.
-
+- Simplify plugin data access by creating a function for getting the PLUGIN struct
+  of a plugin and removing the individual functions for accessing different data.
