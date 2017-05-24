@@ -5,6 +5,10 @@
 #include <stdlib.h>
 
 #include "cli_priv.h"
+#include "oip_priv.h"
+#include "plugin_priv.h"
+#include "pipeline_priv.h"
+#include "imgutil/imgutil.h"
 
 #define CLI_GETOPT_OPTS "vi:"
 #define SHELL_BUFFER_LEN 100
@@ -69,6 +73,9 @@ pthread_t *cli_shell_init(void) {
 static void *cli_shell_run(void *args) {
 	char shell_buff[SHELL_BUFFER_LEN] = { '\0' };
 
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+
 	printf("cli-shell: Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {
 		pthread_testcancel();
@@ -99,20 +106,51 @@ static void cli_shell_parse(char *str) {
 	}
 	num_keywords = keyword_index;
 
-	// Do stuff based on the commands.
 	if (num_keywords == 0) {
 		return;
 	}
 
-	if (strcmp(keywords[0], "plugload") == 0) {
-		if (num_keywords == 2) {
-			printf("cli-shell: Load plugin %s. TODO\n", keywords[1]);
-		} else {
-			printf("cli-shell: plugload requires a plugin name.\n");
-		}
-	} else if (strcmp(keywords[0], "exit") == 0) {
-		printf("cli-shell: Exit. TODO\n");
+	// Execute the commands.
+	if (strcmp(keywords[0], "exit") == 0) {
+		printf("cli-shell: Exit!\n");
+		oip_exit();
 		return;
+	} else if (strcmp(keywords[0], "plugload") == 0) {
+		if (num_keywords == 3) {
+			if (plugin_load(keywords[1], keywords[2]) != 0) {
+				printf("cli-shell: Failed to load plugin.\n");
+				return;
+			}
+		} else {
+			printf("cli-shell: plugload missing arguments.\n");
+			return;
+		}
+	} else if (strcmp(keywords[0], "plugprint") == 0) {
+		print_plugin_config();
+	} else if (strcmp(keywords[0], "feed") == 0) {
+		if (num_keywords == 3) {
+			printf("cli-shell: Loading %s.\n", keywords[1]);
+			IMAGE *src = img_load(keywords[1]);
+			if (src == NULL) {
+				return;
+			}
+			IMAGE *result = img_alloc(0, 0);
+			if (!result) {
+				return;
+			}
+			if (pipeline_feed(src, result) != 0) {
+				printf("cli-shell: Image processing failed.\n");
+				return;
+			}
+
+			img_save(result, keywords[2]);
+
+			img_free(src);
+			img_free(result);
+			return;
+		} else {
+			printf("cli-shell: feed missing arguments.\n");
+			return;
+		}
 	}
 }
-

@@ -10,6 +10,28 @@
 #include "imgutil/imgutil.h"
 
 static pthread_t *thread_cli_shell;
+static int exit_queued = 0;
+
+static void oip_cleanup(void);
+
+static void oip_cleanup(void) {
+	// Run cleanup functions.
+	plugins_cleanup();
+	cli_opts_cleanup();
+
+	// Cancel the CLI shell thread.
+	if (pthread_cancel(*thread_cli_shell) != 0) {
+		perror("pthread_cancel(): ");
+	}
+
+	if (pthread_join(*thread_cli_shell, NULL) != 0) {
+		perror("pthread_join(): ");
+	}
+}
+
+void oip_exit(void) {
+	exit_queued = 1;
+}
 
 int main(int argc, char **argv) {
 	// Read CLI options.
@@ -29,7 +51,13 @@ int main(int argc, char **argv) {
 		cli_opts_cleanup();
 	}
 
-	IMAGE *src = img_load(cli_opts.opt_image_path);
+	while (!exit_queued) {}
+
+	// Run cleanup.
+	oip_cleanup();
+
+
+	/*IMAGE *src = img_load(cli_opts.opt_image_path);
 	if (src == NULL) {
 		return 1;
 	}
@@ -52,9 +80,6 @@ int main(int argc, char **argv) {
 	pipeline_feed(src, result);
 
 	img_save(result, "res/kernel_output.jpg");
-	img_free(src);
-
-	plugins_cleanup();
-	cli_opts_cleanup();
+	img_free(src);*/
 	return 0;
 }

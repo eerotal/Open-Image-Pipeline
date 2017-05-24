@@ -1,1 +1,3 @@
-- Implement cache deletion in cache.c
+file.c: 
+    rmdir_recursive():
+      - Check if the directory exists before trying to delete it.
