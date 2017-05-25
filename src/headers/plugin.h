@@ -3,10 +3,10 @@
 
 	#include "imgutil/imgutil.h"
 
-	#define PLUGIN_PARAMS_NAME_SUFFIX "_plugin_params"
-	#define PLUGIN_PARAMS_NAME(NAME) ( NAME ## _plugin_params )
+	#define PLUGIN_INFO_NAME_SUFFIX "_plugin_params"
+	#define PLUGIN_INFO_NAME(NAME) ( NAME ## _plugin_params )
 
-	typedef struct STRUCT_PLUGIN_PARAMS {
+	typedef struct STRUCT_PLUGIN_INFO {
 		char *name;
 		char *descr;
 		char *author;
@@ -20,13 +20,15 @@
 					const unsigned int plugin_args_count);
 		int (*plugin_setup)(void);
 		void (*plugin_cleanup)(void);
-	} PLUGIN_PARAMS;
+	} PLUGIN_INFO;
 
 	typedef struct STRUCT_PLUGIN {
-		PLUGIN_PARAMS *p_params;
+		PLUGIN_INFO *p_params;
 		void *p_handle;
 		char **args;
 		unsigned int argc;
+		unsigned int dirty_args;
 		char *cache_path;
+		char *cache_name;
 	} PLUGIN;
 #endif

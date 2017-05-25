@@ -11,7 +11,10 @@
 #include "pipeline_priv.h"
 #include "imgutil/imgutil.h"
 
-#define CLI_GETOPT_OPTS "vi:"
+
+static struct CLI_OPTS cli_opts;
+
+#define CLI_GETOPT_OPTS "v:o:"
 #define SHELL_BUFFER_LEN 100
 
 #define NUM_CLI_CMD_PROTOS 5
@@ -43,16 +46,12 @@ int cli_parse_opts(int argc, char **argv) {
 			case 'v':
 				cli_opts.opt_verbose = CLI_OPT_ENABLED;
 				break;
-			case 'i':
-				cli_opts.opt_image_path = calloc(strlen(optarg) + 1, sizeof(char));
-				if (cli_opts.opt_image_path == NULL) {
-					fprintf(stderr, "calloc(): Failed to allocate memory.\n");
-					return 1;
-				}
-				strcpy(cli_opts.opt_image_path, optarg);
+			case 'p':
+				printf("cli: Cache preserve enabled!");
+				cli_opts.opt_preserve_cache = CLI_OPT_ENABLED;
 				break;
 			case '?':
-				if (optopt == 'i') {
+				if (optopt == 'i' || optopt == 'o') {
 					fprintf(stderr, "Option -%c requires an argument.\n", optopt);
 				} else if (isprint(optopt)) {
 					fprintf(stderr, "Unknown option -%c.\n", optopt);
@@ -70,10 +69,12 @@ int cli_parse_opts(int argc, char **argv) {
 	return 0;
 }
 
+const struct CLI_OPTS *cli_get_opts(void) {
+	return &cli_opts;
+}
+
 void cli_opts_cleanup(void) {
-	if (cli_opts.opt_image_path != NULL) {
-		free(cli_opts.opt_image_path);
-	}
+
 }
 
 pthread_t *cli_shell_init(void) {
@@ -183,8 +184,20 @@ static int cli_shell_execute(unsigned int proto, char **keywords, unsigned int n
 			if (!result) {
 				break;
 			}
-			if (pipeline_feed(src, result) != 0) {
+
+			// Generate a cache ID.
+			char *cache_id = pipeline_gen_new_cache_id();
+			if (cache_id == NULL) {
+				img_free(src);
+				img_free(result);
+				break;
+			}
+
+			if (pipeline_feed(src, result, cache_id) != 0) {
 				printf("cli-shell: Image processing failed.\n");
+				img_free(src);
+				img_free(result);
+				free(cache_id);
 				break;
 			}
 
@@ -192,6 +205,7 @@ static int cli_shell_execute(unsigned int proto, char **keywords, unsigned int n
 
 			img_free(src);
 			img_free(result);
+			free(cache_id);
 			break;
 		case 4: ; // exit
 			oip_exit();

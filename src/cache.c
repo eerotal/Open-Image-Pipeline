@@ -10,58 +10,82 @@
 
 #include "file.h"
 
-#define CACHE_DIR "plugins/cache/"
+#define CACHE_ROOT "plugins/cache/"
 #define CACHE_PERMISSIONS S_IRWXU
 
-char *cache_create(const char *name, unsigned int id) {
-	// Construct full cache path.
-	unsigned int id_str_len = 0;
-	char *id_str = NULL;
-	char *path = NULL;
+char *cache_get_root(void) {
+	return CACHE_ROOT;
+}
 
-	if (id == 0) {
-		id_str_len = 2;
-	} else {
-		id_str_len = floor(log10(id)) + 2;
-	}
-
-	// Allocate memory for the ID string.
-	errno = 0;
-	id_str = calloc(id_str_len, sizeof(char));
-	if (id_str == NULL) {
-		perror("calloc(): ");
-		return NULL;
-	}
-	sprintf(id_str, "%i", id);
-
+char *cache_get_path(const char *cache_name) {
 	/*
-	*  Allocate memory for the whole path string.
-	*  The string is of the form "<Cache Dir>/<plugin>-<ID>".
+	*  Get the full path to a named cache.
+	*  Returns a pointer to a string containing the
+	*  path on success and NULL on failure.
 	*/
+
+	char *fullpath = NULL;
 	errno = 0;
-	path = calloc(strlen(CACHE_DIR) + strlen(name) + 1 + id_str_len + 1, sizeof(char));
-	if (path == NULL) {
+	fullpath = calloc(strlen(CACHE_ROOT) + strlen(cache_name) + 1, sizeof(char));
+	if (fullpath == NULL) {
 		perror("calloc(): ");
-		free(id_str);
 		return NULL;
 	}
-	strcat(path, CACHE_DIR);
-	strcat(path, name);
-	strcat(path, "-");
-	strcat(path, id_str);
-	free(id_str);
+	strcat(fullpath, CACHE_ROOT);
+	strcat(fullpath, cache_name);
+	return fullpath;
+}
+
+char *cache_get_file_path(const char *cache_name, const char *cache_id) {
+	/*
+	*  Get the path to the file 'cache_id' in a named cache.
+	*  Returns a pointer to a string containing the path or
+	*  NULL on failure.
+	*/
+	char *cache_path = NULL;
+	char *cache_file = NULL;
+	cache_path = cache_get_path(cache_name);
+	if (cache_path == NULL) {
+		return NULL;
+	}
+
+	cache_file = file_path_join(cache_path, cache_id);
+	if (cache_file == NULL) {
+		free(cache_path);
+		return NULL;
+	}
+	return cache_file;
+}
+
+char *cache_create(const char *cache_name) {
+	/*
+	*  Create a named cache.
+	*  Returns a pointer to a string containing the
+	*  cache path on success and NULL on failure.
+	*/
+
+	char *path = NULL;
+	path = cache_get_path(cache_name);
+	if (path == NULL) {
+		return NULL;
+	}
 
 	printf("cache: Creating cache directory: %s\n", path);
 
 	errno = 0;
-	if (access(CACHE_DIR, F_OK) != 0) {
+	if (access(CACHE_ROOT, F_OK) != 0) {
 		if (errno == ENOENT) {
 			// Create the cache directory.
-			if (mkdir(CACHE_DIR, CACHE_PERMISSIONS) == -1) {
+			if (mkdir(CACHE_ROOT, CACHE_PERMISSIONS) == -1) {
 				perror("mkdir(): ");
 				free(path);
 				return NULL;
 			}
+		} else {
+			// Error occured.
+			perror("access(): ");
+			free(path);
+			return NULL;
 		}
 	}
 
@@ -90,9 +114,23 @@ char *cache_create(const char *name, unsigned int id) {
 	return NULL;
 }
 
+int cache_file_exists(const char *cache_name, const char *cache_id) {
+	/*
+	*  Check if the file cache_id exists in cache_name.
+	*  Returns 1 in case it does and 0 otherwise.
+	*/
+	char *cache_file_path = cache_get_file_path(cache_name, cache_id);
+	if (access(cache_file_path, F_OK) == 0) {
+		free(cache_file_path);
+		return 1;
+	}
+	free(cache_file_path);
+	return 0;
+}
+
 int cache_delete_all(void) {
 	printf("cache: Deleting all cache files.\n");
-	if (rmdir_recursive(CACHE_DIR) == 1) {
+	if (rmdir_recursive(CACHE_ROOT) == 1) {
 		printf("Recursive cache delete failed.\n");
 		return 1;
 	}

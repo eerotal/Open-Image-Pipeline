@@ -3,8 +3,11 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <string.h>
+#include <math.h>
+#include <errno.h>
 
 #include "headers/plugin.h"
+#include "cli_priv.h"
 #include "plugin_priv.h"
 #include "cache_priv.h"
 
@@ -43,10 +46,12 @@ static int plugin_data_append(PLUGIN *plugin) {
 		return 1;
 	}
 
-	// Copy plugin data.
+	// Copy plugin data pointers.
 	plugins[plugin_count - 1]->p_handle = plugin->p_handle;
 	plugins[plugin_count - 1]->p_params = plugin->p_params;
 	plugins[plugin_count - 1]->cache_path = plugin->cache_path;
+	plugins[plugin_count - 1]->cache_name = plugin->cache_name;
+	plugins[plugin_count - 1]->dirty_args = plugin->dirty_args;
 	return 0;
 }
 
@@ -59,6 +64,7 @@ int plugin_load(char *dirpath, char *name) {
 	char *path = NULL;
 	char *params_struct_name = NULL;
 	char *cache_path = NULL;
+	char *cache_name = NULL;
 
 	unsigned int path_len = 0;
 	unsigned int params_struct_name_len = 0;
@@ -87,7 +93,7 @@ int plugin_load(char *dirpath, char *name) {
 		}
 
 		// Construct plugin parameter structure name.
-		params_struct_name_len = strlen(name) + strlen(PLUGIN_PARAMS_NAME_SUFFIX) + 1;
+		params_struct_name_len = strlen(name) + strlen(PLUGIN_INFO_NAME_SUFFIX) + 1;
 		params_struct_name = calloc(params_struct_name_len, sizeof(char));
 		if (!params_struct_name) {
 			printf("malloc(): Failed to allocate memory for params_struct_name.\n");
@@ -96,7 +102,7 @@ int plugin_load(char *dirpath, char *name) {
 			return 1;
 		}
 		strcat(params_struct_name, name);
-		strcat(params_struct_name, PLUGIN_PARAMS_NAME_SUFFIX);
+		strcat(params_struct_name, PLUGIN_INFO_NAME_SUFFIX);
 
 		// Store the plugin parameter pointer in plugin.p_params.
 		dlerror();
@@ -110,7 +116,17 @@ int plugin_load(char *dirpath, char *name) {
 		}
 
 		// Create plugin cache.
-		cache_path = cache_create(name, plugin_count);
+		cache_name = plugin_get_full_identifier(name, plugin_count);
+		if (cache_name == NULL) {
+			printf("Failed to get plugin identifier.\n");
+			free(path);
+			free(params_struct_name);
+			dlclose(plugin.p_handle);
+			return 1;
+		}
+		plugin.cache_name = cache_name;
+
+		cache_path = cache_create(cache_name);
 		if (cache_path == NULL) {
 			printf("Failed to create cache directory.\n");
 			free(path);
@@ -120,6 +136,9 @@ int plugin_load(char *dirpath, char *name) {
 		} else {
 			plugin.cache_path = cache_path;
 		}
+
+		// Set the dirty args flag.
+		plugin.dirty_args = 1;
 
 		// Append the plugin data to the plugin array.
 		plugin_data_append(&plugin);
@@ -150,7 +169,8 @@ void print_plugin_config(void) {
 			printf("        %s: %s\n", plugins[i]->args[arg*2],
 				plugins[i]->args[arg*2 + 1]);
 		}
-		printf("    Cache: %s\n", plugins[i]->cache_path);
+		printf("    Cache name: %s\n", plugins[i]->cache_name);
+		printf("    Cache path: %s\n", plugins[i]->cache_path);
 	}
 }
 
@@ -160,31 +180,20 @@ int plugin_feed(unsigned int index, const char **plugin_args,
 	/*
 	*  Feed image data to a plugin.
 	*/
+	unsigned int ret = 0;
 	if (index < plugin_count) {
-		plugins[index]->p_params->plugin_process(img, res,
+		ret = plugins[index]->p_params->plugin_process(img, res,
 				plugin_args, plugin_args_count);
-		return 0;
-	} else {
-		return 1;
+		if (ret == 0) {
+			plugin_get(index)->dirty_args = 0;
+			return 0;
+		}
 	}
+	return 1;
 }
 
 unsigned int plugins_get_count(void) {
 	return plugin_count;
-}
-
-char **plugin_args_get(unsigned int index) {
-	if (index < plugin_count) {
-		return plugins[index]->args;
-	}
-	return NULL;
-}
-
-unsigned int plugin_args_get_count(unsigned int index) {
-	if (index < plugin_count) {
-		return plugins[index]->argc;
-	}
-	return 0;
 }
 
 int plugin_set_arg(const unsigned int index, const char *arg,
@@ -234,6 +243,10 @@ int plugin_set_arg(const unsigned int index, const char *arg,
 		// Copy data.
 		strcpy(p_args[(*p_argc)*2 - 2], arg);
 		strcpy(p_args[(*p_argc)*2 - 1], value);
+
+		// Set the dirty args flag.
+		plugin_get(index)->dirty_args = 1;
+
 		return 0;
 	} else {
 		return 1;
@@ -254,6 +267,60 @@ int plugin_has_arg(const unsigned int index, const char *arg) {
 		}
 	}
 	return 0;
+}
+
+PLUGIN *plugin_get(unsigned int index) {
+	/*
+	*  Return plugin data at index or NULL if
+	*  the plugin doesn't exist.
+	*/
+	if (index < plugin_count) {
+		return plugins[index];
+	}
+	return NULL;
+}
+
+char *plugin_get_full_identifier(const char *name, unsigned int index) {
+	/*
+	*  Build a plugin indentifier string of the
+	*  form <Plugin Name>-<Plugin Index>. This function
+	*  returns a pointer to a new string on success and NULL
+	*  on failure.
+	*/
+
+	unsigned int index_str_len = 0;
+	char *index_str = NULL;
+	char *identifier = NULL;
+
+	if (index == 0) {
+		index_str_len = 2;
+	} else {
+		index_str_len = floor(log10(index)) + 2;
+	}
+
+	// Allocate memory for the ID string.
+	errno = 0;
+	index_str = calloc(index_str_len, sizeof(char));
+	if (index_str == NULL) {
+		perror("calloc(): ");
+		return NULL;
+	}
+	sprintf(index_str, "%i", index);
+
+	// Allocate space for the full identifier.
+	errno = 0;
+	identifier = calloc(strlen(name) + 1 + strlen(index_str) + 1, sizeof(char));
+	if (identifier == NULL) {
+		perror("calloc(): ");
+		free(index_str);
+		return NULL;
+	}
+	strcat(identifier, name);
+	strcat(identifier, "-");
+	strcat(identifier, index_str);
+	free(index_str);
+
+	return identifier;
 }
 
 void plugins_cleanup(void) {
@@ -278,8 +345,12 @@ void plugins_cleanup(void) {
 	}
 	printf("All plugins free'd!\n");
 
-	if (cache_delete_all() != 0) {
-		printf("Failed to delete cache files.\n");
+	if (!cli_get_opts()->opt_preserve_cache) {
+		if (cache_delete_all() != 0) {
+			printf("Failed to delete cache files.\n");
+		}
+	} else {
+		printf("Skipping cache deletion because cache preservation is enabled.\n");
 	}
 
 	printf("Cleanup done!\n");
