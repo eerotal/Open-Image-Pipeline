@@ -1,9 +1,7 @@
-plugin.c:
-    plugin_load():
-        - Set the dirty flag on plugin creation.
 file.c: 
     rmdir_recursive():
       - Check if the directory exists before trying to delete it.
 
 unknown:
     - Memory corruption when exiting after image processing. (Freeing non-allocated memory?)
+        - Can't seem to reproduce anymore. Weird.

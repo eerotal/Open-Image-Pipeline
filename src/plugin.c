@@ -51,6 +51,7 @@ static int plugin_data_append(PLUGIN *plugin) {
 	plugins[plugin_count - 1]->p_params = plugin->p_params;
 	plugins[plugin_count - 1]->cache_path = plugin->cache_path;
 	plugins[plugin_count - 1]->cache_name = plugin->cache_name;
+	plugins[plugin_count - 1]->dirty_args = plugin->dirty_args;
 	return 0;
 }
 
@@ -136,6 +137,9 @@ int plugin_load(char *dirpath, char *name) {
 			plugin.cache_path = cache_path;
 		}
 
+		// Set the dirty args flag.
+		plugin.dirty_args = 1;
+
 		// Append the plugin data to the plugin array.
 		plugin_data_append(&plugin);
 
@@ -178,11 +182,6 @@ int plugin_feed(unsigned int index, const char **plugin_args,
 	*/
 	unsigned int ret = 0;
 	if (index < plugin_count) {
-		if (!plugin_get(index)->dirty_args) {
-			printf("plugin: This plugin doesn't have the dirty args flag set.\n");
-			printf("plugin: You're making me do extra work, aren't you? *mumble*\n");
-		}
-
 		ret = plugins[index]->p_params->plugin_process(img, res,
 				plugin_args, plugin_args_count);
 		if (ret == 0) {
