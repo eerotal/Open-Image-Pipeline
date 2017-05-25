@@ -9,7 +9,7 @@
 #define IMGUTIL_OUTPUT_FORMAT FIF_JPEG
 #define IMGUTIL_INTERNAL_BPP 32
 
-IMAGE *img_load(char *path) {
+IMAGE *img_load(const char *path) {
 	FREE_IMAGE_FORMAT ftype = FIF_UNKNOWN;
 	FIBITMAP *fimage = NULL;
 	FIBITMAP *fimage_converted = NULL;

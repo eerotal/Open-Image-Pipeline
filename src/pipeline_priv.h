@@ -2,7 +2,7 @@
 	#define PIPELINE_PRIV_INCLUDED
 
 	#include "imgutil/imgutil.h"
+	#include "job_priv.h"
 
-	char *pipeline_gen_new_cache_id(void);
-	int pipeline_feed(const IMAGE *img, IMAGE *result, char *data_id);
+	int pipeline_feed(JOB *job);
 #endif
