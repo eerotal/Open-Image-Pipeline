@@ -9,8 +9,30 @@
 #include "file.h"
 #include "cache_priv.h"
 
+static long long int last_gen_cache_id = 0;
+
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *uuid);
 static unsigned int pipeline_get_first_dirty_plugin(const char *cache_id);
+
+char *pipeline_gen_new_cache_id(void) {
+	/*
+	*  Generate a cache ID that's guaranteed to be unique
+	*  only for this process. Currently this implementation
+	*  simply generates an ID from a simple integer counter
+	*  that's incremented every time this function is called.
+	*  This function returns a pointer to a newly allocated
+	*  string on success and a NULL pointer on failure.
+	*/
+	char *ret = NULL;
+	last_gen_cache_id++;
+	ret = calloc(round(log10(last_gen_cache_id)) + 2, sizeof(char));
+	if (ret == NULL) {
+		perror("calloc(): ");
+		return NULL;
+	}
+	sprintf(ret, "%llu", last_gen_cache_id);
+	return ret;
+}
 
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *cache_id) {
 	/*
