@@ -1,6 +1,6 @@
 CC=gcc
 CCFLAGS=-Wall -Wpedantic -std=gnu99 -g
-LFLAGS=-ldl -lfreeimage -lm
+LFLAGS=-ldl -lfreeimage -lm -pthread
 NAME=oip
 
 SRCDIR=src
