@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "cli_priv.h"
 #include "oip_priv.h"
@@ -78,6 +79,7 @@ void cli_opts_cleanup(void) {
 }
 
 pthread_t *cli_shell_init(void) {
+	errno = 0;
 	if (pthread_create(&thread_cli_shell, NULL, &cli_shell_run, NULL) != 0) {
 		perror("pthread_create(): ");
 		return NULL;
@@ -93,11 +95,13 @@ static void *cli_shell_run(void *args) {
 
 	printf("cli-shell: Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {
-		pthread_testcancel();
 		printf(">> ");
-		if (fgets(shell_buff, SHELL_BUFFER_LEN, stdin) == NULL) {
-			perror("fgets(): ");
-			continue;
+		errno = 0;
+		while (fgets(shell_buff, SHELL_BUFFER_LEN, stdin) == NULL) {
+			pthread_testcancel();
+			if (errno != 0) {
+				perror("fgets(): ");
+			}
 		}
 		if (cli_shell_parse(shell_buff) != 0) {
 			printf("cli-shell: Command parsing failed.\n");
@@ -225,6 +229,7 @@ static int cli_shell_parse(char *str) {
 		if (str[i] == ' ' || str[i] == '\n') {
 			// Extend keywords array.
 			c_keywords_len++;
+			errno = 0;
 			char **tmp_keywords = realloc(keywords, c_keywords_len*sizeof(char*));
 			if (tmp_keywords == NULL) {
 				/*
@@ -242,6 +247,7 @@ static int cli_shell_parse(char *str) {
 			keywords = tmp_keywords;
 
 			// Allocate memory for the string to be copied.
+			errno = 0;
 			keywords[c_keywords_len - 1] = calloc(i - s, sizeof(char));
 			if (keywords[c_keywords_len - 1] == NULL) {
 				// Free the keywords array.
@@ -269,6 +275,7 @@ static int cli_shell_parse(char *str) {
 		*  Strip newline from input string and print
 		*  "Invalid command".
 		*/
+		errno = 0;
 		char *tmp_str = malloc(strlen(str)*sizeof(char));
 		if (tmp_str == NULL) {
 			perror("malloc(): ");
