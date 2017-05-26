@@ -15,7 +15,7 @@
 
 static struct CLI_OPTS cli_opts;
 
-#define CLI_GETOPT_OPTS "v:o:"
+#define CLI_GETOPT_OPTS "vp"
 #define SHELL_BUFFER_LEN 100
 
 #define NUM_CLI_CMD_PROTOS 5
@@ -52,9 +52,7 @@ int cli_parse_opts(int argc, char **argv) {
 				cli_opts.opt_preserve_cache = CLI_OPT_ENABLED;
 				break;
 			case '?':
-				if (optopt == 'i' || optopt == 'o') {
-					fprintf(stderr, "Option -%c requires an argument.\n", optopt);
-				} else if (isprint(optopt)) {
+				if (isprint(optopt)) {
 					fprintf(stderr, "Unknown option -%c.\n", optopt);
 				} else {
 					fprintf(stderr, "Unknown option character. 0x%x.", optopt);

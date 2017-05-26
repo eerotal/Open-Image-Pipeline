@@ -55,6 +55,8 @@ JOB *job_create(const char *fpath) {
 	sprintf(job->cache_id, "%llu", last_job_id);
 	last_job_id++;
 
+	job->status = JOB_STATUS_PENDING;
+
 	return job;
 }
 

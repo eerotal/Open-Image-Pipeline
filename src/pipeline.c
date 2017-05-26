@@ -68,6 +68,9 @@ int pipeline_feed(JOB *job) {
 	IMAGE *buf_ptr_2 = NULL;
 
 	if (plugins_get_count() != 0) {
+		// Set the job status to fail initially and correct it later.
+		job->status = JOB_STATUS_FAIL;
+
 		buf_ptr_1 = job->src_img;
 		buf_ptr_2 = img_alloc(0, 0);
 		if (!buf_ptr_2) {
@@ -128,6 +131,9 @@ int pipeline_feed(JOB *job) {
 
 		if (img_realloc(job->result_img, buf_ptr_1->w, buf_ptr_1->h) == 0) {
 			memcpy(job->result_img->img, buf_ptr_1->img, img_bytelen(job->result_img));
+
+			// Set the job status to success.
+			job->status = JOB_STATUS_SUCCESS;
 		} else {
 			ret = 1;
 		}
