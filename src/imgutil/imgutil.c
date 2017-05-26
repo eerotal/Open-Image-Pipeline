@@ -106,7 +106,7 @@ int img_realloc(IMAGE *img, uint32_t w, uint32_t h) {
 
 int img_cpy(IMAGE *dest, const IMAGE *src) {
 	if (dest->w == src->w && dest->h == src->h) {
-		memcpy(dest, src, img_bytelen(dest));
+		memcpy(dest->img, src->img, img_bytelen(dest));
 		return 0;
 	} else {
 		return 1;
