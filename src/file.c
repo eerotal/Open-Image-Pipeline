@@ -21,14 +21,14 @@ char *path_ensure_trailing_slash(const char *path) {
 	if (path[strlen(path) - 1] == DIRECTORY_SEPARATOR) {
 		path_proper = calloc(strlen(path) + 1, sizeof(char));
 		if (path_proper == NULL) {
-			perror("calloc(): ");
+			perror("file: calloc()");
 			return NULL;
 		}
 		strcpy(path_proper, path);
 	} else {
 		path_proper = calloc(strlen(path) + 2, sizeof(char));
 		if (path_proper == NULL) {
-			perror("calloc(): ");
+			perror("file: calloc()");
 			return NULL;
 		}
 		strcat(path_proper, path);
@@ -58,7 +58,7 @@ char *file_path_join(const char *s1, const char *s2) {
 
 	ret = calloc(strlen(s1_proper) + strlen(s2) + 1, sizeof(char));
 	if (ret == NULL) {
-		perror("calloc(): ");
+		perror("file: calloc()");
 		free(s1_proper);
 		return NULL;
 	}
@@ -84,9 +84,17 @@ int rmdir_recursive(const char *rpath) {
 	}
 
 	errno = 0;
+	if (access(rpath_proper, F_OK) != 0) {
+		perror("file: access()");
+		free(rpath_proper);
+		return 1;
+	}
+
+	errno = 0;
 	dir = opendir(rpath_proper);
 	if (dir == NULL) {
-		perror("opendir(): ");
+		perror("file: opendir()");
+		free(rpath_proper);
 		return 1;
 	}
 
@@ -101,7 +109,7 @@ int rmdir_recursive(const char *rpath) {
 		errno = 0;
 		tmp_fpath = realloc(fpath, strlen(rpath_proper) + strlen(f->d_name) + 1);
 		if (tmp_fpath == NULL) {
-			perror("realloc(): ");
+			perror("file: realloc()");
 			free(rpath_proper);
 			closedir(dir);
 			return 1;
@@ -114,7 +122,7 @@ int rmdir_recursive(const char *rpath) {
 		// Get information about the path.
 		errno = 0;
 		if (stat(fpath, &statbuf) == -1) {
-			perror("stat(): ");
+			perror("file: stat()");
 			free(fpath);
 			free(rpath_proper);
 			closedir(dir);
@@ -130,7 +138,7 @@ int rmdir_recursive(const char *rpath) {
 			rmdir_recursive(fpath);
 		} else {
 			if (unlink(fpath) == -1) {
-				perror("unlink(): ");
+				perror("file: unlink()");
 				free(fpath);
 				free(rpath_proper);
 				closedir(dir);
@@ -140,7 +148,7 @@ int rmdir_recursive(const char *rpath) {
 	}
 
 	if (errno != 0) {
-		perror("readdir(): ");
+		perror("file: readdir()");
 		free(fpath);
 		free(rpath_proper);
 		closedir(dir);
@@ -154,7 +162,7 @@ int rmdir_recursive(const char *rpath) {
 	// Remove the (now empty) directory.
 	errno = 0;
 	if (rmdir(rpath) == -1) {
-		perror("rmdir(): ");
+		perror("file: rmdir()");
 		return 1;
 	}
 
