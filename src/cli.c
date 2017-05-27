@@ -18,7 +18,7 @@ static struct CLI_OPTS cli_opts;
 #define CLI_GETOPT_OPTS "vp"
 #define SHELL_BUFFER_LEN 100
 
-#define NUM_CLI_CMD_PROTOS 9
+#define NUM_CLI_CMD_PROTOS 10
 #define NUM_CLI_CMD_MAX_KEYWORDS 10
 
 static pthread_t thread_cli_shell;
@@ -34,7 +34,21 @@ static char *cli_cmd_prototypes[NUM_CLI_CMD_PROTOS][NUM_CLI_CMD_MAX_KEYWORDS] = 
 	{"job", "delete", "%s"},
 	{"job", "save", "%s"},
 	{"job", "list"},
+	{"help"},
 	{"exit"}
+};
+
+static char *cli_cmd_help[NUM_CLI_CMD_PROTOS] = {
+	"plugin load <directory> <plugin name>  -------  Load the plugin <plugin name> from <directory>.",
+	"plugin list  ---------------------------------  List all loaded plugins.",
+	"plugin set-arg <plugin index> <arg> <val>  ---  Set the argument <arg> to <val> for plugin <plugin index>.",
+	"job create <filepath>  -----------------------  Create a job for <filepath>.",
+	"job feed <job index>  ------------------------  Feed the job at index <job index> to the pipeline.",
+	"job delete <job index>  ----------------------  Delete the job at index <job index>",
+	"job save <job index>  ------------------------  Save the result image of the job at index <job index>.",
+	"job list  ------------------------------------  List all jobs.",
+	"help  ----------------------------------------  Print this help.",
+	"exit  ----------------------------------------  Exit the program."
 };
 
 static void cli_shell_cleanup(void *arg);
@@ -45,6 +59,7 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 static int cli_shell_jobs_shrink(void);
 static int cli_shell_job_add(JOB *job);
 static int cli_shell_job_delete(unsigned int index);
+static void cli_shell_print_help(void);
 
 int cli_parse_opts(int argc, char **argv) {
 	int ret;
@@ -243,6 +258,13 @@ static int cli_shell_job_add(JOB *job) {
 	return 0;
 }
 
+static void cli_shell_print_help(void) {
+	printf("Open Image Pipeline CLI Shell interface help.\n");
+	for (unsigned int i = 0; i < NUM_CLI_CMD_PROTOS; i++) {
+		printf("  %s\n", cli_cmd_help[i]);
+	}
+}
+
 static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int num_keywords) {
 	/*
 	*  Execute the command in keywords that matches the command
@@ -333,7 +355,10 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 				job_print(cli_shell_jobs[i]);
 			}
 			break;
-		case 8: ; // exit
+		case 8: ; // help
+			cli_shell_print_help();
+			break;
+		case 9: ; // exit
 			oip_exit();
 			break;
 		default:

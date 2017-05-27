@@ -5,6 +5,6 @@ file.c:
 cli.c
     - Properly free the cli_shell_jobs array on exit.
 
-unknown:
-    - Memory corruption when exiting after image processing. (Freeing non-allocated memory?)
-        - Can't seem to reproduce anymore. Weird.
+job.c
+    - Make job_print() print the status flag of the JOB instance too.
+
