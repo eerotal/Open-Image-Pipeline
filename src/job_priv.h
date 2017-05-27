@@ -12,9 +12,9 @@
 		IMAGE *result_img;
 		char *job_id;
 		char *filepath;
-		unsigned int *prev_plugin_uids;
-		unsigned int *prev_plugin_arg_revs;
-		int prev_plugin_count;
+		unsigned long long int *prev_plugin_uids;
+		unsigned long long int *prev_plugin_arg_revs;
+		unsigned int prev_plugin_count;
 		int status;
 	} JOB;
 

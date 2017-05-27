@@ -13,7 +13,7 @@
 
 static PLUGIN **plugins;
 static unsigned int plugin_count = 0;
-static unsigned int plugin_last_uid = 0;
+static unsigned long long int plugin_last_uid = 0;
 
 static int plugin_data_append(PLUGIN *plugin);
 static unsigned int plugin_gen_uid(void);
@@ -50,10 +50,6 @@ static int plugin_data_append(PLUGIN *plugin) {
 
 	// Copy plugin data pointers.
 	memcpy(plugins[plugin_count - 1], plugin, sizeof(PLUGIN));
-	/*plugins[plugin_count - 1]->p_handle = plugin->p_handle;
-	plugins[plugin_count - 1]->p_params = plugin->p_params;
-	plugins[plugin_count - 1]->cache_path = plugin->cache_path;
-	plugins[plugin_count - 1]->cache_name = plugin->cache_name;*/
 	return 0;
 }
 
@@ -165,6 +161,7 @@ void print_plugin_config(void) {
 	/*
 	*  Print info about all loaded plugin to stdout.
 	*/
+	printf("\n");
 	for (unsigned int i = 0; i < plugin_count; i++) {
 		printf("%s:\n", plugins[i]->p_params->name);
 		printf("    Descr:  %s\n", plugins[i]->p_params->descr);
@@ -177,9 +174,10 @@ void print_plugin_config(void) {
 		}
 		printf("    Cache name: %s\n", plugins[i]->cache_name);
 		printf("    Cache path: %s\n", plugins[i]->cache_path);
-		printf("    UID:        %u\n", plugins[i]->uid);
-		printf("    Arg rev:    %u\n", plugins[i]->arg_rev);
+		printf("    UID:        %llu\n", plugins[i]->uid);
+		printf("    Arg rev:    %llu\n", plugins[i]->arg_rev);
 	}
+	printf("\n");
 }
 
 int plugin_feed(unsigned int index, const char **plugin_args,

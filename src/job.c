@@ -20,19 +20,18 @@ JOB *job_create(const char *fpath) {
 	errno = 0;
 	job = malloc(sizeof(JOB));
 	if (job == NULL) {
+		perror("malloc(): ");
 		return NULL;
 	}
 	memset(job, 0, sizeof(JOB));
 
 	// Load source image.
-	errno = 0;
 	job->src_img = img_load(fpath);
 	if (job->src_img == NULL) {
 		return NULL;
 	}
 
 	// Preallocate the result image.
-	errno = 0;
 	job->result_img = img_alloc(0, 0);
 	if (job->result_img == NULL) {
 		return NULL;
@@ -67,12 +66,12 @@ int job_save_result(JOB *job, char *fpath) {
 }
 
 int job_store_plugin_config(JOB *job) {
-	unsigned int *tmp_arg_revs = NULL;
-	unsigned int *tmp_uids = NULL;
+	unsigned long long int *tmp_arg_revs = NULL;
+	unsigned long long int *tmp_uids = NULL;
 
 	errno = 0;
 	tmp_arg_revs = realloc(job->prev_plugin_arg_revs,
-			plugins_get_count()*sizeof(unsigned int));
+			plugins_get_count()*sizeof(unsigned long long int));
 	if (tmp_arg_revs == NULL) {
 		perror("realloc(): ");
 		return 1;
@@ -81,7 +80,7 @@ int job_store_plugin_config(JOB *job) {
 
 	errno = 0;
 	tmp_uids = realloc(job->prev_plugin_uids,
-			plugins_get_count()*sizeof(unsigned int));
+			plugins_get_count()*sizeof(unsigned long long int));
 	if (tmp_uids == NULL) {
 		perror("realloc(): ");
 		return 1;
@@ -97,20 +96,20 @@ int job_store_plugin_config(JOB *job) {
 }
 
 void job_print(JOB *job) {
-	printf("==== JOB ====\n");
+	printf("\n==== JOB ====\n");
 	printf("    Filepath:        %s\n", job->filepath);
 	printf("    ID:              %s\n", job->job_id);
 	printf("    Plugin count:    %u\n", job->prev_plugin_count);
 	printf("    Plugin arg revs: ");
 	for (unsigned int i = 0; i < job->prev_plugin_count; i++) {
-		printf("%u ", job->prev_plugin_arg_revs[i]);
+		printf("%llu ", job->prev_plugin_arg_revs[i]);
 	}
 	printf("\n");
 	printf("    Plugin UIDs:     ");
 	for (unsigned int i = 0; i < job->prev_plugin_count; i++) {
-		printf("%u ", job->prev_plugin_uids[i]);
+		printf("%llu ", job->prev_plugin_uids[i]);
 	}
-	printf("\n==== JOB ====\n");
+	printf("\n==== JOB ====\n\n");
 }
 
 void job_destroy(JOB *job) {

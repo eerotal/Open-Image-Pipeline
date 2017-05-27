@@ -2,12 +2,6 @@ file.c:
     rmdir_recursive():
       - Check if the directory exists before trying to delete it.
 
-multiple:
-    - Modify the dirty arguments flag of plugins to work with the new
-      job based image processing system. Perhaps the program should generate
-      a hash of all the plugin arguments that's then stored in the JOB instance
-      that is being processed.
-
 unknown:
     - Memory corruption when exiting after image processing. (Freeing non-allocated memory?)
         - Can't seem to reproduce anymore. Weird.

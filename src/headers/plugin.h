@@ -29,7 +29,7 @@
 		unsigned int argc;
 		char *cache_path;
 		char *cache_name;
-		unsigned int arg_rev;
-		unsigned int uid;
+		unsigned long long int arg_rev;
+		unsigned long long int uid;
 	} PLUGIN;
 #endif
