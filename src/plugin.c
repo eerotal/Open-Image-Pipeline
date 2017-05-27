@@ -26,22 +26,25 @@ static int plugin_data_append(PLUGIN *plugin) {
 
 	// Extend data array.
 	plugin_count++;
+	errno = 0;
 	PLUGIN **tmp_plugins = realloc(plugins, sizeof(PLUGIN**)*plugin_count);
 	if (!tmp_plugins) {
-		printf("realloc(): Failed to extend plugin array.\n");
+		perror("plugin: realloc(): ");
 		plugin_count--;
 		return 1;
 	}
 	plugins = tmp_plugins;
 
 	// Allocate memory for plugin data.
+	errno = 0;
 	plugins[plugin_count - 1] = calloc(1, sizeof(PLUGIN));
 	if (!plugins[plugin_count - 1]) {
-		printf("malloc(): Failed to allocate memory for plugin data.\n");
+		perror("plugin: calloc(): ");
 		plugin_count--;
+		errno = 0;
 		tmp_plugins = realloc(plugins, sizeof(PLUGIN*)*plugin_count);
 		if (!tmp_plugins) {
-			printf("realloc(): Failed to shrink plugin array.\n");
+			perror("plugin: realloc(): ");
 		} else {
 			plugins = tmp_plugins;
 		}
@@ -67,20 +70,22 @@ int plugin_load(char *dirpath, char *name) {
 	char *params_struct_name = NULL;
 	char *cache_path = NULL;
 	char *cache_name = NULL;
+	char *dlret = NULL;
 
 	unsigned int path_len = 0;
 	unsigned int params_struct_name_len = 0;
 
-	printf("Loading plugin %s from directory %s.\n", name, dirpath);
+	printf("plugin: Loading plugin %s from directory %s.\n", name, dirpath);
 
 	// Set plugin data struct to all zeroes initially.
 	memset(&plugin, 0, sizeof(PLUGIN));
 
 	// Construct plugin path.
 	path_len = strlen(dirpath) + strlen("lib") + strlen(name) + strlen(".so") + 1;
+	errno = 0;
 	path = calloc(path_len, sizeof(char));
 	if (!path) {
-		printf("malloc(): Failed to allocate memory for plugin path string.\n");
+		perror("plugin: calloc(): ");
 		return 1;
 	}
 	snprintf(path, path_len, "%slib%s.so", dirpath, name);
@@ -89,16 +94,17 @@ int plugin_load(char *dirpath, char *name) {
 		// Load shared library file.
 		plugin.p_handle = dlopen(path, RTLD_NOW);
 		if (!plugin.p_handle) {
-			printf("dlopen(): %s\n", dlerror());
+			fprintf(stderr, "plugin: dlopen(): %s\n", dlerror());
 			free(path);
 			return 1;
 		}
 
 		// Construct plugin parameter structure name.
 		params_struct_name_len = strlen(name) + strlen(PLUGIN_INFO_NAME_SUFFIX) + 1;
+		errno = 0;
 		params_struct_name = calloc(params_struct_name_len, sizeof(char));
 		if (!params_struct_name) {
-			printf("malloc(): Failed to allocate memory for params_struct_name.\n");
+			perror("plugin: calloc(): ");
 			free(path);
 			dlclose(plugin.p_handle);
 			return 1;
@@ -109,8 +115,9 @@ int plugin_load(char *dirpath, char *name) {
 		// Store the plugin parameter pointer in plugin.p_params.
 		dlerror();
 		plugin.p_params = dlsym(plugin.p_handle, params_struct_name);
-		if (dlerror()) {
-			printf("dlsym(): No plugin parameters found. Unable to load plugin.\n");
+		dlret = dlerror();
+		if (dlret) {
+			fprintf(stderr, "plugin: dlsym(): %s", dlret);
 			free(path);
 			free(params_struct_name);
 			dlclose(plugin.p_handle);
@@ -120,7 +127,7 @@ int plugin_load(char *dirpath, char *name) {
 		// Create plugin cache.
 		cache_name = plugin_get_full_identifier(name, plugin_count);
 		if (cache_name == NULL) {
-			printf("Failed to get plugin identifier.\n");
+			printf("plugin: Failed to get plugin identifier.\n");
 			free(path);
 			free(params_struct_name);
 			dlclose(plugin.p_handle);
@@ -130,7 +137,7 @@ int plugin_load(char *dirpath, char *name) {
 
 		cache_path = cache_create(cache_name);
 		if (cache_path == NULL) {
-			printf("Failed to create cache directory.\n");
+			printf("plugin: Failed to create cache directory.\n");
 			free(path);
 			free(params_struct_name);
 			dlclose(plugin.p_handle);
@@ -148,12 +155,12 @@ int plugin_load(char *dirpath, char *name) {
 		// Run the setup function.
 		plugin.p_params->plugin_setup();
 
-		printf("%s: Loaded!\n", path);
+		printf("plugin: %s: Loaded!\n", path);
 		free(path);
 		free(params_struct_name);
 		return 0;
 	}
-	printf("Plugin doesn't exist.\n");
+	printf("plugin: Plugin doesn't exist.\n");
 	return 1;
 }
 
@@ -307,7 +314,7 @@ char *plugin_get_full_identifier(const char *name, unsigned int index) {
 	errno = 0;
 	index_str = calloc(index_str_len, sizeof(char));
 	if (index_str == NULL) {
-		perror("calloc(): ");
+		perror("plugin: calloc(): ");
 		return NULL;
 	}
 	sprintf(index_str, "%i", index);
@@ -316,7 +323,7 @@ char *plugin_get_full_identifier(const char *name, unsigned int index) {
 	errno = 0;
 	identifier = calloc(strlen(name) + 1 + strlen(index_str) + 1, sizeof(char));
 	if (identifier == NULL) {
-		perror("calloc(): ");
+		perror("plugin: calloc(): ");
 		free(index_str);
 		return NULL;
 	}
@@ -333,7 +340,7 @@ void plugins_cleanup(void) {
 	*  Free memory allocated for plugin data and close
 	*  opened library handles.
 	*/
-	printf("Freeing plugins...\n");
+	printf("plugin: Freeing plugins...\n");
 	for (unsigned int i = 0; i < plugin_count; i++) {
 		if (plugins[i]) {
 			plugins[i]->p_params->plugin_cleanup();
@@ -345,18 +352,18 @@ void plugins_cleanup(void) {
 		}
 	}
 	if (plugins) {
-		printf("Freeing plugin data array...\n");
+		printf("plugin: Freeing plugin data array...\n");
 		free(plugins);
 	}
-	printf("All plugins free'd!\n");
+	printf("plugin: All plugins free'd!\n");
 
 	if (!cli_get_opts()->opt_preserve_cache) {
 		if (cache_delete_all() != 0) {
-			printf("Failed to delete cache files.\n");
+			printf("plugin: Failed to delete cache files.\n");
 		}
 	} else {
-		printf("Skipping cache deletion because cache preservation is enabled.\n");
+		printf("plugin: Skipping cache deletion because cache preservation is enabled.\n");
 	}
 
-	printf("Cleanup done!\n");
+	printf("plugin: Cleanup done!\n");
 }
