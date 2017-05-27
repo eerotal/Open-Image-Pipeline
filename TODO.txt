@@ -1,10 +1,3 @@
-file.c: 
-    rmdir_recursive():
-      - Check if the directory exists before trying to delete it.
-
-cli.c
-    - Properly free the cli_shell_jobs array on exit.
-
 job.c
     - Make job_print() print the status flag of the JOB instance too.
 

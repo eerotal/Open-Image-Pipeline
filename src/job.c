@@ -99,6 +99,14 @@ void job_print(JOB *job) {
 	printf("\n==== JOB ====\n");
 	printf("    Filepath:        %s\n", job->filepath);
 	printf("    ID:              %s\n", job->job_id);
+	printf("    Status:          ");
+	if (job->status == JOB_STATUS_FAIL) {
+		printf("FAIL\n");
+	} else if (job->status == JOB_STATUS_SUCCESS) {
+		printf("SUCCESS\n");
+	} else if (job->status == JOB_STATUS_PENDING) {
+		printf("PENDING\n");
+	}
 	printf("    Plugin count:    %u\n", job->prev_plugin_count);
 	printf("    Plugin arg revs: ");
 	for (unsigned int i = 0; i < job->prev_plugin_count; i++) {
