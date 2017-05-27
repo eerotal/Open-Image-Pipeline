@@ -2,6 +2,9 @@ file.c:
     rmdir_recursive():
       - Check if the directory exists before trying to delete it.
 
+cli.c
+    - Properly free the cli_shell_jobs array on exit.
+
 unknown:
     - Memory corruption when exiting after image processing. (Freeing non-allocated memory?)
         - Can't seem to reproduce anymore. Weird.

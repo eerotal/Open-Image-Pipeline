@@ -18,23 +18,33 @@ static struct CLI_OPTS cli_opts;
 #define CLI_GETOPT_OPTS "vp"
 #define SHELL_BUFFER_LEN 100
 
-#define NUM_CLI_CMD_PROTOS 5
+#define NUM_CLI_CMD_PROTOS 9
 #define NUM_CLI_CMD_MAX_KEYWORDS 10
 
 static pthread_t thread_cli_shell;
+static JOB **cli_shell_jobs = NULL;
+static unsigned int cli_shell_jobs_count = 0;
 
 static char *cli_cmd_prototypes[NUM_CLI_CMD_PROTOS][NUM_CLI_CMD_MAX_KEYWORDS] = {
 	{"plugin", "load", "%s", "%s"},
-	{"plugin", "print"},
+	{"plugin", "list"},
 	{"plugin", "set-arg", "%s", "%s", "%s"},
-	{"feed", "%s", "%s"},
+	{"job", "create", "%s"},
+	{"job", "feed", "%s"},
+	{"job", "delete", "%s"},
+	{"job", "save", "%s"},
+	{"job", "list"},
 	{"exit"}
 };
 
+static void cli_shell_cleanup(void *arg);
 static void *cli_shell_run(void *args);
 static int cli_shell_parse(char *str);
 static int cli_shell_prototype_match(char **keywords, unsigned int num_keywords);
-static int cli_shell_execute(unsigned int proto, char **keywords, unsigned int num_keywords);
+static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int num_keywords);
+static int cli_shell_jobs_shrink(void);
+static int cli_shell_job_add(JOB *job);
+static int cli_shell_job_delete(unsigned int index);
 
 int cli_parse_opts(int argc, char **argv) {
 	int ret;
@@ -72,6 +82,19 @@ const struct CLI_OPTS *cli_get_opts(void) {
 	return &cli_opts;
 }
 
+static void cli_shell_cleanup(void *arg) {
+	// Free the jobs array.
+	printf("cli-shell: CLI shell cleanup.\n");
+	if (cli_shell_jobs != NULL) {
+		for (unsigned int i = 0; i < cli_shell_jobs_count; i++) {
+			if (cli_shell_jobs[i] != NULL) {
+				job_destroy(cli_shell_jobs[i]);
+			}
+		}
+		free(cli_shell_jobs);
+	}
+}
+
 pthread_t *cli_shell_init(void) {
 	errno = 0;
 	if (pthread_create(&thread_cli_shell, NULL, &cli_shell_run, NULL) != 0) {
@@ -86,6 +109,7 @@ static void *cli_shell_run(void *args) {
 
 	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+	pthread_cleanup_push(cli_shell_cleanup, NULL);
 
 	printf("cli-shell: Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {
@@ -101,6 +125,8 @@ static void *cli_shell_run(void *args) {
 		}
 		memset(shell_buff, 0, SHELL_BUFFER_LEN*sizeof(char));
 	}
+
+	pthread_cleanup_pop(1);
 	return NULL;
 }
 
@@ -147,9 +173,84 @@ static int cli_shell_prototype_match(char **keywords, unsigned int num_keywords)
 	return ret;
 }
 
-static int cli_shell_execute(unsigned int proto, char **keywords, unsigned int num_keywords) {
-	if (proto >= NUM_CLI_CMD_PROTOS) {
+static int cli_shell_jobs_shrink(void) {
+	/*
+	*  Shrink the cli_shell_jobs array removing any
+	*  NULL pointers from it.
+	*/
+	unsigned int new_jobs_count = 0;
+	JOB **new_jobs = NULL;
+	JOB **new_jobs_tmp = NULL;
+
+	for (unsigned int i = 0; i < cli_shell_jobs_count; i++) {
+		if (cli_shell_jobs[i] != NULL) {
+			new_jobs_count++;
+			errno = 0;
+			new_jobs_tmp = realloc(new_jobs, new_jobs_count*sizeof(JOB*));
+			if (new_jobs_tmp == NULL) {
+				perror("cli-shell: realloc(): ");
+				free(new_jobs_tmp);
+				return 1;
+			}
+			new_jobs = new_jobs_tmp;
+			new_jobs[new_jobs_count - 1] = cli_shell_jobs[i];
+		}
+	}
+	free(cli_shell_jobs);
+	cli_shell_jobs = new_jobs;
+	cli_shell_jobs_count = new_jobs_count;
+	return 0;
+}
+
+static int cli_shell_job_delete(unsigned int index) {
+	/*
+	*  Delete a job from the cli_shell_jobs array and
+	*  shrink the array afterwards.
+	*/
+	if (index >= cli_shell_jobs_count) {
 		return 1;
+	}
+	job_destroy(cli_shell_jobs[index]);
+	cli_shell_jobs[index] = NULL;
+	if (cli_shell_jobs_shrink() != 0) {
+		return 1;
+	}
+	return 0;
+}
+
+static int cli_shell_job_add(JOB *job) {
+	JOB **tmp_jobs = NULL;
+
+	if (job == NULL) {
+		return 1;
+	}
+
+	cli_shell_jobs_count++;
+
+	// Extend the cli_shell_jobs array.
+	errno = 0;
+	tmp_jobs = realloc(cli_shell_jobs, cli_shell_jobs_count*sizeof(JOB*));
+	if (tmp_jobs == NULL) {
+		cli_shell_jobs_count--;
+		perror("cli-shell: realloc(): ");
+		return 1;
+	}
+	cli_shell_jobs = tmp_jobs;
+
+	// Add the new pointer to the array.
+	cli_shell_jobs[cli_shell_jobs_count - 1] = job;
+
+	return 0;
+}
+
+static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int num_keywords) {
+	/*
+	*  Execute the command in keywords that matches the command
+	*  prototype proto.
+	*/
+	unsigned int tmp_index = 0;
+	if (proto >= NUM_CLI_CMD_PROTOS) {
+		return;
 	}
 
 	switch (proto) {
@@ -158,7 +259,7 @@ static int cli_shell_execute(unsigned int proto, char **keywords, unsigned int n
 				printf("cli-shell: Failed to load plugin.\n");
 			}
 			break;
-		case 1: ; // plugin print
+		case 1: ; // plugin list
 			print_plugin_config();
 			break;
 		case 2: ; // plugin set-arg %s %s %s
@@ -172,33 +273,80 @@ static int cli_shell_execute(unsigned int proto, char **keywords, unsigned int n
 			index = strtol(keywords[2], NULL, 10);
 			plugin_set_arg(index, keywords[3], keywords[4]);
 			break;
-		case 3: ; // feed %s %s
-			JOB *job = job_create(keywords[1]);
-			if (job == NULL) {
+		case 3: ; // job create %s %s
+			JOB *tmp_job = job_create(keywords[2]);
+			if (tmp_job == NULL) {
+				printf("cli-shell: Failed to create job.\n");
 				break;
 			}
-
-			job_print(job);
-			if (pipeline_feed(job) != 0) {
-				printf("cli-shell: Image processing failed.\n");
-				job_destroy(job);
-				break;
+			if (cli_shell_job_add(tmp_job) != 0) {
+				printf("cli-shell: Failed to append job to jobs array.\n");
 			}
-
-			if (job_save_result(job, keywords[2]) != 0) {
-				printf("cli-shell: Failed to save image.\n");
-			}
-			job_destroy(job);
-
 			break;
-		case 4: ; // exit
+		case 4: ; // job feed %s
+			if (!isdigit(keywords[2][0])) {
+				printf("cli-shell: Invalid job index.\n");
+				break;
+			}
+
+			tmp_index = strtol(keywords[2], NULL, 10);
+			if (tmp_index < cli_shell_jobs_count) {
+				if (pipeline_feed(cli_shell_jobs[tmp_index]) != 0) {
+					printf("cli-shell: Image processing failed.\n");
+				}
+			} else {
+				printf("cli-shell: Job index out of range.\n");
+			}
+			break;
+		case 5: ; // job delete %s
+			if (!isdigit(keywords[2][0])) {
+				printf("cli-shell: Invalid job index.\n");
+				break;
+			}
+
+			tmp_index = strtol(keywords[2], NULL, 10);
+			if (tmp_index < cli_shell_jobs_count) {
+				if (cli_shell_job_delete(tmp_index) != 0) {
+					printf("cli-shell: Job deletion failed.\n");
+				}
+			} else {
+				printf("cli-shell: Job index out of range.\n");
+			}
+			break;
+		case 6: ; // job save %s
+			if (!isdigit(keywords[2][0])) {
+				printf("cli-shell: Invalid job index.\n");
+				break;
+			}
+
+			tmp_index = strtol(keywords[2], NULL, 10);
+			if (tmp_index < cli_shell_jobs_count) {
+				if (job_save_result(cli_shell_jobs[tmp_index], keywords[3]) != 0) {
+					printf("cli-shell: Failed to save image.\n");
+				}
+			} else {
+				printf("cli-shell: Job index out of range.\n");
+			}
+			break;
+		case 7: ; // job list
+			for (unsigned int i = 0; i < cli_shell_jobs_count; i++) {
+				job_print(cli_shell_jobs[i]);
+			}
+			break;
+		case 8: ; // exit
 			oip_exit();
 			break;
+		default:
+			break;
 	}
-	return 0;
 }
 
 static int cli_shell_parse(char *str) {
+	/*
+	*  Parse the newline terminated command from
+	*  string and execute it afterwards. Returns 0
+	*  on success and 1 on failure.
+	*/
 	char **keywords = NULL;
 	unsigned int c_keywords_len = 0;
 	unsigned int num_keywords = 0;
