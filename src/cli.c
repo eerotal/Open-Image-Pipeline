@@ -48,14 +48,14 @@ int cli_parse_opts(int argc, char **argv) {
 				cli_opts.opt_verbose = CLI_OPT_ENABLED;
 				break;
 			case 'p':
-				printf("cli: Cache preserve enabled!");
+				printf("cli: Cache preservation enabled!");
 				cli_opts.opt_preserve_cache = CLI_OPT_ENABLED;
 				break;
 			case '?':
 				if (isprint(optopt)) {
-					fprintf(stderr, "Unknown option -%c.\n", optopt);
+					fprintf(stderr, "cli: Unknown option -%c.\n", optopt);
 				} else {
-					fprintf(stderr, "Unknown option character. 0x%x.", optopt);
+					fprintf(stderr, "cli: Unknown option character. 0x%x.", optopt);
 				}
 				return 1;
 			default:
@@ -63,7 +63,7 @@ int cli_parse_opts(int argc, char **argv) {
 		}
 	}
 	for (int i = optind; i < argc; i++) {
-		printf("Non-option argument %s discarded.\n", argv[i]);
+		printf("cli: Non-option argument %s discarded.\n", argv[i]);
 	}
 	return 0;
 }
@@ -72,14 +72,10 @@ const struct CLI_OPTS *cli_get_opts(void) {
 	return &cli_opts;
 }
 
-void cli_opts_cleanup(void) {
-
-}
-
 pthread_t *cli_shell_init(void) {
 	errno = 0;
 	if (pthread_create(&thread_cli_shell, NULL, &cli_shell_run, NULL) != 0) {
-		perror("pthread_create(): ");
+		perror("cli-shell: pthread_create(): ");
 		return NULL;
 	}
 	return &thread_cli_shell;
@@ -97,7 +93,7 @@ static void *cli_shell_run(void *args) {
 		while (fgets(shell_buff, SHELL_BUFFER_LEN, stdin) == NULL) {
 			pthread_testcancel();
 			if (errno != 0) {
-				perror("fgets(): ");
+				perror("cli-shell: fgets(): ");
 			}
 		}
 		if (cli_shell_parse(shell_buff) != 0) {
@@ -220,7 +216,7 @@ static int cli_shell_parse(char *str) {
 				*  Realloc failed so decrement length back to
 				*  original and free the keywords array.
 				*/
-				perror("realloc(): ");
+				perror("cli-shell: realloc(): ");
 				c_keywords_len--;
 				for (int k = 0; k < c_keywords_len; k++) {
 					free(keywords[k]);
@@ -235,7 +231,7 @@ static int cli_shell_parse(char *str) {
 			keywords[c_keywords_len - 1] = calloc(i - s, sizeof(char));
 			if (keywords[c_keywords_len - 1] == NULL) {
 				// Free the keywords array.
-				perror("calloc(): ");
+				perror("cli-shell: calloc(): ");
 				for (int k = 0; k < c_keywords_len; k++) {
 					free(keywords[k]);
 				}
@@ -262,7 +258,7 @@ static int cli_shell_parse(char *str) {
 		errno = 0;
 		char *tmp_str = malloc(strlen(str)*sizeof(char));
 		if (tmp_str == NULL) {
-			perror("malloc(): ");
+			perror("cli-shell: malloc(): ");
 			return 1;
 		}
 		memcpy(tmp_str, str, strlen(str)*sizeof(char));

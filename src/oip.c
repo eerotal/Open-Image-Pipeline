@@ -18,7 +18,6 @@ static void oip_cleanup(void);
 static void oip_cleanup(void) {
 	// Run cleanup functions.
 	plugins_cleanup();
-	cli_opts_cleanup();
 
 	// Cancel the CLI shell thread.
 	if (pthread_cancel(*thread_cli_shell) != 0) {
@@ -44,7 +43,7 @@ int main(int argc, char **argv) {
 	// Init CLI shell.
 	thread_cli_shell = cli_shell_init();
 	if (thread_cli_shell == NULL) {
-		cli_opts_cleanup();
+		return 1;
 	}
 
 	while (!exit_queued) {}
