@@ -93,7 +93,6 @@ static void *cli_shell_run(void *args) {
 
 	printf("cli-shell: Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {
-		printf(">> ");
 		errno = 0;
 		while (fgets(shell_buff, SHELL_BUFFER_LEN, stdin) == NULL) {
 			pthread_testcancel();
@@ -183,6 +182,7 @@ static int cli_shell_execute(unsigned int proto, char **keywords, unsigned int n
 				break;
 			}
 
+			job_print(job);
 			if (pipeline_feed(job) != 0) {
 				printf("cli-shell: Image processing failed.\n");
 				job_destroy(job);

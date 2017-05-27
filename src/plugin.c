@@ -13,8 +13,10 @@
 
 static PLUGIN **plugins;
 static unsigned int plugin_count = 0;
+static unsigned int plugin_last_uid = 0;
 
 static int plugin_data_append(PLUGIN *plugin);
+static unsigned int plugin_gen_uid(void);
 
 static int plugin_data_append(PLUGIN *plugin) {
 	/*
@@ -47,12 +49,16 @@ static int plugin_data_append(PLUGIN *plugin) {
 	}
 
 	// Copy plugin data pointers.
-	plugins[plugin_count - 1]->p_handle = plugin->p_handle;
+	memcpy(plugins[plugin_count - 1], plugin, sizeof(PLUGIN));
+	/*plugins[plugin_count - 1]->p_handle = plugin->p_handle;
 	plugins[plugin_count - 1]->p_params = plugin->p_params;
 	plugins[plugin_count - 1]->cache_path = plugin->cache_path;
-	plugins[plugin_count - 1]->cache_name = plugin->cache_name;
-	plugins[plugin_count - 1]->dirty_args = plugin->dirty_args;
+	plugins[plugin_count - 1]->cache_name = plugin->cache_name;*/
 	return 0;
+}
+
+static unsigned int plugin_gen_uid(void) {
+	return plugin_last_uid++;
 }
 
 int plugin_load(char *dirpath, char *name) {
@@ -137,8 +143,8 @@ int plugin_load(char *dirpath, char *name) {
 			plugin.cache_path = cache_path;
 		}
 
-		// Set the dirty args flag.
-		plugin.dirty_args = 1;
+		// Generate the plugin UID.
+		plugin.uid = plugin_gen_uid();
 
 		// Append the plugin data to the plugin array.
 		plugin_data_append(&plugin);
@@ -171,6 +177,8 @@ void print_plugin_config(void) {
 		}
 		printf("    Cache name: %s\n", plugins[i]->cache_name);
 		printf("    Cache path: %s\n", plugins[i]->cache_path);
+		printf("    UID:        %u\n", plugins[i]->uid);
+		printf("    Arg rev:    %u\n", plugins[i]->arg_rev);
 	}
 }
 
@@ -185,7 +193,6 @@ int plugin_feed(unsigned int index, const char **plugin_args,
 		ret = plugins[index]->p_params->plugin_process(img, res,
 				plugin_args, plugin_args_count);
 		if (ret == 0) {
-			plugin_get(index)->dirty_args = 0;
 			return 0;
 		}
 	}
@@ -244,8 +251,8 @@ int plugin_set_arg(const unsigned int index, const char *arg,
 		strcpy(p_args[(*p_argc)*2 - 2], arg);
 		strcpy(p_args[(*p_argc)*2 - 1], value);
 
-		// Set the dirty args flag.
-		plugin_get(index)->dirty_args = 1;
+		// Increment the argument revision.
+		plugins[index]->arg_rev++;
 
 		return 0;
 	} else {

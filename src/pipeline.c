@@ -10,7 +10,7 @@
 #include "cache_priv.h"
 
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *uuid);
-static unsigned int pipeline_get_first_dirty_plugin(const char *cache_id);
+static int pipeline_get_first_changed_plugin(const JOB *job);
 
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *cache_id) {
 	/*
@@ -37,20 +37,38 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 	return 0;
 }
 
-static unsigned int pipeline_get_first_dirty_plugin(const char *cache_id) {
+static int pipeline_get_first_changed_plugin(const JOB *job) {
 	/*
-	*  Get the first dirty plugin in the pipeline. Cache_id
-	*  is the cache file to search for. Returns the index of
-	*  the plugin or zero if the plugin array is empty.
+	*  Return the ID of the first plugin that matches one or more
+	*  of the following conditions.
+	*  1. No cache file exists.
+	*  2. Plugin UID at a specific index has changed since last feed.
+	*  3. Argument revision has changed since last feed.
+	*  Additionally, if job->prev_plugin_count == 0, 0 is returned.
+	*  If no plugin fulfilling these conditions is found, return
+	*  the total number of plugins in the pipeline.
 	*/
-	for (unsigned int i = 0; i < plugins_get_count(); i++) {
-		if (plugin_get(i)->dirty_args ||
-			!cache_file_exists(plugin_get(i)->cache_name, cache_id)) {
-			printf("pipeline: First dirty plugin is %u.\n", i);
+
+	unsigned int maxindex = 0;
+	if (job->prev_plugin_count == 0) {
+		return 0;
+	}
+
+	if (plugins_get_count() <= job->prev_plugin_count) {
+		maxindex = plugins_get_count();
+	} else {
+		maxindex = job->prev_plugin_count;
+	}
+
+	for (unsigned int i = 0; i < maxindex; i++) {
+		if (plugin_get(i)->arg_rev != job->prev_plugin_arg_revs[i] ||
+			plugin_get(i)->uid != job->prev_plugin_uids[i] ||
+			!cache_file_exists(plugin_get(i)->cache_name, job->job_id)) {
+			printf("pipeline: First changed plugin is %u.\n", i);
 			return i;
 		}
 	}
-	return 0;
+	return plugins_get_count();
 }
 
 int pipeline_feed(JOB *job) {
@@ -77,12 +95,16 @@ int pipeline_feed(JOB *job) {
 			return 1;
 		}
 
-		// Loop over the plugins starting from the first dirty plugin.
-		unsigned int i = pipeline_get_first_dirty_plugin(job->cache_id);
+		// Get the first plugin whose output should be generated.
+		unsigned int i = pipeline_get_first_changed_plugin(job);
 
-		// Plugins were skipped => Load image from cache.
 		if (i != 0) {
-			cache_file_path = cache_get_file_path(plugin_get(i)->cache_name, job->cache_id);
+			/*
+			*  Skip plugins by starting the pipeline at the index i.
+			*  Load the input data from the cache file of the last
+			*  plugin that hasn't changed.
+			*/
+			cache_file_path = cache_get_file_path(plugin_get(i - 1)->cache_name, job->job_id);
 			printf("pipeline: Loading image from cache: %s\n", cache_file_path);
 			buf_ptr_1 = img_load(cache_file_path);
 			if (buf_ptr_1 == NULL) {
@@ -109,7 +131,7 @@ int pipeline_feed(JOB *job) {
 				(int) round(img_bytelen(buf_ptr_1)/delta_t));
 
 			// Save a copy of the result into the cache file.
-			if (pipeline_write_cache(buf_ptr_2, i, job->cache_id) != 0) {
+			if (pipeline_write_cache(buf_ptr_2, i, job->job_id) != 0) {
 				printf("pipeline: Failed to write cache file.\n");
 			}
 
@@ -143,6 +165,12 @@ int pipeline_feed(JOB *job) {
 			img_free(buf_ptr_1);
 		}
 		img_free(buf_ptr_2);
+
+		// Update the plugin argument revisions and UIDs on a success.
+		if (job_store_plugin_config(job) != 0) {
+			printf("pipeline: Failed to store plugin config in the job.\n");
+			return 1;
+		}
 		return ret;
 	} else {
 		return 1;
