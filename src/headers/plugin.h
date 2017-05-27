@@ -27,8 +27,9 @@
 		void *p_handle;
 		char **args;
 		unsigned int argc;
-		unsigned int dirty_args;
 		char *cache_path;
 		char *cache_name;
+		unsigned long long int arg_rev;
+		unsigned long long int uid;
 	} PLUGIN;
 #endif
