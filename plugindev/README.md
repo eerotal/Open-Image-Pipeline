@@ -44,3 +44,11 @@ the script has asked you, you can create your source files in the `src`
 directory and once you are ready to compile the plugin, just run `make`. By
 running `make install` too, you can automatically copy the plugin
 file to the Open Image Pipeline plugins directory.
+
+#### NOTICE
+
+Because Open Image Pipeline uses FreeImage, which is used under the
+GNU General Public License version 3, plugins also need to use compatible
+licenses. Additionally, plugins must include a copy of the license and a
+note stating that plugins use FreeImage. You should check the FreeImage
+website for more information about licensing.
