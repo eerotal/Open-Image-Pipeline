@@ -5,6 +5,7 @@ NAME=oip
 
 SRCDIR=src
 BINDIR=bin
+PLUGINDIR=plugins
 BUILDROOT=$(shell pwd)
 
 INCLUDES=-Isrc/imgutil -Isrc/oip
@@ -18,13 +19,25 @@ main: $(SRCFILES)
 	If you need them as separate libraries, run 'make modules' too.)
 
 	mkdir -p $(BINDIR)
+	mkdir -p $(PLUGINDIR)
 	$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
 
 modules: 
 	$(info ==== COMPILING SUBMODULES ====)
 	for DIR in $(SUBMODULES); do\
-		make -C $$DIR;\
+		test -s $$DIR/makefile && make -C $$DIR;\
 	done
+
+clean-modules:
+	$(info ==== CLEANING SUBMODULES ====)
+	for DIR in $(SUBMODULES); do\
+		test -s $$DIR/makefile && make -C $$DIR clean;\
+	done
+
+clean:
+	rm -rf $(BINDIR)
+
+clean-all: clean clean-modules
 
 LOC:
 	wc -l $(SRCFILES)

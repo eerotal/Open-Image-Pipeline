@@ -45,9 +45,9 @@ the JOB instance and the requested filepath as the two arguments.
 
 ### Dependencies
 
-  - FreeImage 3.15.4
+FreeImage 3.15.4
 
-### How to build?
+### Compiling
 
 1. Install FreeImage and the FreeImage development files. On Debian
 Jessie this can be accomplished by running
@@ -55,4 +55,22 @@ Jessie this can be accomplished by running
 
 2. Run `make main`. If you intend to do plugin development run
 `make modules` too. The resulting binary is put into the directory
-`bin`. Plugins can be copied into the `plugins` directory.
+`bin`. Plugins can be copied into the `plugins` directory. The
+makefile has the following additional targets
+
+#### clean
+
+Delete the files created by the compilation of the main OIP binary.
+
+#### clean-all
+
+Delete all the files created by the compilation including the files
+created when compiling the modules.
+
+#### clean-modules
+
+Delete the files created by the module compilation.
+
+#### LOC
+
+Count the total lines of code in this project.

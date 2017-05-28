@@ -17,3 +17,5 @@ compile: $(FILES)
 	ar rcs lib$(NAME).a *.o
 	rm *.o
 	
+clean:
+	rm -rf $(BINDIR)
