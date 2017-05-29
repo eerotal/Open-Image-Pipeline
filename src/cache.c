@@ -45,6 +45,7 @@ int cache_has_file(CACHE *cache, const char *fname) {
 	*  if it does, 0 if it doesn't and -1 on error.
 	*/
 
+	int ret = 0;
 	char *fpath = file_path_join(cache->path, fname);
 	if (fpath == NULL) {
 		return -1;
@@ -52,18 +53,16 @@ int cache_has_file(CACHE *cache, const char *fname) {
 
 	errno = 0;
 	if (access(fpath, F_OK) == 0) {
-		free(fpath);
-		return 1;
+		ret = 1;
 	} else {
 		if (errno == ENOENT) {
-			free(fpath);
-			return 0;
+			ret = 0;
 		} else {
-			free(fpath);
-			return -1;
+			ret = -1;
 		}
 	}
-	return -1;
+	free(fpath);
+	return ret;
 }
 
 char *cache_get_path_to_file(CACHE *cache, const char *fname) {
@@ -72,8 +71,8 @@ char *cache_get_path_to_file(CACHE *cache, const char *fname) {
 
 CACHE *cache_create(const char *cache_name) {
 	/*
-	*  Create a named cache.
-	*  Returns a pointer to the named cache on success
+	*  Create a cache with the name 'cache_name'.
+	*  Returns a pointer to a new CACHE instance on success
 	*  and a NULL pointer on failure.
 	*/
 
@@ -93,7 +92,7 @@ CACHE *cache_create(const char *cache_name) {
 
 	// Copy the cache name.
 	errno = 0;
-	n_cache->name = calloc(strlen(cache_name), sizeof(char));
+	n_cache->name = calloc(strlen(cache_name) + 1, sizeof(char));
 	if (n_cache->name == NULL) {
 		perror("cache: calloc()");
 		free(n_cache);
@@ -152,7 +151,9 @@ void cache_destroy(CACHE *cache, int del_files) {
 			// Delete the cache directory recursively.
 			errno = 0;
 			if (access(cache->path, F_OK) == 0) {
-				rmdir_recursive(cache->path);
+				if (rmdir_recursive(cache->path) != 0) {
+					printf("cache: Failed to delete cache.\n");
+				}
 			} else {
 				perror("cache: access()");
 			}
