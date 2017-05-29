@@ -15,6 +15,15 @@ Open Image Pipeline currently only has a text based command line interface,
 however, a GUI based interface will probably be implemented later.
 
 
+## Plugins
+
+Below is a list of links to the plugins I have programmed for OIP. Currently
+the only way to use them is to compile them yourself and place them in the
+`plugins` directory of OIP (or use the `install` target of the plugin's makefile).
+
+- <https://github.com/eerotal/OIP-Curves-plugin>
+- <https://github.com/eerotal/OIP-Convolution-Matrix-plugin>
+
 ## Developer corner
 
 So, as you already may know, all the actual hard image processing work in OIP
@@ -45,7 +54,7 @@ the JOB instance and the requested filepath as the two arguments.
 
 ### Dependencies
 
-FreeImage 3.15.4
+FreeImage 3
 
 ### Compiling
 
