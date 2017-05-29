@@ -38,15 +38,15 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 	*  Write the supplied image into the cache of the supplied plugin.
 	*  This function returns 0 on success and 1 on failure.
 	*/
-	char *c_dir = NULL;
+	PLUGIN *tmp_plugin = NULL;
 	char *c_fullpath = NULL;
 
-	c_dir = plugin_get(p_index)->cache_path;
-	if (c_dir == NULL) {
+	tmp_plugin = plugin_get(p_index);
+	if (tmp_plugin == NULL) {
 		return 1;
 	}
 
-	c_fullpath = file_path_join(c_dir, cache_id);
+	c_fullpath = file_path_join(tmp_plugin->p_cache->path, cache_id);
 	if (c_fullpath == NULL) {
 		return 1;
 	}
@@ -84,7 +84,7 @@ static int pipeline_get_first_changed_plugin(const JOB *job) {
 	for (unsigned int i = 0; i < maxindex; i++) {
 		if (plugin_get(i)->arg_rev != job->prev_plugin_arg_revs[i] ||
 			plugin_get(i)->uid != job->prev_plugin_uids[i] ||
-			!cache_file_exists(plugin_get(i)->cache_name, job->job_id)) {
+			!cache_has_file(plugin_get(i)->p_cache, job->job_id)) {
 			printf("pipeline: First changed plugin is %u.\n", i);
 			return i;
 		}
@@ -125,10 +125,18 @@ int pipeline_feed(JOB *job) {
 			*  Load the input data from the cache file of the last
 			*  plugin that hasn't changed.
 			*/
-			cache_file_path = cache_get_file_path(plugin_get(i - 1)->cache_name, job->job_id);
+
+			cache_file_path = cache_get_path_to_file(plugin_get(i - 1)->p_cache, job->job_id);
+			if (cache_file_path == NULL) {
+				printf("pipeline: Failed to get cache file path.\n");
+				img_free(buf_ptr_2);
+				return 1;
+			}
+
 			printf("pipeline: Loading image from cache: %s\n", cache_file_path);
 			buf_ptr_1 = img_load(cache_file_path);
 			if (buf_ptr_1 == NULL) {
+				img_free(buf_ptr_2);
 				return 1;
 			}
 		}

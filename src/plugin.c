@@ -87,10 +87,10 @@ int plugin_load(char *dirpath, char *name) {
 	*/
 
 	PLUGIN plugin;
+	CACHE *p_cache;
+	char *cache_name = NULL;
 	char *path = NULL;
 	char *params_struct_name = NULL;
-	char *cache_path = NULL;
-	char *cache_name = NULL;
 	char *dlret = NULL;
 
 	unsigned int path_len = 0;
@@ -154,18 +154,16 @@ int plugin_load(char *dirpath, char *name) {
 			dlclose(plugin.p_handle);
 			return 1;
 		}
-		plugin.cache_name = cache_name;
 
-		cache_path = cache_create(cache_name);
-		if (cache_path == NULL) {
-			printf("plugin: Failed to create cache directory.\n");
+		p_cache = cache_create(cache_name);
+		if (p_cache == NULL) {
+			printf("plugin: Failed to create plugin cache.\n");
 			free(path);
 			free(params_struct_name);
 			dlclose(plugin.p_handle);
 			return 1;
-		} else {
-			plugin.cache_path = cache_path;
 		}
+		plugin.p_cache = p_cache;
 
 		// Generate the plugin UID.
 		plugin.uid = plugin_gen_uid();
@@ -200,8 +198,8 @@ void print_plugin_config(void) {
 			printf("        %s: %s\n", plugins[i]->args[arg*2],
 				plugins[i]->args[arg*2 + 1]);
 		}
-		printf("    Cache name: %s\n", plugins[i]->cache_name);
-		printf("    Cache path: %s\n", plugins[i]->cache_path);
+		printf("    Cache name: %s\n", plugins[i]->p_cache->name);
+		printf("    Cache path: %s\n", plugins[i]->p_cache->path);
 		printf("    UID:        %llu\n", plugins[i]->uid);
 		printf("    Arg rev:    %llu\n", plugins[i]->arg_rev);
 	}
@@ -356,6 +354,19 @@ char *plugin_get_full_identifier(const char *name, unsigned int index) {
 	return identifier;
 }
 
+int plugins_setup(void) {
+	/*
+	*  Setup the plugin system.
+	*/
+
+	// Setup the cache system.
+	if (cache_setup() != 0) {
+		printf("plugin: Failed to setup the cache system.\n");
+		return 1;
+	}
+	return 0;
+}
+
 void plugins_cleanup(void) {
 	/*
 	*  Free memory allocated for plugin data and close
@@ -365,9 +376,8 @@ void plugins_cleanup(void) {
 	for (unsigned int i = 0; i < plugin_count; i++) {
 		if (plugins[i]) {
 			plugins[i]->p_params->plugin_cleanup();
-			free(plugins[i]->args);
-			free(plugins[i]->cache_path);
 			dlclose(plugins[i]->p_handle);
+			free(plugins[i]->args);
 			free(plugins[i]);
 			plugins[i] = NULL;
 		}
@@ -377,14 +387,5 @@ void plugins_cleanup(void) {
 		free(plugins);
 	}
 	printf("plugin: All plugins free'd!\n");
-
-	if (!cli_get_opts()->opt_preserve_cache) {
-		if (cache_delete_all() != 0) {
-			printf("plugin: Failed to delete cache files.\n");
-		}
-	} else {
-		printf("plugin: Skipping cache deletion because cache preservation is enabled.\n");
-	}
-
-	printf("plugin: Cleanup done!\n");
+	cache_cleanup(!cli_get_opts()->opt_preserve_cache);
 }

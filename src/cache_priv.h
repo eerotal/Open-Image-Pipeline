@@ -22,10 +22,18 @@
 #ifndef INCLUDED_CACHE_PRIV
 	#define INCLUDED_CACHE_PRIV
 
-	char *cache_get_root(void);
-	char *cache_get_path(const char *cache_name);
-	char *cache_get_file_path(const char *cache_name, const char *cache_id);
-	char *cache_create(const char *cache_name);
-	int cache_file_exists(const char *cache_name, const char *cache_id);
-	int cache_delete_all(void);
+	#include <stdlib.h>
+
+	typedef struct CACHE_STRUCT {
+		char *name;
+		char *path;
+	} CACHE;
+
+	CACHE *cache_create(const char *cache_name);
+	void cache_destroy(CACHE *cache, int del_files);
+	int cache_setup(void);
+	void cache_cleanup(int del_files);
+
+	char *cache_get_path_to_file(CACHE *cache, const char *fname);
+	int cache_has_file(CACHE *cache, const char *fname);
 #endif

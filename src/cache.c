@@ -30,130 +30,174 @@
 #include <dirent.h>
 
 #include "file.h"
+#include "cache_priv.h"
+#include "cli_priv.h"
 
 #define CACHE_ROOT "plugins/cache/"
 #define CACHE_PERMISSIONS S_IRWXU
 
-char *cache_get_root(void) {
-	return CACHE_ROOT;
-}
+static CACHE **caches = NULL;
+static unsigned int caches_count = 0;
 
-char *cache_get_path(const char *cache_name) {
+int cache_has_file(CACHE *cache, const char *fname) {
 	/*
-	*  Get the full path to a named cache.
-	*  Returns a pointer to a string containing the
-	*  path on success and NULL on failure.
+	*  Check if a cache contains a file. Returns 1
+	*  if it does, 0 if it doesn't and -1 on error.
 	*/
 
-	char *fullpath = NULL;
+	char *fpath = file_path_join(cache->path, fname);
+	if (fpath == NULL) {
+		return -1;
+	}
+
 	errno = 0;
-	fullpath = calloc(strlen(CACHE_ROOT) + strlen(cache_name) + 1, sizeof(char));
-	if (fullpath == NULL) {
-		perror("calloc(): ");
-		return NULL;
+	if (access(fpath, F_OK) == 0) {
+		free(fpath);
+		return 1;
+	} else {
+		if (errno == ENOENT) {
+			free(fpath);
+			return 0;
+		} else {
+			free(fpath);
+			return -1;
+		}
 	}
-	strcat(fullpath, CACHE_ROOT);
-	strcat(fullpath, cache_name);
-	return fullpath;
+	return -1;
 }
 
-char *cache_get_file_path(const char *cache_name, const char *cache_id) {
-	/*
-	*  Get the path to the file 'cache_id' in a named cache.
-	*  Returns a pointer to a string containing the path or
-	*  NULL on failure.
-	*/
-	char *cache_path = NULL;
-	char *cache_file = NULL;
-	cache_path = cache_get_path(cache_name);
-	if (cache_path == NULL) {
-		return NULL;
-	}
-
-	cache_file = file_path_join(cache_path, cache_id);
-	if (cache_file == NULL) {
-		free(cache_path);
-		return NULL;
-	}
-	return cache_file;
+char *cache_get_path_to_file(CACHE *cache, const char *fname) {
+	return file_path_join(cache->path, fname);
 }
 
-char *cache_create(const char *cache_name) {
+CACHE *cache_create(const char *cache_name) {
 	/*
 	*  Create a named cache.
-	*  Returns a pointer to a string containing the
-	*  cache path on success and NULL on failure.
+	*  Returns a pointer to the named cache on success
+	*  and a NULL pointer on failure.
 	*/
 
-	char *path = NULL;
-	path = cache_get_path(cache_name);
-	if (path == NULL) {
+	CACHE *n_cache = NULL;
+	CACHE **tmp_caches = NULL;
+
+	printf("cache: Creating cache %s.\n", cache_name);
+
+	// Allocate memory for the CACHE instance.
+	errno = 0;
+	n_cache = malloc(sizeof(CACHE));
+	if (n_cache == NULL) {
+		perror("cache: malloc()");
+		return NULL;
+	}
+	memset(n_cache, 0, sizeof(CACHE));
+
+	// Copy the cache name.
+	errno = 0;
+	n_cache->name = calloc(strlen(cache_name), sizeof(char));
+	if (n_cache->name == NULL) {
+		perror("cache: calloc()");
+		free(n_cache);
+		return NULL;
+	}
+	memcpy(n_cache->name, cache_name, strlen(cache_name)*sizeof(char));
+
+	// Get the full cache path.
+	n_cache->path = file_path_join(CACHE_ROOT, cache_name);
+	if (n_cache->path == NULL) {
+		free(n_cache->name);
+		free(n_cache);
 		return NULL;
 	}
 
-	printf("cache: Creating cache directory: %s\n", path);
-
+	// Create the cache directory.
 	errno = 0;
+	if (access(n_cache->path, F_OK) != 0) {
+		if (errno == ENOENT) {
+			errno = 0;
+			if (mkdir(n_cache->path, CACHE_PERMISSIONS) == -1) {
+				perror("cache: mkdir()");
+				cache_destroy(n_cache, 0);
+				return NULL;
+			}
+		} else {
+			perror("cache: access()");
+			cache_destroy(n_cache, 0);
+			return NULL;
+		}
+	}
+
+	// Add the cache pointer to the caches array.
+	caches_count++;
+	tmp_caches = realloc(caches, caches_count*sizeof(CACHE*));
+	if (tmp_caches == NULL) {
+		caches_count--;
+		cache_destroy(n_cache, 1);
+		return NULL;
+	}
+	caches = tmp_caches;
+	caches[caches_count - 1] = n_cache;
+
+	return n_cache;
+}
+
+void cache_destroy(CACHE *cache, int del_files) {
+	/*
+	*  Destroy a cache and free the memory allocated to it.
+	*  If del_files is 0, the cache directory is left in place.
+	*  Otherwise the cache directory is deleted too.
+	*/
+
+	if (cache != NULL) {
+		if (del_files) {
+			// Delete the cache directory recursively.
+			errno = 0;
+			if (access(cache->path, F_OK) == 0) {
+				rmdir_recursive(cache->path);
+			} else {
+				perror("cache: access()");
+			}
+		}
+
+		// Free allocated memory.
+		if (cache->name != NULL) {
+			free(cache->name);
+		}
+		if (cache->path != NULL) {
+			free(cache->path);
+		}
+		free(cache);
+	}
+}
+
+int cache_setup(void) {
+	// Create the cache root if it doesn't exist.
+	errno = 0;
+	printf("cache: Cache setup.\n");
 	if (access(CACHE_ROOT, F_OK) != 0) {
 		if (errno == ENOENT) {
-			// Create the cache directory.
+			errno = 0;
 			if (mkdir(CACHE_ROOT, CACHE_PERMISSIONS) == -1) {
-				perror("mkdir(): ");
-				free(path);
-				return NULL;
+				perror("cache: mkdir()");
+				return 1;
 			}
 		} else {
-			// Error occured.
-			perror("access(): ");
-			free(path);
-			return NULL;
+			perror("cache: access()");
+			return 1;
 		}
 	}
-
-	errno = 0;
-	if (access(path, F_OK) != 0) {
-		if (errno == ENOENT) {
-			// Create the cache subdirectory.
-			if (mkdir(path, CACHE_PERMISSIONS) == -1) {
-				perror("mkdir(): ");
-				free(path);
-				return NULL;
-			}
-			return path;
-		} else {
-			// An error occured.
-			perror("access(): ");
-			free(path);
-			return NULL;
-		}
-	} else {
-		// Cache exists.
-		printf("cache: Cache already exists.\n");
-		return path;
-	}
-	free(path);
-	return NULL;
-}
-
-int cache_file_exists(const char *cache_name, const char *cache_id) {
-	/*
-	*  Check if the file cache_id exists in cache_name.
-	*  Returns 1 in case it does and 0 otherwise.
-	*/
-	char *cache_file_path = cache_get_file_path(cache_name, cache_id);
-	if (access(cache_file_path, F_OK) == 0) {
-		free(cache_file_path);
-		return 1;
-	}
-	free(cache_file_path);
 	return 0;
 }
 
-int cache_delete_all(void) {
-	printf("cache: Deleting all cache files.\n");
-	if (rmdir_recursive(CACHE_ROOT) == 1) {
-		printf("Recursive cache delete failed.\n");
-		return 1;
+void cache_cleanup(int del_files) {
+	// Destroy all existing caches.
+	printf("cache: Cache cleanup.\n");
+	if (caches != NULL) {
+		if (!del_files) {
+			printf("cache: Leaving cache files in place.\n");
+		}
+		for (unsigned int i = 0; i < caches_count; i++) {
+			cache_destroy(caches[i], del_files);
+		}
+		free(caches);
 	}
-	return 0;
 }

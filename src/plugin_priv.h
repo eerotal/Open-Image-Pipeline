@@ -23,6 +23,19 @@
 	#define PLUGIN_PRIV_INCLUDED
 
 	#include "headers/plugin.h"
+	#include "cache_priv.h"
+
+	typedef struct STRUCT_PLUGIN {
+		PLUGIN_INFO *p_params;
+		CACHE *p_cache;
+		void *p_handle;
+
+		char **args;
+		unsigned int argc;
+
+		unsigned long long int arg_rev;
+		unsigned long long int uid;
+	} PLUGIN;
 
 	int plugin_load(char *dirpath, char *name);
 	void print_plugin_config(void);
@@ -34,5 +47,6 @@
 	PLUGIN *plugin_get(unsigned int index);
 	unsigned int plugins_get_count(void);
 	char *plugin_get_full_identifier(const char *name, unsigned int index);
+	int plugins_setup(void);
 	void plugins_cleanup(void);
 #endif
