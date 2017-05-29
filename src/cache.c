@@ -27,7 +27,6 @@
 #include <math.h>
 #include <errno.h>
 #include <unistd.h>
-#include <dirent.h>
 
 #include "file.h"
 #include "cache_priv.h"
@@ -66,6 +65,11 @@ int cache_has_file(CACHE *cache, const char *fname) {
 }
 
 char *cache_get_path_to_file(CACHE *cache, const char *fname) {
+	/*
+	*  Get the path to the file named 'fname' in the cache 'cache'.
+	*  Returns a pointer to a newly allocated string on success and
+	*  a NULL pointer on failure.
+	*/
 	return file_path_join(cache->path, fname);
 }
 
@@ -127,8 +131,10 @@ CACHE *cache_create(const char *cache_name) {
 
 	// Add the cache pointer to the caches array.
 	caches_count++;
+	errno = 0;
 	tmp_caches = realloc(caches, caches_count*sizeof(CACHE*));
 	if (tmp_caches == NULL) {
+		perror("cache: realloc()");
 		caches_count--;
 		cache_destroy(n_cache, 1);
 		return NULL;
@@ -171,9 +177,14 @@ void cache_destroy(CACHE *cache, int del_files) {
 }
 
 int cache_setup(void) {
+	/*
+	*  Caching system setup function. This function must be run
+	*  before running any of the other functions in this file.
+	*/
+	printf("cache: Cache setup.\n");
+
 	// Create the cache root if it doesn't exist.
 	errno = 0;
-	printf("cache: Cache setup.\n");
 	if (access(CACHE_ROOT, F_OK) != 0) {
 		if (errno == ENOENT) {
 			errno = 0;
@@ -190,8 +201,14 @@ int cache_setup(void) {
 }
 
 void cache_cleanup(int del_files) {
-	// Destroy all existing caches.
+	/*
+	*  Caching system cleanup function. If del_files is 0, the cache
+	*  directories will be left in place. Otherwise the cache
+	*  directories will be deleted.
+	*/
 	printf("cache: Cache cleanup.\n");
+
+	// Destroy all existing caches.
 	if (caches != NULL) {
 		if (!del_files) {
 			printf("cache: Leaving cache files in place.\n");
