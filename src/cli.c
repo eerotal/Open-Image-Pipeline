@@ -147,6 +147,12 @@ static void *cli_shell_run(void *args) {
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 	pthread_cleanup_push(cli_shell_cleanup, NULL);
 
+	printf("Open Image Pipeline Copyright (C) 2017 Eero Talus\n");
+	printf("This program is licensed under the GNU General Public License\n");
+	printf("version 3 and comes with ABSOLUTELY NO WARRANTY. This program is\n");
+	printf("also free software. See the file LICENSE.txt for more details\n");
+	printf("about the license and the file README.md for general information.\n\n");
+
 	printf("cli-shell: Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {
 		errno = 0;
