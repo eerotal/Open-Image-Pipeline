@@ -134,9 +134,16 @@ static void cli_shell_cleanup(void *arg) {
 pthread_t *cli_shell_init(void) {
 	errno = 0;
 	if (pthread_create(&thread_cli_shell, NULL, &cli_shell_run, NULL) != 0) {
-		perror("cli-shell: pthread_create(): ");
+		perror("cli-shell: pthread_create()");
 		return NULL;
 	}
+
+	printf("Open Image Pipeline Copyright (C) 2017 Eero Talus\n");
+	printf("This program is licensed under the GNU General Public License\n");
+	printf("version 3 and comes with ABSOLUTELY NO WARRANTY. This program is\n");
+	printf("also free software. See the file LICENSE.txt for more details\n");
+	printf("about the license and the file README.md for general information.\n\n");
+
 	return &thread_cli_shell;
 }
 
@@ -147,19 +154,13 @@ static void *cli_shell_run(void *args) {
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 	pthread_cleanup_push(cli_shell_cleanup, NULL);
 
-	printf("Open Image Pipeline Copyright (C) 2017 Eero Talus\n");
-	printf("This program is licensed under the GNU General Public License\n");
-	printf("version 3 and comes with ABSOLUTELY NO WARRANTY. This program is\n");
-	printf("also free software. See the file LICENSE.txt for more details\n");
-	printf("about the license and the file README.md for general information.\n\n");
-
 	printf("cli-shell: Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {
 		errno = 0;
 		while (fgets(shell_buff, SHELL_BUFFER_LEN, stdin) == NULL) {
 			pthread_testcancel();
 			if (errno != 0) {
-				perror("cli-shell: fgets(): ");
+				perror("cli-shell: fgets()");
 			}
 		}
 		if (cli_shell_parse(shell_buff) != 0) {
@@ -230,7 +231,7 @@ static int cli_shell_jobs_shrink(void) {
 			errno = 0;
 			new_jobs_tmp = realloc(new_jobs, new_jobs_count*sizeof(JOB*));
 			if (new_jobs_tmp == NULL) {
-				perror("cli-shell: realloc(): ");
+				perror("cli-shell: realloc()");
 				free(new_jobs_tmp);
 				return 1;
 			}
@@ -274,7 +275,7 @@ static int cli_shell_job_add(JOB *job) {
 	tmp_jobs = realloc(cli_shell_jobs, cli_shell_jobs_count*sizeof(JOB*));
 	if (tmp_jobs == NULL) {
 		cli_shell_jobs_count--;
-		perror("cli-shell: realloc(): ");
+		perror("cli-shell: realloc()");
 		return 1;
 	}
 	cli_shell_jobs = tmp_jobs;
@@ -416,7 +417,7 @@ static int cli_shell_parse(char *str) {
 				*  Realloc failed so decrement length back to
 				*  original and free the keywords array.
 				*/
-				perror("cli-shell: realloc(): ");
+				perror("cli-shell: realloc()");
 				c_keywords_len--;
 				for (int k = 0; k < c_keywords_len; k++) {
 					free(keywords[k]);
@@ -431,7 +432,7 @@ static int cli_shell_parse(char *str) {
 			keywords[c_keywords_len - 1] = calloc(i - s, sizeof(char));
 			if (keywords[c_keywords_len - 1] == NULL) {
 				// Free the keywords array.
-				perror("cli-shell: calloc(): ");
+				perror("cli-shell: calloc()");
 				for (int k = 0; k < c_keywords_len; k++) {
 					free(keywords[k]);
 				}
@@ -458,7 +459,7 @@ static int cli_shell_parse(char *str) {
 		errno = 0;
 		char *tmp_str = malloc(strlen(str)*sizeof(char));
 		if (tmp_str == NULL) {
-			perror("cli-shell: malloc(): ");
+			perror("cli-shell: malloc()");
 			return 1;
 		}
 		memcpy(tmp_str, str, strlen(str)*sizeof(char));
