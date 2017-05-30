@@ -28,7 +28,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <time.h>
-#include <dirent.h>
 
 #include "file.h"
 #include "cache_priv.h"
@@ -40,8 +39,8 @@
 static CACHE **caches = NULL;
 static unsigned int caches_count = 0;
 
-static void cache_db_destroy(CACHE *cache);
 static int cache_db_shrink(CACHE *cache);
+static int cache_db_get_file_index(CACHE *cache, const char *fname);
 
 void cache_dump(CACHE *cache) {
 	/*
@@ -53,9 +52,7 @@ void cache_dump(CACHE *cache) {
 	printf("  Max files: %u\n", cache->max_files);
 	printf("  Files:\n");
 	for (unsigned int i = 0; i < cache->db_len; i++) {
-		if (cache->db[i] != NULL) {
-			printf("    %s : %s\n", cache->db[i]->fname, cache->db[i]->fpath);
-		}
+		printf("    %s : %s\n", cache->db[i]->fname, cache->db[i]->fpath);
 	}
 }
 
@@ -64,24 +61,7 @@ void cache_dump_all(void) {
 	*  Dump info about all caches to STDOUT.
 	*/
 	for (unsigned int i = 0; i < caches_count; i++) {
-		if (caches[i] != NULL) {
-			cache_dump(caches[i]);
-		}
-	}
-}
-
-void cache_file_destroy(CACHE_FILE *file) {
-	/*
-	*  Free the resources allocated to a CACHE_FILE instance.
-	*/
-	if (file != NULL) {
-		if (file->fname != NULL) {
-			free(file->fname);
-		}
-		if (file->fpath != NULL) {
-			free(file->fpath);
-		}
-		free(file);
+		cache_dump(caches[i]);
 	}
 }
 
@@ -91,16 +71,24 @@ int cache_db_unreg_file(CACHE *cache, const char *fname) {
 	*  the file is successfully unregistered and 1 if it
 	*  doesn't exist.
 	*/
-	for (unsigned int i = 0; i < cache->db_len; i++) {
-		if (strcmp(cache->db[i]->fname, fname) == 0) {
-			printf("cache: Removing file %s from cache %s.\n", fname, cache->name);
-			cache_file_destroy(cache->db[i]);
-			cache->db[i] = NULL;
-			cache_db_shrink(cache);
-			return 0;
-		}
+	int index = -1;
+	index = cache_db_get_file_index(cache, fname);
+
+	if (index == -1) {
+		printf("cache: Cache doesn't have file %s.\n", fname);
+		return 1;
 	}
-	return 1;
+
+	// Free allocated resources.
+	free(cache->db[index]->fname);
+	free(cache->db[index]->fpath);
+	free(cache->db[index]);
+	cache->db[index] = NULL;
+
+	if (cache_db_shrink(cache) != 0) {
+		return 1;
+	}
+	return 0;
 }
 
 CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname) {
@@ -195,25 +183,18 @@ static int cache_db_shrink(CACHE *cache) {
 	return 0;
 }
 
-static void cache_db_destroy(CACHE *cache) {
+static int cache_db_get_file_index(CACHE *cache, const char *fname) {
 	/*
-	*  Free the cache file db.
+	*  Return the index of the CACHE_FILE instance for 'fname' in
+	*  the cache file database of 'cache'. If the file is not found,
+	*  -1 is returned.
 	*/
-
-	if (cache->db != NULL) {
-		for (unsigned int i = 0; i < cache->db_len; i++) {
-			if (cache->db[i] != NULL) {
-				if (cache->db[i]->fname != NULL) {
-					free(cache->db[i]->fname);
-				}
-				if (cache->db[i]->fpath != NULL) {
-					free(cache->db[i]->fpath);
-				}
-				free(cache->db);
-				cache->db = NULL;
-			}
+	for (unsigned int i = 0; i < cache->db_len; i++) {
+		if (strcmp(cache->db[i]->fname, fname) == 0) {
+			return i;
 		}
 	}
+	return -1;
 }
 
 int cache_has_file(CACHE *cache, const char *fname) {
@@ -221,11 +202,8 @@ int cache_has_file(CACHE *cache, const char *fname) {
 	*  Return 1 if 'cache' contains the file 'fname'.
 	*  Otherwise return 0;
 	*/
-
-	for (unsigned int i = 0; i < cache->db_len; i++) {
-		if (strcmp(cache->db[i]->fname, fname) == 0) {
-			return 1;
-		}
+	if (cache_db_get_file_index(cache, fname) != -1) {
+		return 1;
 	}
 	return 0;
 }
@@ -235,31 +213,32 @@ int cache_file_delete(CACHE *cache, const char *fname) {
 	*  Delete the file 'fname' from 'cache'.
 	*  Returns 0 on success and 1 on failure.
 	*/
-	for (unsigned int i = 0; i < cache->db_len; i++) {
-		if (strcmp(cache->db[i]->fname, fname) == 0) {
-			// Delete the cache file from disk.
-			errno = 0;
-			if (access(cache->db[i]->fpath, F_OK) == 0) {
-				errno = 0;
-				if (unlink(cache->db[i]->fpath) == -1) {
-					perror("cache: unlink()");
-					return 1;
-				}
-			} else {
-				perror("cache: access()");
-				return 1;
-			}
+	int index = -1;
 
-			// Unregister the cache file.
-			if (cache_db_unreg_file(cache, fname) != 0) {
-				printf("cache: Failed to unregister cache file.\n");
-				return 1;
-			}
-			return 0;
-		}
+	index = cache_db_get_file_index(cache, fname);
+	if (index == -1) {
+		printf("cache: File %s doesn't exist in cache %s.\n", fname, cache->name);
+		return 1;
 	}
-	printf("cache: File %s doesn't exist in cache %s.\n", fname, cache->name);
-	return 1;
+
+	errno = 0;
+	if (access(cache->db[index]->fpath, F_OK) == 0) {
+		errno = 0;
+		if (unlink(cache->db[index]->fpath) == -1) {
+			perror("cache: unlink()");
+			return 1;
+		}
+	} else {
+		perror("cache: access()");
+		return 1;
+	}
+
+	// Unregister the cache file.
+	if (cache_db_unreg_file(cache, fname) != 0) {
+		printf("cache: Failed to unregister cache file.\n");
+		return 1;
+	}
+	return 0;
 }
 
 CACHE *cache_get_cache_by_name(const char *name) {
@@ -381,16 +360,17 @@ void cache_destroy(CACHE *cache, int del_files) {
 			}
 		}
 
-		// Destroy the cache database.
-		cache_db_destroy(cache);
+		// Free the cache file database.
+		for (unsigned int i = 0; i < cache->db_len; i++) {
+			free(cache->db[i]->fname);
+			free(cache->db[i]->fpath);
+			free(cache->db);
+			cache->db = NULL;
+		}
 
-		// Free allocated memory.
-		if (cache->name != NULL) {
-			free(cache->name);
-		}
-		if (cache->path != NULL) {
-			free(cache->path);
-		}
+		// Free the cache instance.
+		free(cache->name);
+		free(cache->path);
 		free(cache);
 	}
 }
