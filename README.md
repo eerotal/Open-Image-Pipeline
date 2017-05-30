@@ -9,7 +9,7 @@ using C as the programming language and by keeping optimization in mind
 while programming. Modularity on the other hand is achieved by the
 use of plugins.
 
-** NOTE: This program is still under VERY heavy development. It probably
+**NOTE: This program is still under VERY heavy development. It probably
 doesn't work correctly yet and is full of bugs etc. Do not use it for anything
 important. The most stable branch right now is master, which I try to keep
 compilable. However, I can't guarantee the master branch will work correctly
