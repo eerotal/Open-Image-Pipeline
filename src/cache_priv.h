@@ -23,17 +23,36 @@
 	#define INCLUDED_CACHE_PRIV
 
 	#include <stdlib.h>
+	#include <time.h>
+
+	typedef struct CACHE_FILE_STRUCT {
+		char *fname;
+		char *fpath;
+		time_t tstamp;
+	} CACHE_FILE;
 
 	typedef struct CACHE_STRUCT {
 		char *name;
 		char *path;
+		unsigned int max_files;
+
+		CACHE_FILE **db;
+		unsigned int db_len;
 	} CACHE;
 
 	CACHE *cache_create(const char *cache_name);
 	void cache_destroy(CACHE *cache, int del_files);
+
 	int cache_setup(void);
 	void cache_cleanup(int del_files);
 
-	char *cache_get_path_to_file(CACHE *cache, const char *fname);
+	int cache_db_unreg_file(CACHE *cache, const char *fname);
+	CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname);
+
+	void cache_dump_all(void);
+	void cache_dump(CACHE *cache);
+	int cache_file_delete(CACHE *cache, const char *fname);
 	int cache_has_file(CACHE *cache, const char *fname);
+	CACHE *cache_get_cache_by_name(const char *name);
+	char *cache_get_path_to_file(CACHE *cache, const char *fname);
 #endif

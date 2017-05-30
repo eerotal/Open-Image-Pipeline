@@ -46,15 +46,21 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 		return 1;
 	}
 
-	c_fullpath = file_path_join(tmp_plugin->p_cache->path, cache_id);
+	c_fullpath = cache_get_path_to_file(tmp_plugin->p_cache, cache_id);
 	if (c_fullpath == NULL) {
 		return 1;
 	}
 
 	printf("pipeline: Cache image: %s\n", c_fullpath);
-	img_save(img, c_fullpath);
-	free(c_fullpath);
+	if (img_save(img, c_fullpath) != 0) {
+		free(c_fullpath);
+		return 1;
+	}
 
+	// Register the new cache file to the caching system.
+	cache_db_reg_file(tmp_plugin->p_cache, cache_id);
+
+	free(c_fullpath);
 	return 0;
 }
 

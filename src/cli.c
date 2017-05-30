@@ -39,7 +39,7 @@ static struct CLI_OPTS cli_opts;
 #define CLI_GETOPT_OPTS "vp"
 #define SHELL_BUFFER_LEN 100
 
-#define NUM_CLI_CMD_PROTOS 10
+#define NUM_CLI_CMD_PROTOS 12
 #define NUM_CLI_CMD_MAX_KEYWORDS 10
 
 static pthread_t thread_cli_shell;
@@ -55,6 +55,8 @@ static char *cli_cmd_prototypes[NUM_CLI_CMD_PROTOS][NUM_CLI_CMD_MAX_KEYWORDS] = 
 	{"job", "delete", "%s"},
 	{"job", "save", "%s"},
 	{"job", "list"},
+	{"cache", "dump", "all"},
+	{"cache", "file", "delete", "%s", "%s"},
 	{"help"},
 	{"exit"}
 };
@@ -68,6 +70,8 @@ static char *cli_cmd_help[NUM_CLI_CMD_PROTOS] = {
 	"job delete <job index>  ----------------------  Delete the job at index <job index>",
 	"job save <job index>  ------------------------  Save the result image of the job at index <job index>.",
 	"job list  ------------------------------------  List all jobs.",
+	"cache dump all  ------------------------------  Dump information about existing caches to STDOUT.",
+	"cache file delete <cache> <fname> ------------  Delete the file <fname> from <cache>.",
 	"help  ----------------------------------------  Print this help.",
 	"exit  ----------------------------------------  Exit the program."
 };
@@ -383,10 +387,25 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 				job_print(cli_shell_jobs[i]);
 			}
 			break;
-		case 8: ; // help
+		case 8: ; // cache dump
+			cache_dump_all();
+			break;
+		case 9: ; // cache file delete %s %s
+			CACHE *tmp_cache = NULL;
+			tmp_cache = cache_get_cache_by_name(keywords[3]);
+			if (tmp_cache == NULL) {
+				printf("cli-shell: Failed to find cache %s.\n", keywords[3]);
+				break;
+			}
+
+			if (cache_file_delete(tmp_cache, keywords[4]) != 0) {
+				printf("cli-shell: Failed to delete cache file.\n");
+			}
+			break;
+		case 10: ; // help
 			cli_shell_print_help();
 			break;
-		case 9: ; // exit
+		case 11: ; // exit
 			oip_exit();
 			break;
 		default:

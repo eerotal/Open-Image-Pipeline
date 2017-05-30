@@ -9,6 +9,6 @@ plugin list
 job create res/scenery.jpg
 job list
 job feed 0
+cache dump
 job save 0 res/output.jpg
 job delete 0
-exit
