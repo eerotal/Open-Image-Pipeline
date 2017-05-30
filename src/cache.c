@@ -235,28 +235,31 @@ int cache_file_delete(CACHE *cache, const char *fname) {
 	*  Delete the file 'fname' from 'cache'.
 	*  Returns 0 on success and 1 on failure.
 	*/
-	char *fullpath = NULL;
+	for (unsigned int i = 0; i < cache->db_len; i++) {
+		if (strcmp(cache->db[i]->fname, fname) == 0) {
+			// Delete the cache file from disk.
+			errno = 0;
+			if (access(cache->db[i]->fpath, F_OK) == 0) {
+				errno = 0;
+				if (unlink(cache->db[i]->fpath) == -1) {
+					perror("cache: unlink()");
+					return 1;
+				}
+			} else {
+				perror("cache: access()");
+				return 1;
+			}
 
-	fullpath = cache_get_path_to_file(cache, fname);
-	if (fullpath == NULL) {
-		return 1;
-	}
-
-	errno = 0;
-	if (access(fullpath, F_OK) == 0) {
-		errno = 0;
-		if (unlink(fullpath) == -1) {
-			perror("cache: unlink()");
-			free(fullpath);
-			return 1;
+			// Unregister the cache file.
+			if (cache_db_unreg_file(cache, fname) != 0) {
+				printf("cache: Failed to unregister cache file.\n");
+				return 1;
+			}
+			return 0;
 		}
-	} else {
-		perror("cache: access()");
-		free(fullpath);
-		return 1;
 	}
-	free(fullpath);
-	return 0;
+	printf("cache: File %s doesn't exist in cache %s.\n", fname, cache->name);
+	return 1;
 }
 
 CACHE *cache_get_cache_by_name(const char *name) {
