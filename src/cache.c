@@ -1,4 +1,4 @@
-	/*
+/*
 *
 *  Copyright 2017 Eero Talus
 *
@@ -34,7 +34,7 @@
 
 #define CACHE_ROOT "plugins/cache/"
 #define CACHE_PERMISSIONS S_IRWXU
-#define CACHE_DEFAULT_MAX_FILES 1
+#define CACHE_DEFAULT_MAX_FILES 20
 
 static CACHE **caches = NULL;
 static unsigned int caches_count = 0;

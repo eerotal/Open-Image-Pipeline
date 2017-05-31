@@ -59,7 +59,6 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 		}
 		return 1;
 	}
-
 	return 0;
 }
 
@@ -100,8 +99,11 @@ int pipeline_feed(JOB *job) {
 
 	char *cache_file_path = NULL;
 	int ret = 0;
+
 	clock_t t_start = 0;
-	float delta_t = 0;
+	float t_delta = 0;
+	unsigned int throughput = 0;
+
 	IMAGE *buf_ptr_1 = NULL;
 	IMAGE *buf_ptr_2 = NULL;
 
@@ -152,11 +154,10 @@ int pipeline_feed(JOB *job) {
 				continue;
 			}
 
-			// Calculate elapsed time and avg throughput.
-			delta_t = (float) (clock() - t_start)/CLOCKS_PER_SEC;
-			printf("pipeline: Data processed in %f CPU seconds.\n", delta_t);
-			printf("pipeline: Avg throughput: %i B/s.\n",
-				(int) round(img_bytelen(buf_ptr_1)/delta_t));
+			// Calculate elapsed time and throughput.
+			t_delta = (float) (clock() - t_start)/CLOCKS_PER_SEC;
+			throughput = round(img_bytelen(buf_ptr_1)/t_delta);
+			printf("pipeline: Took %f CPU seconds. Throughput %u B/s.\n", t_delta, throughput);
 
 			// Save a copy of the result into the cache file.
 			if (pipeline_write_cache(buf_ptr_2, i, job->job_id) != 0) {
@@ -194,7 +195,7 @@ int pipeline_feed(JOB *job) {
 		}
 		img_free(buf_ptr_2);
 
-		// Update the plugin argument revisions and UIDs on a success.
+		// Update the plugin argument revisions and UIDs on success.
 		if (job_store_plugin_config(job) != 0) {
 			printf("pipeline: Failed to store plugin config in the job.\n");
 			return 1;
