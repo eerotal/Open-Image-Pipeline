@@ -1,3 +1,3 @@
-job.c
-    - Make job_print() print the status flag of the JOB instance too.
-
+ - Use plugin ID for the plugin identifier generation.
+ - Implement some sort of cache size limiting so that cached files
+   don't take insane amounts of space.

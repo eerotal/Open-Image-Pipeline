@@ -39,7 +39,7 @@ static struct CLI_OPTS cli_opts;
 #define CLI_GETOPT_OPTS "vp"
 #define SHELL_BUFFER_LEN 100
 
-#define NUM_CLI_CMD_PROTOS 10
+#define NUM_CLI_CMD_PROTOS 12
 #define NUM_CLI_CMD_MAX_KEYWORDS 10
 
 static pthread_t thread_cli_shell;
@@ -55,6 +55,8 @@ static char *cli_cmd_prototypes[NUM_CLI_CMD_PROTOS][NUM_CLI_CMD_MAX_KEYWORDS] = 
 	{"job", "delete", "%s"},
 	{"job", "save", "%s"},
 	{"job", "list"},
+	{"cache", "dump", "all"},
+	{"cache", "file", "delete", "%s", "%s"},
 	{"help"},
 	{"exit"}
 };
@@ -68,6 +70,8 @@ static char *cli_cmd_help[NUM_CLI_CMD_PROTOS] = {
 	"job delete <job index>  ----------------------  Delete the job at index <job index>",
 	"job save <job index>  ------------------------  Save the result image of the job at index <job index>.",
 	"job list  ------------------------------------  List all jobs.",
+	"cache dump all  ------------------------------  Dump information about existing caches to STDOUT.",
+	"cache file delete <cache> <fname> ------------  Delete the file <fname> from <cache>.",
 	"help  ----------------------------------------  Print this help.",
 	"exit  ----------------------------------------  Exit the program."
 };
@@ -134,9 +138,16 @@ static void cli_shell_cleanup(void *arg) {
 pthread_t *cli_shell_init(void) {
 	errno = 0;
 	if (pthread_create(&thread_cli_shell, NULL, &cli_shell_run, NULL) != 0) {
-		perror("cli-shell: pthread_create(): ");
+		perror("cli-shell: pthread_create()");
 		return NULL;
 	}
+
+	printf("Open Image Pipeline Copyright (C) 2017 Eero Talus\n");
+	printf("This program is licensed under the GNU General Public License\n");
+	printf("version 3 and comes with ABSOLUTELY NO WARRANTY. This program is\n");
+	printf("also free software. See the file LICENSE.txt for more details\n");
+	printf("about the license and the file README.md for general information.\n\n");
+
 	return &thread_cli_shell;
 }
 
@@ -147,19 +158,13 @@ static void *cli_shell_run(void *args) {
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 	pthread_cleanup_push(cli_shell_cleanup, NULL);
 
-	printf("Open Image Pipeline Copyright (C) 2017 Eero Talus\n");
-	printf("This program is licensed under the GNU General Public License\n");
-	printf("version 3 and comes with ABSOLUTELY NO WARRANTY. This program is\n");
-	printf("also free software. See the file LICENSE.txt for more details\n");
-	printf("about the license and the file README.md for general information.\n\n");
-
 	printf("cli-shell: Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {
 		errno = 0;
 		while (fgets(shell_buff, SHELL_BUFFER_LEN, stdin) == NULL) {
 			pthread_testcancel();
 			if (errno != 0) {
-				perror("cli-shell: fgets(): ");
+				perror("cli-shell: fgets()");
 			}
 		}
 		if (cli_shell_parse(shell_buff) != 0) {
@@ -230,7 +235,7 @@ static int cli_shell_jobs_shrink(void) {
 			errno = 0;
 			new_jobs_tmp = realloc(new_jobs, new_jobs_count*sizeof(JOB*));
 			if (new_jobs_tmp == NULL) {
-				perror("cli-shell: realloc(): ");
+				perror("cli-shell: realloc()");
 				free(new_jobs_tmp);
 				return 1;
 			}
@@ -274,7 +279,7 @@ static int cli_shell_job_add(JOB *job) {
 	tmp_jobs = realloc(cli_shell_jobs, cli_shell_jobs_count*sizeof(JOB*));
 	if (tmp_jobs == NULL) {
 		cli_shell_jobs_count--;
-		perror("cli-shell: realloc(): ");
+		perror("cli-shell: realloc()");
 		return 1;
 	}
 	cli_shell_jobs = tmp_jobs;
@@ -382,10 +387,25 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 				job_print(cli_shell_jobs[i]);
 			}
 			break;
-		case 8: ; // help
+		case 8: ; // cache dump
+			cache_dump_all();
+			break;
+		case 9: ; // cache file delete %s %s
+			CACHE *tmp_cache = NULL;
+			tmp_cache = cache_get_by_name(keywords[3]);
+			if (tmp_cache == NULL) {
+				printf("cli-shell: Failed to find cache %s.\n", keywords[3]);
+				break;
+			}
+
+			if (cache_delete_file(tmp_cache, keywords[4]) != 0) {
+				printf("cli-shell: Failed to delete cache file.\n");
+			}
+			break;
+		case 10: ; // help
 			cli_shell_print_help();
 			break;
-		case 9: ; // exit
+		case 11: ; // exit
 			oip_exit();
 			break;
 		default:
@@ -416,7 +436,7 @@ static int cli_shell_parse(char *str) {
 				*  Realloc failed so decrement length back to
 				*  original and free the keywords array.
 				*/
-				perror("cli-shell: realloc(): ");
+				perror("cli-shell: realloc()");
 				c_keywords_len--;
 				for (int k = 0; k < c_keywords_len; k++) {
 					free(keywords[k]);
@@ -431,7 +451,7 @@ static int cli_shell_parse(char *str) {
 			keywords[c_keywords_len - 1] = calloc(i - s, sizeof(char));
 			if (keywords[c_keywords_len - 1] == NULL) {
 				// Free the keywords array.
-				perror("cli-shell: calloc(): ");
+				perror("cli-shell: calloc()");
 				for (int k = 0; k < c_keywords_len; k++) {
 					free(keywords[k]);
 				}
@@ -458,7 +478,7 @@ static int cli_shell_parse(char *str) {
 		errno = 0;
 		char *tmp_str = malloc(strlen(str)*sizeof(char));
 		if (tmp_str == NULL) {
-			perror("cli-shell: malloc(): ");
+			perror("cli-shell: malloc()");
 			return 1;
 		}
 		memcpy(tmp_str, str, strlen(str)*sizeof(char));

@@ -42,11 +42,11 @@ static void oip_cleanup(void) {
 
 	// Cancel the CLI shell thread.
 	if (pthread_cancel(*thread_cli_shell) != 0) {
-		perror("pthread_cancel(): ");
+		perror("oip: pthread_cancel()");
 	}
 
 	if (pthread_join(*thread_cli_shell, NULL) != 0) {
-		perror("pthread_join(): ");
+		perror("oip: pthread_join()");
 	}
 }
 
@@ -57,7 +57,7 @@ void oip_exit(void) {
 int main(int argc, char **argv) {
 	// Read CLI options.
 	if (cli_parse_opts(argc, argv) != 0) {
-		printf("CLI argument parsing failed.\n");
+		printf("oip: CLI argument parsing failed.\n");
 		return 1;
 	}
 
@@ -65,6 +65,12 @@ int main(int argc, char **argv) {
 	thread_cli_shell = cli_shell_init();
 	if (thread_cli_shell == NULL) {
 		return 1;
+	}
+
+	// Setup the plugin system.
+	if (plugins_setup() != 0) {
+		printf("oip: Failed to setup the plugin system.\n");
+		oip_exit();
 	}
 
 	while (!exit_queued) {}

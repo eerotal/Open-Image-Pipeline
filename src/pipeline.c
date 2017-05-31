@@ -38,36 +38,34 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 	*  Write the supplied image into the cache of the supplied plugin.
 	*  This function returns 0 on success and 1 on failure.
 	*/
-	char *c_dir = NULL;
-	char *c_fullpath = NULL;
+	PLUGIN *tmp_plugin = NULL;
+	CACHE_FILE *tmp_cache_file = NULL;
 
-	c_dir = plugin_get(p_index)->cache_path;
-	if (c_dir == NULL) {
+	tmp_plugin = plugin_get(p_index);
+	if (tmp_plugin == NULL) {
 		return 1;
 	}
 
-	c_fullpath = file_path_join(c_dir, cache_id);
-	if (c_fullpath == NULL) {
+	tmp_cache_file = cache_db_reg_file(tmp_plugin->p_cache, cache_id, 1);
+	if (tmp_cache_file == NULL) {
+		printf("pipeline: Failed to register cache file.\n");
 		return 1;
 	}
 
-	printf("pipeline: Cache image: %s\n", c_fullpath);
-	img_save(img, c_fullpath);
-	free(c_fullpath);
-
+	printf("pipeline: Cache image: %s\n", tmp_cache_file->fpath);
+	if (img_save(img, tmp_cache_file->fpath) != 0) {
+		if (cache_db_unreg_file(tmp_plugin->p_cache, cache_id) != 0) {
+			printf("pipeline: Failed to unregusrer cache file.\n");
+		}
+		return 1;
+	}
 	return 0;
 }
 
 static int pipeline_get_first_changed_plugin(const JOB *job) {
 	/*
-	*  Return the ID of the first plugin that matches one or more
-	*  of the following conditions.
-	*  1. No cache file exists.
-	*  2. Plugin UID at a specific index has changed since last feed.
-	*  3. Argument revision has changed since last feed.
-	*  Additionally, if job->prev_plugin_count == 0, 0 is returned.
-	*  If no plugin fulfilling these conditions is found, return
-	*  the total number of plugins in the pipeline.
+	*  Return the first plugin in the pipeline that doesn't have an
+	*  up-to-date cache file.
 	*/
 
 	unsigned int maxindex = 0;
@@ -84,12 +82,12 @@ static int pipeline_get_first_changed_plugin(const JOB *job) {
 	for (unsigned int i = 0; i < maxindex; i++) {
 		if (plugin_get(i)->arg_rev != job->prev_plugin_arg_revs[i] ||
 			plugin_get(i)->uid != job->prev_plugin_uids[i] ||
-			!cache_file_exists(plugin_get(i)->cache_name, job->job_id)) {
+			!cache_has_file(plugin_get(i)->p_cache, job->job_id)) {
 			printf("pipeline: First changed plugin is %u.\n", i);
 			return i;
 		}
 	}
-	return plugins_get_count();
+	return maxindex;
 }
 
 int pipeline_feed(JOB *job) {
@@ -101,8 +99,11 @@ int pipeline_feed(JOB *job) {
 
 	char *cache_file_path = NULL;
 	int ret = 0;
+
 	clock_t t_start = 0;
-	float delta_t = 0;
+	float t_delta = 0;
+	unsigned int throughput = 0;
+
 	IMAGE *buf_ptr_1 = NULL;
 	IMAGE *buf_ptr_2 = NULL;
 
@@ -125,10 +126,18 @@ int pipeline_feed(JOB *job) {
 			*  Load the input data from the cache file of the last
 			*  plugin that hasn't changed.
 			*/
-			cache_file_path = cache_get_file_path(plugin_get(i - 1)->cache_name, job->job_id);
+
+			cache_file_path = cache_get_path_to_file(plugin_get(i - 1)->p_cache, job->job_id);
+			if (cache_file_path == NULL) {
+				printf("pipeline: Failed to get cache file path.\n");
+				img_free(buf_ptr_2);
+				return 1;
+			}
+
 			printf("pipeline: Loading image from cache: %s\n", cache_file_path);
 			buf_ptr_1 = img_load(cache_file_path);
 			if (buf_ptr_1 == NULL) {
+				img_free(buf_ptr_2);
 				return 1;
 			}
 		}
@@ -145,11 +154,10 @@ int pipeline_feed(JOB *job) {
 				continue;
 			}
 
-			// Calculate elapsed time and avg throughput.
-			delta_t = (float) (clock() - t_start)/CLOCKS_PER_SEC;
-			printf("pipeline: Data processed in %f CPU seconds.\n", delta_t);
-			printf("pipeline: Avg throughput: %i B/s.\n",
-				(int) round(img_bytelen(buf_ptr_1)/delta_t));
+			// Calculate elapsed time and throughput.
+			t_delta = (float) (clock() - t_start)/CLOCKS_PER_SEC;
+			throughput = round(img_bytelen(buf_ptr_1)/t_delta);
+			printf("pipeline: Took %f CPU seconds. Throughput %u B/s.\n", t_delta, throughput);
 
 			// Save a copy of the result into the cache file.
 			if (pipeline_write_cache(buf_ptr_2, i, job->job_id) != 0) {
@@ -187,7 +195,7 @@ int pipeline_feed(JOB *job) {
 		}
 		img_free(buf_ptr_2);
 
-		// Update the plugin argument revisions and UIDs on a success.
+		// Update the plugin argument revisions and UIDs on success.
 		if (job_store_plugin_config(job) != 0) {
 			printf("pipeline: Failed to store plugin config in the job.\n");
 			return 1;

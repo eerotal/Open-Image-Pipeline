@@ -27,133 +27,450 @@
 #include <math.h>
 #include <errno.h>
 #include <unistd.h>
-#include <dirent.h>
+#include <time.h>
 
 #include "file.h"
+#include "cache_priv.h"
 
 #define CACHE_ROOT "plugins/cache/"
 #define CACHE_PERMISSIONS S_IRWXU
+#define CACHE_DEFAULT_MAX_FILES 20
 
-char *cache_get_root(void) {
-	return CACHE_ROOT;
+static CACHE **caches = NULL;
+static unsigned int caches_count = 0;
+
+static int cache_db_shrink(CACHE *cache);
+static int cache_db_get_file_index(CACHE *cache, const char *fname);
+static int cache_db_get_file_index_oldest(CACHE *cache);
+
+void cache_dump(CACHE *cache) {
+	/*
+	*  Dump info about 'cache' to STDOUT.
+	*/
+	printf("Cache '%s':\n", cache->name);
+	printf("  Name:      %s\n", cache->name);
+	printf("  Path:      %s\n", cache->path);
+	printf("  Max files: %u\n", cache->max_files);
+	printf("  Files:\n");
+	for (unsigned int i = 0; i < cache->db_len; i++) {
+		printf("    %s : %s\n", cache->db[i]->fname, cache->db[i]->fpath);
+	}
 }
 
-char *cache_get_path(const char *cache_name) {
+void cache_dump_all(void) {
 	/*
-	*  Get the full path to a named cache.
-	*  Returns a pointer to a string containing the
-	*  path on success and NULL on failure.
+	*  Dump info about all caches to STDOUT.
 	*/
-
-	char *fullpath = NULL;
-	errno = 0;
-	fullpath = calloc(strlen(CACHE_ROOT) + strlen(cache_name) + 1, sizeof(char));
-	if (fullpath == NULL) {
-		perror("calloc(): ");
-		return NULL;
+	for (unsigned int i = 0; i < caches_count; i++) {
+		cache_dump(caches[i]);
 	}
-	strcat(fullpath, CACHE_ROOT);
-	strcat(fullpath, cache_name);
-	return fullpath;
 }
 
-char *cache_get_file_path(const char *cache_name, const char *cache_id) {
+int cache_db_unreg_file(CACHE *cache, const char *fname) {
 	/*
-	*  Get the path to the file 'cache_id' in a named cache.
-	*  Returns a pointer to a string containing the path or
-	*  NULL on failure.
+	*  Unregister a cache file for 'cache'. Returns 0 if
+	*  the file is successfully unregistered and 1 if it
+	*  doesn't exist.
 	*/
-	char *cache_path = NULL;
-	char *cache_file = NULL;
-	cache_path = cache_get_path(cache_name);
-	if (cache_path == NULL) {
-		return NULL;
+	int index = -1;
+	index = cache_db_get_file_index(cache, fname);
+
+	if (index == -1) {
+		printf("cache: Cache doesn't have file %s.\n", fname);
+		return 1;
 	}
 
-	cache_file = file_path_join(cache_path, cache_id);
-	if (cache_file == NULL) {
-		free(cache_path);
-		return NULL;
+	// Free allocated resources.
+	free(cache->db[index]->fname);
+	free(cache->db[index]->fpath);
+	free(cache->db[index]);
+	cache->db[index] = NULL;
+
+	if (cache_db_shrink(cache) != 0) {
+		return 1;
 	}
-	return cache_file;
+	return 0;
 }
 
-char *cache_create(const char *cache_name) {
+CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto_rm) {
 	/*
-	*  Create a named cache.
-	*  Returns a pointer to a string containing the
-	*  cache path on success and NULL on failure.
+	*  Register a file with the caching system. When a file is
+	*  written to a cache directory, this function must be called.
+	*  If this function is not called, the file won't be treated
+	*  as a cache file and it won't get deleted automatically for
+	*  example. Returns a pointer to the new CACHE_FILE instance on
+	*  success and a NULL pointer on failure.
 	*/
 
-	char *path = NULL;
-	path = cache_get_path(cache_name);
-	if (path == NULL) {
-		return NULL;
+	int index = 0;
+	int rm_index = 0;
+	CACHE_FILE *n_cache_file = NULL;
+	CACHE_FILE **tmp_cache_db = NULL;
+
+	// Check if the supplied file is already registered.
+	index = cache_db_get_file_index(cache, fname);
+	if (index != -1) {
+		printf("cache: Cache file %s already registered.\n", fname);
+		return cache->db[index];
 	}
 
-	printf("cache: Creating cache directory: %s\n", path);
-
-	errno = 0;
-	if (access(CACHE_ROOT, F_OK) != 0) {
-		if (errno == ENOENT) {
-			// Create the cache directory.
-			if (mkdir(CACHE_ROOT, CACHE_PERMISSIONS) == -1) {
-				perror("mkdir(): ");
-				free(path);
+	/*
+	*  Check if the cache directory has space for new files.
+	*  If auto_rm is 1, the oldest file in the cache will
+	*  be automatically removed in order to make space for the
+	*  new one if needed.
+	*/
+	if (cache->db_len >= cache->max_files) {
+		printf("cache: Cache '%s' can't fit more files.\n", cache->name);
+		if (auto_rm) {
+			printf("cache: Removing cache files to make space for new ones.\n");
+			rm_index = cache_db_get_file_index_oldest(cache);
+			if (rm_index == -1) {
+				printf("cache: Failed to get oldest file index.\n");
+				return NULL;
+			}
+			if (cache_delete_file(cache, cache->db[rm_index]->fname) != 0) {
+				printf("cache: File deletion failed. Can't register file.\n");
 				return NULL;
 			}
 		} else {
-			// Error occured.
-			perror("access(): ");
-			free(path);
 			return NULL;
 		}
 	}
 
+	printf("cache: Registering file '%s' as a cache file.\n", fname);
+
+	// Allocate memory for the CACHE_FILE instance.
 	errno = 0;
-	if (access(path, F_OK) != 0) {
-		if (errno == ENOENT) {
-			// Create the cache subdirectory.
-			if (mkdir(path, CACHE_PERMISSIONS) == -1) {
-				perror("mkdir(): ");
-				free(path);
-				return NULL;
+	n_cache_file = malloc(sizeof(CACHE));
+	if (n_cache_file == NULL) {
+		perror("cache: malloc()");
+		return NULL;
+	}
+
+	// Allocate the name string.
+	errno = 0;
+	n_cache_file->fname = calloc(strlen(fname) + 1, sizeof(char));
+	if (n_cache_file->fname == NULL) {
+		perror("cache: calloc()");
+		free(n_cache_file);
+		return NULL;
+	}
+	strcpy(n_cache_file->fname, fname);
+
+	// Create the path string.
+	errno = 0;
+	n_cache_file->fpath = cache_get_path_to_file(cache, fname);
+	if (n_cache_file->fpath == NULL) {
+		printf("cache: Failed to get path to cache file.\n");
+		free(n_cache_file->fname);
+		free(n_cache_file);
+		return NULL;
+	}
+
+	// Add the file timestamp.
+	n_cache_file->tstamp = time(NULL);
+
+	// Add the CACHE_FILE instance to the cache DB.
+	cache->db_len++;
+	tmp_cache_db = realloc(cache->db, cache->db_len*sizeof(CACHE_FILE*));
+	if (tmp_cache_db == NULL) {
+		perror("cache: realloc()");
+		cache->db_len--;
+		free(n_cache_file->fname);
+		free(n_cache_file->fpath);
+		free(n_cache_file);
+		return NULL;
+	}
+	cache->db = tmp_cache_db;
+
+	cache->db[cache->db_len - 1] = n_cache_file;
+
+	return n_cache_file;
+}
+
+static int cache_db_shrink(CACHE *cache) {
+	/*
+	*  Shrink the cache db by removing any NULL pointers from it.
+	*  Returns 0 on success and 1 on failure.
+	*/
+	unsigned int n_db_len = 0;
+	CACHE_FILE **n_db = NULL;
+	CACHE_FILE **tmp_db = NULL;
+
+	for (unsigned int i = 0; i < cache->db_len; i++) {
+		if (cache->db[i] != NULL) {
+			n_db_len++;
+			errno = 0;
+			tmp_db = realloc(n_db, n_db_len*sizeof(CACHE_FILE*));
+			if (tmp_db == NULL) {
+				perror("cache: realloc()");
+				free(n_db);
+				return 1;
 			}
-			return path;
-		} else {
-			// An error occured.
-			perror("access(): ");
-			free(path);
-			return NULL;
+			n_db = tmp_db;
+			n_db[n_db_len - 1] = cache->db[i];
+		}
+	}
+
+	free(cache->db);
+	cache->db = n_db;
+	cache->db_len = n_db_len;
+	return 0;
+}
+
+static int cache_db_get_file_index_oldest(CACHE *cache) {
+	/*
+	*  Get the index of the oldest file in the file db
+	*  of 'cache' or -1 on failure.
+	*/
+	int tmp_index = -1;
+	time_t tmp_tstamp = 0;
+
+	if (cache->db_len > 0) {
+		tmp_tstamp = cache->db[0]->tstamp;
+		tmp_index = 0;
+		for (unsigned int i = 0; i < cache->db_len; i++) {
+			if (cache->db[i]->tstamp < tmp_tstamp) {
+				tmp_tstamp = cache->db[i]->tstamp;
+				tmp_index = i;
+			}
+		}
+	}
+	return tmp_index;
+}
+
+static int cache_db_get_file_index(CACHE *cache, const char *fname) {
+	/*
+	*  Return the index of the CACHE_FILE instance for 'fname' in
+	*  the cache file database of 'cache'. If the file is not found,
+	*  -1 is returned.
+	*/
+	for (unsigned int i = 0; i < cache->db_len; i++) {
+		if (strcmp(cache->db[i]->fname, fname) == 0) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+char *cache_get_path_to_file(CACHE *cache, const char *fname) {
+	/*
+	*  Return a string pointer to the path to 'fname' or a
+	*  NULL pointer on failure.
+	*/
+	return file_path_join(cache->path, fname);
+}
+
+int cache_has_file(CACHE *cache, const char *fname) {
+	/*
+	*  Return 1 if 'cache' contains the file 'fname' and
+	*  return 0 otherwise;
+	*/
+	if (cache_db_get_file_index(cache, fname) != -1) {
+		return 1;
+	}
+	return 0;
+}
+
+int cache_delete_file(CACHE *cache, const char *fname) {
+	/*
+	*  Delete the file 'fname' from 'cache'.
+	*  Returns 0 on success and 1 on failure.
+	*/
+	int index = -1;
+
+	index = cache_db_get_file_index(cache, fname);
+	if (index == -1) {
+		printf("cache: File %s doesn't exist in cache %s.\n", fname, cache->name);
+		return 1;
+	}
+
+	errno = 0;
+	if (access(cache->db[index]->fpath, F_OK) == 0) {
+		errno = 0;
+		if (unlink(cache->db[index]->fpath) == -1) {
+			perror("cache: unlink()");
+			return 1;
 		}
 	} else {
-		// Cache exists.
-		printf("cache: Cache already exists.\n");
-		return path;
+		perror("cache: access()");
+		return 1;
 	}
-	free(path);
+
+	// Unregister the cache file.
+	if (cache_db_unreg_file(cache, fname) != 0) {
+		printf("cache: Failed to unregister cache file.\n");
+		return 1;
+	}
+	return 0;
+}
+
+CACHE *cache_get_by_name(const char *name) {
+	/*
+	*  Get a cache by it's name. Returns a pointer to
+	*  the CACHE instance if it's found and a NULL
+	*  pointer otherwise.
+	*/
+
+	for (unsigned int i = 0; i < caches_count; i++) {
+		if (strcmp(caches[i]->name, name) == 0) {
+			return caches[i];
+		}
+	}
 	return NULL;
 }
 
-int cache_file_exists(const char *cache_name, const char *cache_id) {
+CACHE *cache_create(const char *cache_name) {
 	/*
-	*  Check if the file cache_id exists in cache_name.
-	*  Returns 1 in case it does and 0 otherwise.
+	*  Create a cache with the name 'cache_name'.
+	*  Returns a pointer to a new CACHE instance on success
+	*  and a NULL pointer on failure.
 	*/
-	char *cache_file_path = cache_get_file_path(cache_name, cache_id);
-	if (access(cache_file_path, F_OK) == 0) {
-		free(cache_file_path);
-		return 1;
+
+	CACHE *n_cache = NULL;
+	CACHE **tmp_caches = NULL;
+
+	printf("cache: Creating cache %s.\n", cache_name);
+
+	// Allocate memory for the CACHE instance.
+	errno = 0;
+	n_cache = malloc(sizeof(CACHE));
+	if (n_cache == NULL) {
+		perror("cache: malloc()");
+		return NULL;
 	}
-	free(cache_file_path);
+	memset(n_cache, 0, sizeof(CACHE));
+
+	// Copy the cache name.
+	errno = 0;
+	n_cache->name = calloc(strlen(cache_name) + 1, sizeof(char));
+	if (n_cache->name == NULL) {
+		perror("cache: calloc()");
+		free(n_cache);
+		return NULL;
+	}
+	memcpy(n_cache->name, cache_name, strlen(cache_name)*sizeof(char));
+
+	// Get the full cache path.
+	n_cache->path = file_path_join(CACHE_ROOT, cache_name);
+	if (n_cache->path == NULL) {
+		free(n_cache->name);
+		free(n_cache);
+		return NULL;
+	}
+
+	// Create the cache directory.
+	errno = 0;
+	if (access(n_cache->path, F_OK) != 0) {
+		if (errno == ENOENT) {
+			errno = 0;
+			if (mkdir(n_cache->path, CACHE_PERMISSIONS) == -1) {
+				perror("cache: mkdir()");
+				cache_destroy(n_cache, 0);
+				return NULL;
+			}
+		} else {
+			perror("cache: access()");
+			cache_destroy(n_cache, 0);
+			return NULL;
+		}
+	}
+
+	// Set the default max_files value.
+	n_cache->max_files = CACHE_DEFAULT_MAX_FILES;
+
+	// Add the cache pointer to the caches array.
+	caches_count++;
+	errno = 0;
+	tmp_caches = realloc(caches, caches_count*sizeof(CACHE*));
+	if (tmp_caches == NULL) {
+		perror("cache: realloc()");
+		caches_count--;
+		cache_destroy(n_cache, 1);
+		return NULL;
+	}
+	caches = tmp_caches;
+	caches[caches_count - 1] = n_cache;
+
+	return n_cache;
+}
+
+void cache_destroy(CACHE *cache, int del_files) {
+	/*
+	*  Destroy a cache and free the memory allocated to it.
+	*  If del_files is 0, the cache directory is left in place.
+	*  Otherwise the cache directory is deleted too.
+	*/
+
+	if (cache != NULL) {
+		if (del_files) {
+			// Delete the cache directory recursively.
+			errno = 0;
+			if (access(cache->path, F_OK) == 0) {
+				if (rmdir_recursive(cache->path) != 0) {
+					printf("cache: Failed to delete cache.\n");
+				}
+			} else {
+				perror("cache: access()");
+			}
+		}
+
+		// Free the cache file database.
+		for (unsigned int i = 0; i < cache->db_len; i++) {
+			free(cache->db[i]->fname);
+			free(cache->db[i]->fpath);
+			free(cache->db);
+			cache->db = NULL;
+		}
+
+		// Free the cache instance.
+		free(cache->name);
+		free(cache->path);
+		free(cache);
+	}
+}
+
+int cache_setup(void) {
+	/*
+	*  Caching system setup function. This function must be run
+	*  before running any of the other functions in this file.
+	*/
+	printf("cache: Cache setup.\n");
+
+	// Create the cache root if it doesn't exist.
+	errno = 0;
+	if (access(CACHE_ROOT, F_OK) != 0) {
+		if (errno == ENOENT) {
+			errno = 0;
+			if (mkdir(CACHE_ROOT, CACHE_PERMISSIONS) == -1) {
+				perror("cache: mkdir()");
+				return 1;
+			}
+		} else {
+			perror("cache: access()");
+			return 1;
+		}
+	}
 	return 0;
 }
 
-int cache_delete_all(void) {
-	printf("cache: Deleting all cache files.\n");
-	if (rmdir_recursive(CACHE_ROOT) == 1) {
-		printf("Recursive cache delete failed.\n");
-		return 1;
+void cache_cleanup(int del_files) {
+	/*
+	*  Caching system cleanup function. If del_files is 0, the cache
+	*  directories will be left in place. Otherwise the cache
+	*  directories will be deleted.
+	*/
+	printf("cache: Cache cleanup.\n");
+
+	// Destroy all existing caches.
+	if (caches != NULL) {
+		if (!del_files) {
+			printf("cache: Leaving cache files in place.\n");
+		}
+		for (unsigned int i = 0; i < caches_count; i++) {
+			cache_destroy(caches[i], del_files);
+		}
+		free(caches);
 	}
-	return 0;
 }

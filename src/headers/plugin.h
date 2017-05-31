@@ -42,15 +42,4 @@
 		int (*plugin_setup)(void);
 		void (*plugin_cleanup)(void);
 	} PLUGIN_INFO;
-
-	typedef struct STRUCT_PLUGIN {
-		PLUGIN_INFO *p_params;
-		void *p_handle;
-		char **args;
-		unsigned int argc;
-		char *cache_path;
-		char *cache_name;
-		unsigned long long int arg_rev;
-		unsigned long long int uid;
-	} PLUGIN;
 #endif

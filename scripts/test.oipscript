@@ -1,14 +1,14 @@
+job create res/scenery.jpg
 plugin load plugins/ convolution
-plugin load plugins/ curves
 plugin set-arg 0 kernel 1,1,1,1,1,1,1,1,1
 plugin set-arg 0 divisor 9.0
 plugin set-arg 0 channels RGBA
-plugin set-arg 1 ctrl_points (0,0),(120,200),(255,255)
+plugin load plugins/ curves
+plugin set-arg 1 ctrl_points (0,0),(120,150),(255,255)
 plugin set-arg 1 channels RG
 plugin list
-job create res/scenery.jpg
 job list
 job feed 0
-job save 0 res/output1.jpg
-job delete 0
+job save 0 res/output_1.jpg
+cache dump all
 exit
