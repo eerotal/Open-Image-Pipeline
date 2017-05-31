@@ -31,6 +31,7 @@
 #include "cli_priv.h"
 #include "plugin_priv.h"
 #include "cache_priv.h"
+#include "file.h"
 
 static PLUGIN **plugins;
 static unsigned int plugin_count = 0;
@@ -89,11 +90,12 @@ int plugin_load(char *dirpath, char *name) {
 	PLUGIN plugin;
 	CACHE *p_cache;
 	char *cache_name = NULL;
+	char *libfname = NULL;
 	char *path = NULL;
 	char *params_struct_name = NULL;
 	char *dlret = NULL;
 
-	unsigned int path_len = 0;
+	unsigned int libfname_len = 0;
 	unsigned int params_struct_name_len = 0;
 
 	printf("plugin: Loading plugin %s from directory %s.\n", name, dirpath);
@@ -101,15 +103,23 @@ int plugin_load(char *dirpath, char *name) {
 	// Set plugin data struct to all zeroes initially.
 	memset(&plugin, 0, sizeof(PLUGIN));
 
-	// Construct plugin path.
-	path_len = strlen(dirpath) + strlen("lib") + strlen(name) + strlen(".so") + 1;
+	// Construct the plugin .so filename.
+	libfname_len = strlen("lib") + strlen(name) + strlen(".so") + 1;
 	errno = 0;
-	path = calloc(path_len, sizeof(char));
-	if (!path) {
-		perror("plugin: calloc(): ");
+	libfname = calloc(libfname_len, sizeof(char));
+	if (libfname == NULL) {
+		perror("plugin: calloc()");
 		return 1;
 	}
-	snprintf(path, path_len, "%slib%s.so", dirpath, name);
+	sprintf(libfname, "lib%s.so", name);
+
+	// Construct plugin filepath.
+	path = file_path_join(dirpath, libfname);
+	free(libfname);
+	if (path == NULL) {
+		printf("plugin: Failed to create plugin shared library path.\n");
+		return 1;
+	}
 
 	if (access(path, F_OK) == 0) {
 		// Load shared library file.
