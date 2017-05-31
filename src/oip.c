@@ -19,6 +19,8 @@
 *
 */
 
+#define PRINT_IDENTIFIER "oip"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +32,7 @@
 #include "pipeline_priv.h"
 #include "cli_priv.h"
 #include "imgutil/imgutil.h"
+#include "output_priv.h"
 
 static pthread_t *thread_cli_shell;
 static int exit_queued = 0;
@@ -59,6 +62,13 @@ int main(int argc, char **argv) {
 	if (cli_parse_opts(argc, argv) != 0) {
 		printf("oip: CLI argument parsing failed.\n");
 		return 1;
+	}
+
+	// Enable/disable verbose printing.
+	if (cli_get_opts()->opt_verbose) {
+		print_verbose_on();
+	} else {
+		print_verbose_off();
 	}
 
 	// Init CLI shell.
