@@ -19,6 +19,8 @@
 *
 */
 
+#define PRINT_IDENTIFIER "plugin"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -32,6 +34,7 @@
 #include "plugin_priv.h"
 #include "cache_priv.h"
 #include "file.h"
+#include "output_priv.h"
 
 static PLUGIN **plugins;
 static unsigned int plugin_count = 0;
@@ -98,7 +101,7 @@ int plugin_load(char *dirpath, char *name) {
 	unsigned int libfname_len = 0;
 	unsigned int params_struct_name_len = 0;
 
-	printf("plugin: Loading plugin %s from directory %s.\n", name, dirpath);
+	printinfo_va("Loading plugin %s from directory %s.\n", name, dirpath);
 
 	// Set plugin data struct to all zeroes initially.
 	memset(&plugin, 0, sizeof(PLUGIN));
@@ -117,7 +120,7 @@ int plugin_load(char *dirpath, char *name) {
 	path = file_path_join(dirpath, libfname);
 	free(libfname);
 	if (path == NULL) {
-		printf("plugin: Failed to create plugin shared library path.\n");
+		printerr("Failed to create plugin shared library path.\n");
 		return 1;
 	}
 
@@ -125,7 +128,7 @@ int plugin_load(char *dirpath, char *name) {
 		// Load shared library file.
 		plugin.p_handle = dlopen(path, RTLD_NOW);
 		if (!plugin.p_handle) {
-			fprintf(stderr, "plugin: dlopen(): %s\n", dlerror());
+			printerr_va("dlopen(): %s\n", dlerror());
 			free(path);
 			return 1;
 		}
@@ -148,7 +151,7 @@ int plugin_load(char *dirpath, char *name) {
 		plugin.p_params = dlsym(plugin.p_handle, params_struct_name);
 		dlret = dlerror();
 		if (dlret) {
-			fprintf(stderr, "plugin: dlsym(): %s", dlret);
+			printerr_va("dlsym(): %s", dlret);
 			free(path);
 			free(params_struct_name);
 			dlclose(plugin.p_handle);
@@ -158,7 +161,7 @@ int plugin_load(char *dirpath, char *name) {
 		// Create plugin cache.
 		cache_name = plugin_get_full_identifier(name, plugin_count);
 		if (cache_name == NULL) {
-			printf("plugin: Failed to get plugin identifier.\n");
+			printerr("Failed to get plugin identifier.\n");
 			free(path);
 			free(params_struct_name);
 			dlclose(plugin.p_handle);
@@ -167,7 +170,7 @@ int plugin_load(char *dirpath, char *name) {
 
 		p_cache = cache_create(cache_name);
 		if (p_cache == NULL) {
-			printf("plugin: Failed to create plugin cache.\n");
+			printerr("Failed to create plugin cache.\n");
 			free(path);
 			free(params_struct_name);
 			dlclose(plugin.p_handle);
@@ -184,12 +187,12 @@ int plugin_load(char *dirpath, char *name) {
 		// Run the setup function.
 		plugin.p_params->plugin_setup();
 
-		printf("plugin: %s: Loaded!\n", path);
+		printinfo_va("%s: Loaded!\n", path);
 		free(path);
 		free(params_struct_name);
 		return 0;
 	}
-	printf("plugin: Plugin doesn't exist.\n");
+	printerr("Plugin doesn't exist.\n");
 	return 1;
 }
 
@@ -371,7 +374,7 @@ int plugins_setup(void) {
 
 	// Setup the cache system.
 	if (cache_setup() != 0) {
-		printf("plugin: Failed to setup the cache system.\n");
+		printerr("Failed to setup the cache system.\n");
 		return 1;
 	}
 	return 0;
@@ -382,7 +385,7 @@ void plugins_cleanup(void) {
 	*  Free memory allocated for plugin data and close
 	*  opened library handles.
 	*/
-	printf("plugin: Freeing plugins...\n");
+	printinfo("Freeing plugins...\n");
 	for (unsigned int i = 0; i < plugin_count; i++) {
 		if (plugins[i]) {
 			plugins[i]->p_params->plugin_cleanup();
@@ -393,9 +396,9 @@ void plugins_cleanup(void) {
 		}
 	}
 	if (plugins) {
-		printf("plugin: Freeing plugin data array...\n");
+		printinfo("Freeing plugin data array...\n");
 		free(plugins);
 	}
-	printf("plugin: All plugins free'd!\n");
+	printinfo("All plugins free'd!\n");
 	cache_cleanup(!cli_get_opts()->opt_preserve_cache);
 }

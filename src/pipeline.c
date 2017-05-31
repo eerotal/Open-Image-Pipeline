@@ -19,6 +19,8 @@
 *
 */
 
+#define PRINT_IDENTIFIER "pipeline"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,6 +31,7 @@
 #include "plugin_priv.h"
 #include "file.h"
 #include "cache_priv.h"
+#include "output_priv.h"
 
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *uuid);
 static int pipeline_get_first_changed_plugin(const JOB *job);
@@ -48,14 +51,14 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 
 	tmp_cache_file = cache_db_reg_file(tmp_plugin->p_cache, cache_id, 1);
 	if (tmp_cache_file == NULL) {
-		printf("pipeline: Failed to register cache file.\n");
+		printerr("Failed to register cache file.\n");
 		return 1;
 	}
 
-	printf("pipeline: Cache image: %s\n", tmp_cache_file->fpath);
+	printerr_va("Cache image: %s\n", tmp_cache_file->fpath);
 	if (img_save(img, tmp_cache_file->fpath) != 0) {
 		if (cache_db_unreg_file(tmp_plugin->p_cache, cache_id) != 0) {
-			printf("pipeline: Failed to unregusrer cache file.\n");
+			printerr("Failed to unregusrer cache file.\n");
 		}
 		return 1;
 	}
@@ -83,7 +86,7 @@ static int pipeline_get_first_changed_plugin(const JOB *job) {
 		if (plugin_get(i)->arg_rev != job->prev_plugin_arg_revs[i] ||
 			plugin_get(i)->uid != job->prev_plugin_uids[i] ||
 			!cache_has_file(plugin_get(i)->p_cache, job->job_id)) {
-			printf("pipeline: First changed plugin is %u.\n", i);
+			printerr_va("First changed plugin is %u.\n", i);
 			return i;
 		}
 	}
@@ -129,12 +132,12 @@ int pipeline_feed(JOB *job) {
 
 			cache_file_path = cache_get_path_to_file(plugin_get(i - 1)->p_cache, job->job_id);
 			if (cache_file_path == NULL) {
-				printf("pipeline: Failed to get cache file path.\n");
+				printerr("Failed to get cache file path.\n");
 				img_free(buf_ptr_2);
 				return 1;
 			}
 
-			printf("pipeline: Loading image from cache: %s\n", cache_file_path);
+			printinfo_va("Loading image from cache: %s\n", cache_file_path);
 			buf_ptr_1 = img_load(cache_file_path);
 			if (buf_ptr_1 == NULL) {
 				img_free(buf_ptr_2);
@@ -143,25 +146,25 @@ int pipeline_feed(JOB *job) {
 		}
 
 		for (; i < plugins_get_count(); i++) {
-			printf("pipeline: Feeding image data to plugin %i.\n", i);
+			printinfo_va("Feeding image data to plugin %i.\n", i);
 			t_start = clock();
 
 			// Feed the image data to individual plugins.
 			if (plugin_feed(i, (const char**)plugin_get(i)->args, plugin_get(i)->argc,
 					buf_ptr_1, buf_ptr_2) != 0) {
 
-				printf("pipeline: Failed to use plugin %i.\n", i);
+				printerr_va("Failed to use plugin %i.\n", i);
 				continue;
 			}
 
 			// Calculate elapsed time and throughput.
 			t_delta = (float) (clock() - t_start)/CLOCKS_PER_SEC;
 			throughput = round(img_bytelen(buf_ptr_1)/t_delta);
-			printf("pipeline: Took %f CPU seconds. Throughput %u B/s.\n", t_delta, throughput);
+			printinfo_va("Took %f CPU seconds. Throughput %u B/s.\n", t_delta, throughput);
 
 			// Save a copy of the result into the cache file.
 			if (pipeline_write_cache(buf_ptr_2, i, job->job_id) != 0) {
-				printf("pipeline: Failed to write cache file.\n");
+				printerr("Failed to write cache file.\n");
 			}
 
 			/*
@@ -197,7 +200,7 @@ int pipeline_feed(JOB *job) {
 
 		// Update the plugin argument revisions and UIDs on success.
 		if (job_store_plugin_config(job) != 0) {
-			printf("pipeline: Failed to store plugin config in the job.\n");
+			printerr("Failed to store plugin config in the job.\n");
 			return 1;
 		}
 		return ret;

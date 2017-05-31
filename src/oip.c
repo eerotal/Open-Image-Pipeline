@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
 	// Setup the plugin system.
 	if (plugins_setup() != 0) {
-		printf("oip: Failed to setup the plugin system.\n");
+		printerr("Failed to setup the plugin system.\n");
 		oip_exit();
 	}
 

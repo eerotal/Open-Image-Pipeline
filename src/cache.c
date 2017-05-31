@@ -19,6 +19,8 @@
 *
 */
 
+#define PRINT_IDENTIFIER "cache"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -31,6 +33,7 @@
 
 #include "file.h"
 #include "cache_priv.h"
+#include "output_priv.h"
 
 #define CACHE_ROOT "plugins/cache/"
 #define CACHE_PERMISSIONS S_IRWXU
@@ -76,7 +79,7 @@ int cache_db_unreg_file(CACHE *cache, const char *fname) {
 	index = cache_db_get_file_index(cache, fname);
 
 	if (index == -1) {
-		printf("cache: Cache doesn't have file %s.\n", fname);
+		printerr_va("Cache doesn't have file %s.\n", fname);
 		return 1;
 	}
 
@@ -110,7 +113,7 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 	// Check if the supplied file is already registered.
 	index = cache_db_get_file_index(cache, fname);
 	if (index != -1) {
-		printf("cache: Cache file %s already registered.\n", fname);
+		printerr_va("Cache file %s already registered.\n", fname);
 		return cache->db[index];
 	}
 
@@ -121,16 +124,16 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 	*  new one if needed.
 	*/
 	if (cache->db_len >= cache->max_files) {
-		printf("cache: Cache '%s' can't fit more files.\n", cache->name);
+		printerr_va("Cache '%s' can't fit more files.\n", cache->name);
 		if (auto_rm) {
-			printf("cache: Removing cache files to make space for new ones.\n");
+			printinfo("Removing cache files to make space for new ones.\n");
 			rm_index = cache_db_get_file_index_oldest(cache);
 			if (rm_index == -1) {
-				printf("cache: Failed to get oldest file index.\n");
+				printerr("Failed to get oldest file index.\n");
 				return NULL;
 			}
 			if (cache_delete_file(cache, cache->db[rm_index]->fname) != 0) {
-				printf("cache: File deletion failed. Can't register file.\n");
+				printerr("File deletion failed. Can't register file.\n");
 				return NULL;
 			}
 		} else {
@@ -138,7 +141,7 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 		}
 	}
 
-	printf("cache: Registering file '%s' as a cache file.\n", fname);
+	printinfo_va("Registering file '%s' as a cache file.\n", fname);
 
 	// Allocate memory for the CACHE_FILE instance.
 	errno = 0;
@@ -162,7 +165,7 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 	errno = 0;
 	n_cache_file->fpath = cache_get_path_to_file(cache, fname);
 	if (n_cache_file->fpath == NULL) {
-		printf("cache: Failed to get path to cache file.\n");
+		printerr("Failed to get path to cache file.\n");
 		free(n_cache_file->fname);
 		free(n_cache_file);
 		return NULL;
@@ -282,7 +285,7 @@ int cache_delete_file(CACHE *cache, const char *fname) {
 
 	index = cache_db_get_file_index(cache, fname);
 	if (index == -1) {
-		printf("cache: File %s doesn't exist in cache %s.\n", fname, cache->name);
+		printerr_va("File %s doesn't exist in cache %s.\n", fname, cache->name);
 		return 1;
 	}
 
@@ -300,7 +303,7 @@ int cache_delete_file(CACHE *cache, const char *fname) {
 
 	// Unregister the cache file.
 	if (cache_db_unreg_file(cache, fname) != 0) {
-		printf("cache: Failed to unregister cache file.\n");
+		printerr("Failed to unregister cache file.\n");
 		return 1;
 	}
 	return 0;
@@ -331,7 +334,7 @@ CACHE *cache_create(const char *cache_name) {
 	CACHE *n_cache = NULL;
 	CACHE **tmp_caches = NULL;
 
-	printf("cache: Creating cache %s.\n", cache_name);
+	printinfo_va("Creating cache %s.\n", cache_name);
 
 	// Allocate memory for the CACHE instance.
 	errno = 0;
@@ -409,7 +412,7 @@ void cache_destroy(CACHE *cache, int del_files) {
 			errno = 0;
 			if (access(cache->path, F_OK) == 0) {
 				if (rmdir_recursive(cache->path) != 0) {
-					printf("cache: Failed to delete cache.\n");
+					printerr("Failed to delete cache.\n");
 				}
 			} else {
 				perror("cache: access()");
@@ -436,7 +439,7 @@ int cache_setup(void) {
 	*  Caching system setup function. This function must be run
 	*  before running any of the other functions in this file.
 	*/
-	printf("cache: Cache setup.\n");
+	printinfo("Cache setup.\n");
 
 	// Create the cache root if it doesn't exist.
 	errno = 0;
@@ -461,12 +464,12 @@ void cache_cleanup(int del_files) {
 	*  directories will be left in place. Otherwise the cache
 	*  directories will be deleted.
 	*/
-	printf("cache: Cache cleanup.\n");
+	printinfo("Cache cleanup.\n");
 
 	// Destroy all existing caches.
 	if (caches != NULL) {
 		if (!del_files) {
-			printf("cache: Leaving cache files in place.\n");
+			printinfo("Leaving cache files in place.\n");
 		}
 		for (unsigned int i = 0; i < caches_count; i++) {
 			cache_destroy(caches[i], del_files);
