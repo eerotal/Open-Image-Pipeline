@@ -10,8 +10,6 @@ job create res/scenery.jpg
 job list
 job feed 0
 cache dump all
-cache file delete convolution-0 0
-cache dump all
 job save 0 res/output.jpg
 job delete 0
 exit

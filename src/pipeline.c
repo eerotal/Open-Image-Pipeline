@@ -46,7 +46,7 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 		return 1;
 	}
 
-	tmp_cache_file = cache_db_reg_file(tmp_plugin->p_cache, cache_id);
+	tmp_cache_file = cache_db_reg_file(tmp_plugin->p_cache, cache_id, 1);
 	if (tmp_cache_file == NULL) {
 		printf("pipeline: Failed to register cache file.\n");
 		return 1;

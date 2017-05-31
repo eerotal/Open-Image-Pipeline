@@ -1,4 +1,4 @@
-/*
+	/*
 *
 *  Copyright 2017 Eero Talus
 *
@@ -41,6 +41,7 @@ static unsigned int caches_count = 0;
 
 static int cache_db_shrink(CACHE *cache);
 static int cache_db_get_file_index(CACHE *cache, const char *fname);
+static int cache_db_get_file_index_oldest(CACHE *cache);
 
 void cache_dump(CACHE *cache) {
 	/*
@@ -91,7 +92,7 @@ int cache_db_unreg_file(CACHE *cache, const char *fname) {
 	return 0;
 }
 
-CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname) {
+CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto_rm) {
 	/*
 	*  Register a file with the caching system. When a file is
 	*  written to a cache directory, this function must be called.
@@ -102,6 +103,7 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname) {
 	*/
 
 	int index = 0;
+	int rm_index = 0;
 	CACHE_FILE *n_cache_file = NULL;
 	CACHE_FILE **tmp_cache_db = NULL;
 
@@ -110,6 +112,30 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname) {
 	if (index != -1) {
 		printf("cache: Cache file %s already registered.\n", fname);
 		return cache->db[index];
+	}
+
+	/*
+	*  Check if the cache directory has space for new files.
+	*  If auto_rm is 1, the oldest file in the cache will
+	*  be automatically removed in order to make space for the
+	*  new one if needed.
+	*/
+	if (cache->db_len >= cache->max_files) {
+		printf("cache: Cache %s can't fit more files.\n", cache->name);
+		if (auto_rm) {
+			printf("cache: Removing files to make space for new ones.\n");
+			rm_index = cache_db_get_file_index_oldest(cache);
+			if (rm_index == -1) {
+				printf("cache: Failed to get oldest file index.\n");
+				return NULL;
+			}
+			if (cache_delete_file(cache, cache->db[rm_index]->fname) != 0) {
+				printf("cache: File deletion failed. Can't register file.\n");
+				return NULL;
+			}
+		} else {
+			return NULL;
+		}
 	}
 
 	// Allocate memory for the CACHE_FILE instance.
@@ -189,6 +215,26 @@ static int cache_db_shrink(CACHE *cache) {
 	cache->db = n_db;
 	cache->db_len = n_db_len;
 	return 0;
+}
+
+static int cache_db_get_file_index_oldest(CACHE *cache) {
+	/*
+	*  Get the index of the oldest file in the file db
+	*  of 'cache' or -1 on failure.
+	*/
+	int tmp_index = -1;
+	time_t tmp_tstamp = 0;
+
+	if (cache->db_len > 0) {
+		tmp_tstamp = cache->db[0]->tstamp;
+		for (unsigned int i = 0; i < cache->db_len; i++) {
+			if (cache->db[i]->tstamp < tmp_tstamp) {
+				tmp_tstamp = cache->db[i]->tstamp;
+				tmp_index = i;
+			}
+		}
+	}
+	return tmp_index;
 }
 
 static int cache_db_get_file_index(CACHE *cache, const char *fname) {

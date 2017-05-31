@@ -47,7 +47,7 @@
 	void cache_cleanup(int del_files);
 
 	int cache_db_unreg_file(CACHE *cache, const char *fname);
-	CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname);
+	CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto_rm);
 
 	int cache_delete_file(CACHE *cache, const char *fname);
 	int cache_has_file(CACHE *cache, const char *fname);
