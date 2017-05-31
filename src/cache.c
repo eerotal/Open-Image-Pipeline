@@ -34,7 +34,7 @@
 
 #define CACHE_ROOT "plugins/cache/"
 #define CACHE_PERMISSIONS S_IRWXU
-#define CACHE_DEFAULT_MAX_FILES 20
+#define CACHE_DEFAULT_MAX_FILES 1
 
 static CACHE **caches = NULL;
 static unsigned int caches_count = 0;
@@ -121,9 +121,9 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 	*  new one if needed.
 	*/
 	if (cache->db_len >= cache->max_files) {
-		printf("cache: Cache %s can't fit more files.\n", cache->name);
+		printf("cache: Cache '%s' can't fit more files.\n", cache->name);
 		if (auto_rm) {
-			printf("cache: Removing files to make space for new ones.\n");
+			printf("cache: Removing cache files to make space for new ones.\n");
 			rm_index = cache_db_get_file_index_oldest(cache);
 			if (rm_index == -1) {
 				printf("cache: Failed to get oldest file index.\n");
@@ -137,6 +137,8 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 			return NULL;
 		}
 	}
+
+	printf("cache: Registering file '%s' as a cache file.\n", fname);
 
 	// Allocate memory for the CACHE_FILE instance.
 	errno = 0;
@@ -227,6 +229,7 @@ static int cache_db_get_file_index_oldest(CACHE *cache) {
 
 	if (cache->db_len > 0) {
 		tmp_tstamp = cache->db[0]->tstamp;
+		tmp_index = 0;
 		for (unsigned int i = 0; i < cache->db_len; i++) {
 			if (cache->db[i]->tstamp < tmp_tstamp) {
 				tmp_tstamp = cache->db[i]->tstamp;
