@@ -34,7 +34,7 @@
 
 #define CACHE_ROOT "plugins/cache/"
 #define CACHE_PERMISSIONS S_IRWXU
-#define CACHE_DEFAULT_MAX_FILES 20
+#define CACHE_DEFAULT_MAX_FILES 1
 
 static CACHE **caches = NULL;
 static unsigned int caches_count = 0;

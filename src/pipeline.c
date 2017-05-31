@@ -65,14 +65,8 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 
 static int pipeline_get_first_changed_plugin(const JOB *job) {
 	/*
-	*  Return the ID of the first plugin that matches one or more
-	*  of the following conditions.
-	*  1. No cache file exists.
-	*  2. Plugin UID at a specific index has changed since last feed.
-	*  3. Argument revision has changed since last feed.
-	*  Additionally, if job->prev_plugin_count == 0, 0 is returned.
-	*  If no plugin fulfilling these conditions is found, return
-	*  the total number of plugins in the pipeline.
+	*  Return the first plugin in the pipeline that doesn't have an
+	*  up-to-date cache file.
 	*/
 
 	unsigned int maxindex = 0;
@@ -94,7 +88,7 @@ static int pipeline_get_first_changed_plugin(const JOB *job) {
 			return i;
 		}
 	}
-	return plugins_get_count();
+	return maxindex;
 }
 
 int pipeline_feed(JOB *job) {
