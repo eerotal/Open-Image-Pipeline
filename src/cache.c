@@ -101,8 +101,16 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname) {
 	*  success and a NULL pointer on failure.
 	*/
 
+	int index = 0;
 	CACHE_FILE *n_cache_file = NULL;
 	CACHE_FILE **tmp_cache_db = NULL;
+
+	// Check if the supplied file is already registered.
+	index = cache_db_get_file_index(cache, fname);
+	if (index != -1) {
+		printf("cache: Cache file %s already registered.\n", fname);
+		return cache->db[index];
+	}
 
 	// Allocate memory for the CACHE_FILE instance.
 	errno = 0;
@@ -197,10 +205,18 @@ static int cache_db_get_file_index(CACHE *cache, const char *fname) {
 	return -1;
 }
 
+char *cache_get_path_to_file(CACHE *cache, const char *fname) {
+	/*
+	*  Return a string pointer to the path to 'fname' or a
+	*  NULL pointer on failure.
+	*/
+	return file_path_join(cache->path, fname);
+}
+
 int cache_has_file(CACHE *cache, const char *fname) {
 	/*
-	*  Return 1 if 'cache' contains the file 'fname'.
-	*  Otherwise return 0;
+	*  Return 1 if 'cache' contains the file 'fname' and
+	*  return 0 otherwise;
 	*/
 	if (cache_db_get_file_index(cache, fname) != -1) {
 		return 1;
@@ -208,7 +224,7 @@ int cache_has_file(CACHE *cache, const char *fname) {
 	return 0;
 }
 
-int cache_file_delete(CACHE *cache, const char *fname) {
+int cache_delete_file(CACHE *cache, const char *fname) {
 	/*
 	*  Delete the file 'fname' from 'cache'.
 	*  Returns 0 on success and 1 on failure.
@@ -241,7 +257,7 @@ int cache_file_delete(CACHE *cache, const char *fname) {
 	return 0;
 }
 
-CACHE *cache_get_cache_by_name(const char *name) {
+CACHE *cache_get_by_name(const char *name) {
 	/*
 	*  Get a cache by it's name. Returns a pointer to
 	*  the CACHE instance if it's found and a NULL
@@ -254,15 +270,6 @@ CACHE *cache_get_cache_by_name(const char *name) {
 		}
 	}
 	return NULL;
-}
-
-char *cache_get_path_to_file(CACHE *cache, const char *fname) {
-	/*
-	*  Get the path to the file named 'fname' in the cache 'cache'.
-	*  Returns a pointer to a newly allocated string on success and
-	*  a NULL pointer on failure.
-	*/
-	return file_path_join(cache->path, fname);
 }
 
 CACHE *cache_create(const char *cache_name) {

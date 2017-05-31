@@ -49,10 +49,11 @@
 	int cache_db_unreg_file(CACHE *cache, const char *fname);
 	CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname);
 
+	int cache_delete_file(CACHE *cache, const char *fname);
+	int cache_has_file(CACHE *cache, const char *fname);
+	char *cache_get_path_to_file(CACHE *cache, const char *fname);
+
 	void cache_dump_all(void);
 	void cache_dump(CACHE *cache);
-	int cache_file_delete(CACHE *cache, const char *fname);
-	int cache_has_file(CACHE *cache, const char *fname);
-	CACHE *cache_get_cache_by_name(const char *name);
-	char *cache_get_path_to_file(CACHE *cache, const char *fname);
+	CACHE *cache_get_by_name(const char *name);
 #endif

@@ -39,28 +39,27 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 	*  This function returns 0 on success and 1 on failure.
 	*/
 	PLUGIN *tmp_plugin = NULL;
-	char *c_fullpath = NULL;
+	CACHE_FILE *tmp_cache_file = NULL;
 
 	tmp_plugin = plugin_get(p_index);
 	if (tmp_plugin == NULL) {
 		return 1;
 	}
 
-	c_fullpath = cache_get_path_to_file(tmp_plugin->p_cache, cache_id);
-	if (c_fullpath == NULL) {
+	tmp_cache_file = cache_db_reg_file(tmp_plugin->p_cache, cache_id);
+	if (tmp_cache_file == NULL) {
+		printf("pipeline: Failed to register cache file.\n");
 		return 1;
 	}
 
-	printf("pipeline: Cache image: %s\n", c_fullpath);
-	if (img_save(img, c_fullpath) != 0) {
-		free(c_fullpath);
+	printf("pipeline: Cache image: %s\n", tmp_cache_file->fpath);
+	if (img_save(img, tmp_cache_file->fpath) != 0) {
+		if (cache_db_unreg_file(tmp_plugin->p_cache, cache_id) != 0) {
+			printf("pipeline: Failed to unregusrer cache file.\n");
+		}
 		return 1;
 	}
 
-	// Register the new cache file to the caching system.
-	cache_db_reg_file(tmp_plugin->p_cache, cache_id);
-
-	free(c_fullpath);
 	return 0;
 }
 

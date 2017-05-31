@@ -392,13 +392,13 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 			break;
 		case 9: ; // cache file delete %s %s
 			CACHE *tmp_cache = NULL;
-			tmp_cache = cache_get_cache_by_name(keywords[3]);
+			tmp_cache = cache_get_by_name(keywords[3]);
 			if (tmp_cache == NULL) {
 				printf("cli-shell: Failed to find cache %s.\n", keywords[3]);
 				break;
 			}
 
-			if (cache_file_delete(tmp_cache, keywords[4]) != 0) {
+			if (cache_delete_file(tmp_cache, keywords[4]) != 0) {
 				printf("cli-shell: Failed to delete cache file.\n");
 			}
 			break;
