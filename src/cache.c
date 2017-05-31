@@ -126,7 +126,7 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 	if (cache->db_len >= cache->max_files) {
 		printerr_va("Cache '%s' can't fit more files.\n", cache->name);
 		if (auto_rm) {
-			printinfo("Removing cache files to make space for new ones.\n");
+			printverb("Removing cache files to make space for new ones.\n");
 			rm_index = cache_db_get_file_index_oldest(cache);
 			if (rm_index == -1) {
 				printerr("Failed to get oldest file index.\n");
@@ -141,7 +141,7 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 		}
 	}
 
-	printinfo_va("Registering file '%s' as a cache file.\n", fname);
+	printverb_va("Registering file '%s' as a cache file.\n", fname);
 
 	// Allocate memory for the CACHE_FILE instance.
 	errno = 0;
@@ -334,7 +334,7 @@ CACHE *cache_create(const char *cache_name) {
 	CACHE *n_cache = NULL;
 	CACHE **tmp_caches = NULL;
 
-	printinfo_va("Creating cache %s.\n", cache_name);
+	printverb_va("Creating cache %s.\n", cache_name);
 
 	// Allocate memory for the CACHE instance.
 	errno = 0;
@@ -439,7 +439,7 @@ int cache_setup(void) {
 	*  Caching system setup function. This function must be run
 	*  before running any of the other functions in this file.
 	*/
-	printinfo("Cache setup.\n");
+	printverb("Cache setup.\n");
 
 	// Create the cache root if it doesn't exist.
 	errno = 0;
@@ -464,12 +464,12 @@ void cache_cleanup(int del_files) {
 	*  directories will be left in place. Otherwise the cache
 	*  directories will be deleted.
 	*/
-	printinfo("Cache cleanup.\n");
+	printverb("Cache cleanup.\n");
 
 	// Destroy all existing caches.
 	if (caches != NULL) {
 		if (!del_files) {
-			printinfo("Leaving cache files in place.\n");
+			printverb("Leaving cache files in place.\n");
 		}
 		for (unsigned int i = 0; i < caches_count; i++) {
 			cache_destroy(caches[i], del_files);

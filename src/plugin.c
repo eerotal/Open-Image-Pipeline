@@ -385,7 +385,7 @@ void plugins_cleanup(void) {
 	*  Free memory allocated for plugin data and close
 	*  opened library handles.
 	*/
-	printinfo("Freeing plugins...\n");
+	printverb("Freeing plugins...\n");
 	for (unsigned int i = 0; i < plugin_count; i++) {
 		if (plugins[i]) {
 			plugins[i]->p_params->plugin_cleanup();
@@ -396,9 +396,9 @@ void plugins_cleanup(void) {
 		}
 	}
 	if (plugins) {
-		printinfo("Freeing plugin data array...\n");
+		printverb("Freeing plugin data array...\n");
 		free(plugins);
 	}
-	printinfo("All plugins free'd!\n");
+	printverb("All plugins free'd!\n");
 	cache_cleanup(!cli_get_opts()->opt_preserve_cache);
 }

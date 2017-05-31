@@ -55,10 +55,10 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 		return 1;
 	}
 
-	printerr_va("Cache image: %s\n", tmp_cache_file->fpath);
+	printverb_va("Cache image: %s\n", tmp_cache_file->fpath);
 	if (img_save(img, tmp_cache_file->fpath) != 0) {
 		if (cache_db_unreg_file(tmp_plugin->p_cache, cache_id) != 0) {
-			printerr("Failed to unregusrer cache file.\n");
+			printerr("Failed to unregister cache file.\n");
 		}
 		return 1;
 	}
@@ -86,7 +86,7 @@ static int pipeline_get_first_changed_plugin(const JOB *job) {
 		if (plugin_get(i)->arg_rev != job->prev_plugin_arg_revs[i] ||
 			plugin_get(i)->uid != job->prev_plugin_uids[i] ||
 			!cache_has_file(plugin_get(i)->p_cache, job->job_id)) {
-			printerr_va("First changed plugin is %u.\n", i);
+			printverb_va("First changed plugin is %u.\n", i);
 			return i;
 		}
 	}
@@ -137,7 +137,7 @@ int pipeline_feed(JOB *job) {
 				return 1;
 			}
 
-			printinfo_va("Loading image from cache: %s\n", cache_file_path);
+			printverb_va("Loading image from cache: %s\n", cache_file_path);
 			buf_ptr_1 = img_load(cache_file_path);
 			if (buf_ptr_1 == NULL) {
 				img_free(buf_ptr_2);

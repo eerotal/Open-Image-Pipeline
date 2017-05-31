@@ -126,7 +126,7 @@ const struct CLI_OPTS *cli_get_opts(void) {
 
 static void cli_shell_cleanup(void *arg) {
 	// Free the jobs array.
-	printinfo("CLI shell cleanup.\n");
+	printverb("CLI shell cleanup.\n");
 	if (cli_shell_jobs != NULL) {
 		for (unsigned int i = 0; i < cli_shell_jobs_count; i++) {
 			if (cli_shell_jobs[i] != NULL) {
@@ -160,7 +160,7 @@ static void *cli_shell_run(void *args) {
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 	pthread_cleanup_push(cli_shell_cleanup, NULL);
 
-	printinfo_va("Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
+	printverb_va("Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {
 		errno = 0;
 		while (fgets(shell_buff, SHELL_BUFFER_LEN, stdin) == NULL) {
