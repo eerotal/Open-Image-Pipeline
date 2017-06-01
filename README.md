@@ -18,7 +18,11 @@ either.**
 ### How to use?
 
 Open Image Pipeline currently only has a text based command line interface,
-however, a GUI based interface will probably be implemented later.
+however, a GUI based interface will probably be implemented later. The only
+operating system where Open Image Pipeline currently works is Linux and even
+there it requires quite a bit of computer knowledge to be able to run the
+program. If you still want to give it a try, check out the *Compiling* section
+below.
 
 
 ## Plugins
@@ -64,14 +68,18 @@ FreeImage 3
 
 ### Compiling
 
+Open Image Pipeline currently only works on Linux. The steps to compiling
+OIP are listed below.
+
 1. Install FreeImage and the FreeImage development files. On Debian
 Jessie this can be accomplished by running
 `sudo apt-get install libfreeimage3 libfreeimage-dev`.
 
 2. Run `make main`. If you intend to do plugin development run
 `make modules` too. The resulting binary is put into the directory
-`bin`. Plugins can be copied into the `plugins` directory. The
-makefile has the following additional targets
+`bin`. Plugins can be copied into the `plugins` directory.  
+
+The makefile has the following additional targets
 
 #### clean
 
