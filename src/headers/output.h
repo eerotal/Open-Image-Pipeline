@@ -23,7 +23,7 @@
 	#define INCLUDED_OUTPUT_MACROS
 
 	#ifndef PRINT_IDENTIFIER
-		#define PRINT_IDENTIFIER __FILE__
+		#define PRINT_IDENTIFIER "unknown"
 	#endif
 
 	unsigned int print_verbose;
