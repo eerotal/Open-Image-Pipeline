@@ -249,8 +249,8 @@ unsigned int plugins_get_count(void) {
 int plugin_set_arg(const unsigned int index, const char *arg,
 			const char *value) {
 	/*
-	*  Set the plugin argument 'arg' to 'value' for plugin
-	*  with the index 'index'.
+	*  Set the plugin argument 'arg' to 'value' for plugin at 'index'.
+	*  Returns 0 on success and 1 on failure.
 	*/
 	unsigned int p_argc = 0;
 	char **p_args = NULL;
@@ -266,7 +266,7 @@ int plugin_set_arg(const unsigned int index, const char *arg,
 		// Check if the argument already exists and modify it if it does.
 		for (unsigned int i = 0; i < p_argc; i++) {
 			if (strcmp(p_args[i*2], arg) == 0) {
-				printverb_va("Plugin arg %s exists. Modifying it.\n", arg);
+				printverb_va("Plugin arg '%s' exists. Modifying it.\n", arg);
 				p_args[i*2 + 1] = realloc(p_args[i*2 + 1], (strlen(value) + 1)*sizeof(*value));
 				if (p_args[i*2 + 1] == NULL) {
 					return 1;
@@ -277,7 +277,7 @@ int plugin_set_arg(const unsigned int index, const char *arg,
 			}
 		}
 
-		printverb_va("Adding plugin arg %s.\n", arg);
+		printverb_va("Adding plugin arg '%s'.\n", arg);
 
 		// Extend the argument array.
 		p_argc++;
@@ -286,7 +286,7 @@ int plugin_set_arg(const unsigned int index, const char *arg,
 			return 1;
 		}
 
-		// Allocate space for strings.
+		// Allocate memory for strings.
 		p_args[p_argc*2 - 2] = malloc((strlen(arg) + 1)*sizeof(*arg));
 		if (p_args[p_argc*2 - 2] == NULL) {
 			p_argc--;
@@ -303,15 +303,12 @@ int plugin_set_arg(const unsigned int index, const char *arg,
 			return 1;
 		}
 
-		// Copy data.
 		strcpy(p_args[p_argc*2 - 2], arg);
 		strcpy(p_args[p_argc*2 - 1], value);
 
-		// Update the arg array pointer and arg count in the plugin.
+		// Update values in the plugin struct.
 		plugins[index]->args = p_args;
 		plugins[index]->argc = p_argc;
-
-		// Increment the argument revision.
 		plugins[index]->arg_rev++;
 
 		return 0;
