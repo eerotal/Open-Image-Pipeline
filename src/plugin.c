@@ -252,47 +252,64 @@ int plugin_set_arg(const unsigned int index, const char *arg,
 	*  Set the plugin argument 'arg' to 'value' for plugin
 	*  with the index 'index'.
 	*/
-	unsigned int *p_argc = 0;
+	unsigned int p_argc = 0;
 	char **p_args = NULL;
-	char **tmp_args;
 
 	if (index < plugin_count) {
 		if (!plugin_has_arg(index, arg)) {
 			return 1;
 		}
 
-		p_argc = &plugins[index]->argc;
+		p_argc = plugins[index]->argc;
+		p_args = plugins[index]->args;
 
-		// Extend argument array.
-		(*p_argc)++;
-		tmp_args = realloc(plugins[index]->args, (*p_argc)*2*sizeof(char**));
-		if (!tmp_args) {
+		// Check if the argument already exists and modify it if it does.
+		for (unsigned int i = 0; i < p_argc; i++) {
+			if (strcmp(p_args[i*2], arg) == 0) {
+				printverb_va("Plugin arg %s exists. Modifying it.\n", arg);
+				p_args[i*2 + 1] = realloc(p_args[i*2 + 1], (strlen(value) + 1)*sizeof(*value));
+				if (p_args[i*2 + 1] == NULL) {
+					return 1;
+				}
+				strcpy(p_args[i*2 + 1], value);
+				plugins[index]->args = p_args;
+				return 0;
+			}
+		}
+
+		printverb_va("Adding plugin arg %s.\n", arg);
+
+		// Extend the argument array.
+		p_argc++;
+		p_args = realloc(p_args, p_argc*2*sizeof(*p_args));
+		if (p_args == NULL) {
 			return 1;
 		}
-		/*
-		*  Copy the argument array pointer into a temp variable
-		*  and into the original struct too.
-		*/
-		p_args = tmp_args;
-		plugins[index]->args = tmp_args;
 
 		// Allocate space for strings.
-		p_args[(*p_argc)*2 - 2] = malloc(strlen(arg)*sizeof(char) + 1);
-		if (!p_args[(*p_argc)*2 - 2]) {
-			(*p_argc)--;
-			tmp_args = realloc(p_args, (*p_argc)*2);
+		p_args[p_argc*2 - 2] = malloc((strlen(arg) + 1)*sizeof(*arg));
+		if (p_args[p_argc*2 - 2] == NULL) {
+			p_argc--;
+			p_args = realloc(p_args, p_argc*2*sizeof(*p_args));
+			plugins[index]->args = p_args;
 			return 1;
 		}
-		p_args[(*p_argc)*2 - 1] = malloc(strlen(value)*sizeof(char) + 1);
-		if (!p_args[(*p_argc)*2 - 1]) {
-			(*p_argc)--;
-			tmp_args = realloc(p_args, (*p_argc)*2);
+
+		p_args[p_argc*2 - 1] = malloc((strlen(value) + 1)*sizeof(*value));
+		if (p_args[p_argc*2 - 2] == NULL) {
+			p_argc--;
+			p_args = realloc(p_args, p_argc*2*sizeof(*p_args));
+			plugins[index]->args = p_args;
 			return 1;
 		}
 
 		// Copy data.
-		strcpy(p_args[(*p_argc)*2 - 2], arg);
-		strcpy(p_args[(*p_argc)*2 - 1], value);
+		strcpy(p_args[p_argc*2 - 2], arg);
+		strcpy(p_args[p_argc*2 - 1], value);
+
+		// Update the arg array pointer and arg count in the plugin.
+		plugins[index]->args = p_args;
+		plugins[index]->argc = p_argc;
 
 		// Increment the argument revision.
 		plugins[index]->arg_rev++;
