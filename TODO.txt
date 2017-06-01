@@ -1,3 +1,1 @@
  - Use plugin ID for the plugin identifier generation.
- - Implement some sort of cache size limiting so that cached files
-   don't take insane amounts of space.

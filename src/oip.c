@@ -19,6 +19,8 @@
 *
 */
 
+#define PRINT_IDENTIFIER "oip"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +28,7 @@
 #include <math.h>
 #include <pthread.h>
 
+#include "headers/output.h"
 #include "plugin_priv.h"
 #include "pipeline_priv.h"
 #include "cli_priv.h"
@@ -61,6 +64,13 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	// Enable/disable verbose printing.
+	if (cli_get_opts()->opt_verbose) {
+		print_verbose_on();
+	} else {
+		print_verbose_off();
+	}
+
 	// Init CLI shell.
 	thread_cli_shell = cli_shell_init();
 	if (thread_cli_shell == NULL) {
@@ -69,7 +79,7 @@ int main(int argc, char **argv) {
 
 	// Setup the plugin system.
 	if (plugins_setup() != 0) {
-		printf("oip: Failed to setup the plugin system.\n");
+		printerr("Failed to setup the plugin system.\n");
 		oip_exit();
 	}
 

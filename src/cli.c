@@ -19,6 +19,8 @@
 *
 */
 
+#define PRINT_IDENTIFIER "cli-shell"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -27,12 +29,12 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include "headers/output.h"
 #include "cli_priv.h"
 #include "oip_priv.h"
 #include "plugin_priv.h"
 #include "pipeline_priv.h"
 #include "imgutil/imgutil.h"
-
 
 static struct CLI_OPTS cli_opts;
 
@@ -124,7 +126,7 @@ const struct CLI_OPTS *cli_get_opts(void) {
 
 static void cli_shell_cleanup(void *arg) {
 	// Free the jobs array.
-	printf("cli-shell: CLI shell cleanup.\n");
+	printverb("CLI shell cleanup.\n");
 	if (cli_shell_jobs != NULL) {
 		for (unsigned int i = 0; i < cli_shell_jobs_count; i++) {
 			if (cli_shell_jobs[i] != NULL) {
@@ -158,7 +160,7 @@ static void *cli_shell_run(void *args) {
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 	pthread_cleanup_push(cli_shell_cleanup, NULL);
 
-	printf("cli-shell: Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
+	printverb_va("Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {
 		errno = 0;
 		while (fgets(shell_buff, SHELL_BUFFER_LEN, stdin) == NULL) {
@@ -168,7 +170,7 @@ static void *cli_shell_run(void *args) {
 			}
 		}
 		if (cli_shell_parse(shell_buff) != 0) {
-			printf("cli-shell: Command parsing failed.\n");
+			printerr("Command parsing failed.\n");
 		}
 		memset(shell_buff, 0, SHELL_BUFFER_LEN*sizeof(char));
 	}
@@ -185,7 +187,7 @@ static int cli_shell_prototype_match(char **keywords, unsigned int num_keywords)
 
 	int ret = -1;
 	if (num_keywords > NUM_CLI_CMD_MAX_KEYWORDS) {
-		printf("cli-shell: Too many keywords.");
+		printerr("Too many keywords.");
 		return -3;
 	}
 
@@ -310,7 +312,7 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 	switch (proto) {
 		case 0: ; // plugin load %s %s
 			if (plugin_load(keywords[2], keywords[3]) != 0) {
-				printf("cli-shell: Failed to load plugin.\n");
+				printerr("Failed to load plugin.\n");
 			}
 			break;
 		case 1: ; // plugin list
@@ -320,7 +322,7 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 			unsigned int index = 0;
 			for (int i = 0; i < strlen(keywords[2]); i++) {
 				if (!isdigit(keywords[2][i])) {
-					printf("cli-shell: Invalid plugin index.\n");
+					printerr("Invalid plugin index.\n");
 					break;
 				}
 			}
@@ -330,56 +332,56 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 		case 3: ; // job create %s %s
 			JOB *tmp_job = job_create(keywords[2]);
 			if (tmp_job == NULL) {
-				printf("cli-shell: Failed to create job.\n");
+				printerr("Failed to create job.\n");
 				break;
 			}
 			if (cli_shell_job_add(tmp_job) != 0) {
-				printf("cli-shell: Failed to append job to jobs array.\n");
+				printerr("Failed to append job to jobs array.\n");
 			}
 			break;
 		case 4: ; // job feed %s
 			if (!isdigit(keywords[2][0])) {
-				printf("cli-shell: Invalid job index.\n");
+				printerr("Invalid job index.\n");
 				break;
 			}
 
 			tmp_index = strtol(keywords[2], NULL, 10);
 			if (tmp_index < cli_shell_jobs_count) {
 				if (pipeline_feed(cli_shell_jobs[tmp_index]) != 0) {
-					printf("cli-shell: Image processing failed.\n");
+					printerr("Image processing failed.\n");
 				}
 			} else {
-				printf("cli-shell: Job index out of range.\n");
+				printerr("Job index out of range.\n");
 			}
 			break;
 		case 5: ; // job delete %s
 			if (!isdigit(keywords[2][0])) {
-				printf("cli-shell: Invalid job index.\n");
+				printerr("Invalid job index.\n");
 				break;
 			}
 
 			tmp_index = strtol(keywords[2], NULL, 10);
 			if (tmp_index < cli_shell_jobs_count) {
 				if (cli_shell_job_delete(tmp_index) != 0) {
-					printf("cli-shell: Job deletion failed.\n");
+					printerr("Job deletion failed.\n");
 				}
 			} else {
-				printf("cli-shell: Job index out of range.\n");
+				printerr("Job index out of range.\n");
 			}
 			break;
 		case 6: ; // job save %s
 			if (!isdigit(keywords[2][0])) {
-				printf("cli-shell: Invalid job index.\n");
+				printerr("Invalid job index.\n");
 				break;
 			}
 
 			tmp_index = strtol(keywords[2], NULL, 10);
 			if (tmp_index < cli_shell_jobs_count) {
 				if (job_save_result(cli_shell_jobs[tmp_index], keywords[3]) != 0) {
-					printf("cli-shell: Failed to save image.\n");
+					printerr("Failed to save image.\n");
 				}
 			} else {
-				printf("cli-shell: Job index out of range.\n");
+				printerr("Job index out of range.\n");
 			}
 			break;
 		case 7: ; // job list
@@ -394,12 +396,12 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 			CACHE *tmp_cache = NULL;
 			tmp_cache = cache_get_by_name(keywords[3]);
 			if (tmp_cache == NULL) {
-				printf("cli-shell: Failed to find cache %s.\n", keywords[3]);
+				printerr_va("Failed to find cache %s.\n", keywords[3]);
 				break;
 			}
 
 			if (cache_delete_file(tmp_cache, keywords[4]) != 0) {
-				printf("cli-shell: Failed to delete cache file.\n");
+				printerr("Failed to delete cache file.\n");
 			}
 			break;
 		case 10: ; // help
@@ -484,7 +486,7 @@ static int cli_shell_parse(char *str) {
 		memcpy(tmp_str, str, strlen(str)*sizeof(char));
 		tmp_str[strcspn(tmp_str, "\n")] = '\0';
 
-		printf("cli-shell: Invalid command %s.\n", tmp_str);
+		printerr_va("Invalid command %s.\n", tmp_str);
 		free(tmp_str);
 	}
 
