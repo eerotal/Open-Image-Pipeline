@@ -27,11 +27,11 @@
 #include <time.h>
 #include <math.h>
 
+#include "headers/output.h"
 #include "pipeline_priv.h"
 #include "plugin_priv.h"
 #include "file.h"
 #include "cache_priv.h"
-#include "output_priv.h"
 
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *uuid);
 static int pipeline_get_first_changed_plugin(const JOB *job);

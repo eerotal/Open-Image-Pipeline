@@ -31,9 +31,9 @@
 #include <unistd.h>
 #include <time.h>
 
+#include "headers/output.h"
 #include "file.h"
 #include "cache_priv.h"
-#include "output_priv.h"
 
 #define CACHE_ROOT "plugins/cache/"
 #define CACHE_PERMISSIONS S_IRWXU

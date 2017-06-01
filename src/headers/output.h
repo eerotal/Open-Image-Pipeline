@@ -28,9 +28,11 @@
 
 	unsigned int print_verbose;
 
-	// Turn verbose printing on/off.
-	#define print_verbose_on() print_verbose = 1;
-	#define print_verbose_off() print_verbose = 0;
+	#ifdef OIP_BINARY
+		// Define printing control macros for the main OIP binary.
+		#define print_verbose_on() print_verbose = 1;
+		#define print_verbose_off() print_verbose = 0;
+	#endif
 
 	// Print an error message.
 	#define printerr_va(format, ...) fprintf(stderr, "%s: "format, PRINT_IDENTIFIER, __VA_ARGS__);

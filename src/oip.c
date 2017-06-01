@@ -28,11 +28,11 @@
 #include <math.h>
 #include <pthread.h>
 
+#include "headers/output.h"
 #include "plugin_priv.h"
 #include "pipeline_priv.h"
 #include "cli_priv.h"
 #include "imgutil/imgutil.h"
-#include "output_priv.h"
 
 static pthread_t *thread_cli_shell;
 static int exit_queued = 0;

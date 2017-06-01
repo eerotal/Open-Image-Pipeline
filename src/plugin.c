@@ -29,12 +29,12 @@
 #include <math.h>
 #include <errno.h>
 
+#include "headers/output.h"
 #include "headers/plugin.h"
 #include "cli_priv.h"
 #include "plugin_priv.h"
 #include "cache_priv.h"
 #include "file.h"
-#include "output_priv.h"
 
 static PLUGIN **plugins;
 static unsigned int plugin_count = 0;
@@ -184,8 +184,14 @@ int plugin_load(char *dirpath, char *name) {
 		// Append the plugin data to the plugin array.
 		plugin_data_append(&plugin);
 
+		// Set the flag_print_verbose value of the plugin.
+		if (plugin.p_params->flag_print_verbose != NULL) {
+			*plugin.p_params->flag_print_verbose = cli_get_opts()->opt_verbose;
+		}
+
 		// Run the setup function.
 		plugin.p_params->plugin_setup();
+
 
 		printinfo_va("%s: Loaded!\n", path);
 		free(path);

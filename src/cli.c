@@ -29,12 +29,12 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include "headers/output.h"
 #include "cli_priv.h"
 #include "oip_priv.h"
 #include "plugin_priv.h"
 #include "pipeline_priv.h"
 #include "imgutil/imgutil.h"
-#include "output_priv.h"
 
 static struct CLI_OPTS cli_opts;
 

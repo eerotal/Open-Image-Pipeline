@@ -18,7 +18,7 @@
 #
 
 CC=gcc
-CCFLAGS=-Wall -Wpedantic -std=gnu99 -g
+CCFLAGS=-Wall -Wpedantic -std=gnu99 -g -DOIP_BINARY
 LFLAGS=-ldl -lfreeimage -lm -pthread
 NAME=oip
 

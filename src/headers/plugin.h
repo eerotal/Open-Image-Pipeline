@@ -36,6 +36,8 @@
 		char **valid_args;
 		unsigned int valid_args_count;
 
+		unsigned int *flag_print_verbose;
+
 		int (*plugin_process)(const IMAGE *img, IMAGE *img_dest,
 					const char **plugin_args,
 					const unsigned int plugin_args_count);
