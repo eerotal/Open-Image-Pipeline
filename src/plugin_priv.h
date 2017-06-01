@@ -46,7 +46,6 @@
 	int plugin_has_arg(const unsigned int index, const char *arg);
 	PLUGIN *plugin_get(unsigned int index);
 	unsigned int plugins_get_count(void);
-	char *plugin_get_full_identifier(const char *name, unsigned int index);
 	int plugins_setup(void);
 	void plugins_cleanup(void);
 #endif

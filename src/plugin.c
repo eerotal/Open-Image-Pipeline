@@ -40,8 +40,13 @@ static PLUGIN **plugins;
 static unsigned int plugin_count = 0;
 static unsigned long long int plugin_last_uid = 0;
 
+static unsigned int plugin_gen_uid_int(void);
+static char *plugin_get_uid_str(PLUGIN *plugin);
 static int plugin_data_append(PLUGIN *plugin);
-static unsigned int plugin_gen_uid(void);
+
+static unsigned int plugin_gen_uid_int(void) {
+	return plugin_last_uid++;
+}
 
 static int plugin_data_append(PLUGIN *plugin) {
 	/*
@@ -79,10 +84,6 @@ static int plugin_data_append(PLUGIN *plugin) {
 	// Copy plugin data pointers.
 	memcpy(plugins[plugin_count - 1], plugin, sizeof(PLUGIN));
 	return 0;
-}
-
-static unsigned int plugin_gen_uid(void) {
-	return plugin_last_uid++;
 }
 
 int plugin_load(char *dirpath, char *name) {
@@ -158,8 +159,11 @@ int plugin_load(char *dirpath, char *name) {
 			return 1;
 		}
 
+		// Generate the plugin UID.
+		plugin.uid = plugin_gen_uid_int();
+
 		// Create plugin cache.
-		cache_name = plugin_get_full_identifier(name, plugin_count);
+		cache_name = plugin_get_uid_str(&plugin);
 		if (cache_name == NULL) {
 			printerr("Failed to get plugin identifier.\n");
 			free(path);
@@ -177,9 +181,6 @@ int plugin_load(char *dirpath, char *name) {
 			return 1;
 		}
 		plugin.p_cache = p_cache;
-
-		// Generate the plugin UID.
-		plugin.uid = plugin_gen_uid();
 
 		// Append the plugin data to the plugin array.
 		plugin_data_append(&plugin);
@@ -240,10 +241,6 @@ int plugin_feed(unsigned int index, const char **plugin_args,
 		}
 	}
 	return 1;
-}
-
-unsigned int plugins_get_count(void) {
-	return plugin_count;
 }
 
 int plugin_set_arg(const unsigned int index, const char *arg,
@@ -344,47 +341,34 @@ PLUGIN *plugin_get(unsigned int index) {
 	return NULL;
 }
 
-char *plugin_get_full_identifier(const char *name, unsigned int index) {
+unsigned int plugins_get_count(void) {
+	return plugin_count;
+}
+
+char *plugin_get_uid_str(PLUGIN *plugin) {
 	/*
-	*  Build a plugin indentifier string of the
-	*  form <Plugin Name>-<Plugin Index>. This function
-	*  returns a pointer to a new string on success and NULL
+	*  Return the plugin string identifier of the form 'name'-'uid'.
+	*  Returns a pointer to a string on success and a NULL pointer
 	*  on failure.
 	*/
 
-	unsigned int index_str_len = 0;
-	char *index_str = NULL;
-	char *identifier = NULL;
+	char *ret = NULL;
+	unsigned int uid_len = 0;
 
-	if (index == 0) {
-		index_str_len = 2;
+	if (plugin->uid == 0) {
+		uid_len = 1;
 	} else {
-		index_str_len = floor(log10(index)) + 2;
+		uid_len = floor(log10(plugin->uid)) + 1;
 	}
 
-	// Allocate memory for the ID string.
 	errno = 0;
-	index_str = calloc(index_str_len, sizeof(char));
-	if (index_str == NULL) {
-		perror("plugin: calloc(): ");
+	ret = calloc(strlen(plugin->p_params->name) + 1 + uid_len + 1, sizeof(*ret));
+	if (ret == NULL) {
+		perror("plugin: calloc()");
 		return NULL;
 	}
-	sprintf(index_str, "%i", index);
-
-	// Allocate space for the full identifier.
-	errno = 0;
-	identifier = calloc(strlen(name) + 1 + strlen(index_str) + 1, sizeof(char));
-	if (identifier == NULL) {
-		perror("plugin: calloc(): ");
-		free(index_str);
-		return NULL;
-	}
-	strcat(identifier, name);
-	strcat(identifier, "-");
-	strcat(identifier, index_str);
-	free(index_str);
-
-	return identifier;
+	sprintf(ret, "%s-%llu", plugin->p_params->name, plugin->uid);
+	return ret;
 }
 
 int plugins_setup(void) {
