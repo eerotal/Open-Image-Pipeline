@@ -22,6 +22,8 @@
 #ifndef INCLUDED_OUTPUT_MACROS
 	#define INCLUDED_OUTPUT_MACROS
 
+	#include <stdio.h>
+
 	#ifndef PRINT_IDENTIFIER
 		#define PRINT_IDENTIFIER "unknown"
 	#endif
