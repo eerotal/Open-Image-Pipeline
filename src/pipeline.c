@@ -33,7 +33,7 @@
 #include "file.h"
 #include "cache_priv.h"
 
-static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *uuid);
+static int pipeline_write_cache(const JOB *job, unsigned int p_index, const IMAGE *img);
 static int pipeline_load_cache(const JOB *job, IMAGE **dst);
 
 static clock_t cputime_last = 0.0f;
@@ -52,10 +52,10 @@ static float pipeline_cputime(void) {
 	return ret;
 }
 
-static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *cache_id) {
+static int pipeline_write_cache(const JOB *job, unsigned int p_index, const IMAGE *img) {
 	/*
-	*  Write the supplied image into the cache of the supplied plugin.
-	*  This function returns 0 on success and 1 on failure.
+	*  Write the supplied image into the cache file of the plugin at 'p_index'.
+	*  Returns 0 on success and 1 on failure.
 	*/
 	PLUGIN *tmp_plugin = NULL;
 	CACHE_FILE *tmp_cache_file = NULL;
@@ -65,7 +65,7 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 		return 1;
 	}
 
-	tmp_cache_file = cache_db_reg_file(tmp_plugin->p_cache, cache_id, 1);
+	tmp_cache_file = cache_db_reg_file(tmp_plugin->p_cache, job->job_id, 1);
 	if (tmp_cache_file == NULL) {
 		printerr("Failed to register cache file.\n");
 		return 1;
@@ -73,7 +73,7 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 
 	printverb_va("Cache image: %s\n", tmp_cache_file->fpath);
 	if (img_save(img, tmp_cache_file->fpath) != 0) {
-		if (cache_db_unreg_file(tmp_plugin->p_cache, cache_id) != 0) {
+		if (cache_db_unreg_file(tmp_plugin->p_cache, job->job_id) != 0) {
 			printerr("Failed to unregister cache file.\n");
 		}
 		return 1;
@@ -177,7 +177,7 @@ int pipeline_feed(JOB *job) {
 			printinfo_va("Took %f CPU seconds. Throughput %u B/s.\n", t_delta, throughput);
 
 			// Save a copy of the result into the cache file.
-			if (pipeline_write_cache(in.dst, i, job->job_id) != 0) {
+			if (pipeline_write_cache(job, i, in.dst) != 0) {
 				printerr("Failed to write cache file.\n");
 			}
 

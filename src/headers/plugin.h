@@ -28,8 +28,6 @@
 	#define PLUGIN_INFO_NAME(NAME) ( NAME ## _plugin_info )
 
 	#define PLUGIN_STATUS_ERROR       -1
-	#define PLUGIN_STATUS_WAITING      0
-	#define PLUGIN_STATUS_PROCESSING   1
 	#define PLUGIN_STATUS_DONE         2
 
 	struct PLUGIN_INDATA {
@@ -37,17 +35,16 @@
 		IMAGE *dst;
 		char **args;
 		int argc;
-		int ret;
 	};
 
 	typedef struct STRUCT_PLUGIN_INFO {
-		char *name;
-		char *descr;
-		char *author;
-		char *year;
+		const char *name;
+		const char *descr;
+		const char *author;
+		const char *year;
 
-		char **valid_args;
-		unsigned int valid_args_count;
+		const char **valid_args;
+		const unsigned int valid_args_count;
 
 		unsigned int *flag_print_verbose;
 
