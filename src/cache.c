@@ -35,7 +35,7 @@
 #include "file.h"
 #include "cache_priv.h"
 
-#define CACHE_ROOT "plugins/cache/"
+#define CACHE_ROOT "cache/"
 #define CACHE_PERMISSIONS S_IRWXU
 #define CACHE_DEFAULT_MAX_FILES 20
 

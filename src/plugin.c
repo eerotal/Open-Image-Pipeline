@@ -152,7 +152,7 @@ int plugin_load(char *dirpath, char *name) {
 		plugin.p_params = dlsym(plugin.p_handle, params_struct_name);
 		dlret = dlerror();
 		if (dlret) {
-			printerr_va("dlsym(): %s", dlret);
+			printerr_va("dlsym(): %s\n", dlret);
 			free(path);
 			free(params_struct_name);
 			dlclose(plugin.p_handle);
@@ -226,21 +226,16 @@ void print_plugin_config(void) {
 	printf("\n");
 }
 
-int plugin_feed(unsigned int index, const char **plugin_args,
-		const unsigned int plugin_args_count,
-		const IMAGE *img, IMAGE *res) {
+int plugin_feed(unsigned int index, struct PLUGIN_INDATA *in) {
 	/*
-	*  Feed image data to a plugin.
+	*  Feed data to a plugin. Returns one of the
+	*  PLUGIN_STATUS_* values defined in headers/plugin.h.
 	*/
-	unsigned int ret = 0;
+
 	if (index < plugin_count) {
-		ret = plugins[index]->p_params->plugin_process(img, res,
-				plugin_args, plugin_args_count);
-		if (ret == 0) {
-			return 0;
-		}
+		return plugins[index]->p_params->plugin_process(in);
 	}
-	return 1;
+	return PLUGIN_STATUS_ERROR;
 }
 
 int plugin_set_arg(const unsigned int index, const char *arg,

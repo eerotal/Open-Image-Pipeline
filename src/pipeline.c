@@ -34,7 +34,7 @@
 #include "cache_priv.h"
 
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *uuid);
-static int pipeline_get_first_changed_plugin(const JOB *job);
+static int pipeline_load_cache(const JOB *job, IMAGE **dst);
 
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *cache_id) {
 	/*
@@ -65,13 +65,19 @@ static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *ca
 	return 0;
 }
 
-static int pipeline_get_first_changed_plugin(const JOB *job) {
+static int pipeline_load_cache(const JOB *job, IMAGE **dst) {
 	/*
-	*  Return the first plugin in the pipeline that doesn't have an
-	*  up-to-date cache file.
+	*  Load the last up-to-date cache file of 'job'. The resulting
+	*  image is loaded into *dst. If no up-to-date cache file is found,
+	*  the contents of *dst are not modified and 0 is returned.
+	*  On failure -1 is returned.
 	*/
 
+	IMAGE *tmp = NULL;
 	unsigned int maxindex = 0;
+	unsigned int first = 0;
+	char *cache_fpath = NULL;
+
 	if (job->prev_plugin_count == 0) {
 		return 0;
 	}
@@ -82,15 +88,30 @@ static int pipeline_get_first_changed_plugin(const JOB *job) {
 		maxindex = job->prev_plugin_count;
 	}
 
+	first = maxindex;
 	for (unsigned int i = 0; i < maxindex; i++) {
 		if (plugin_get(i)->arg_rev != job->prev_plugin_arg_revs[i] ||
 			plugin_get(i)->uid != job->prev_plugin_uids[i] ||
 			!cache_has_file(plugin_get(i)->p_cache, job->job_id)) {
 			printverb_va("First changed plugin is %u.\n", i);
-			return i;
+			first = i;
 		}
 	}
-	return maxindex;
+
+	cache_fpath = cache_get_path_to_file(plugin_get(first - 1)->p_cache, job->job_id);
+	if (cache_fpath == NULL) {
+		printerr("Failed to get cache file path.\n");
+		return -1;
+	}
+
+	printverb_va("Loading image from cache: %s\n", cache_fpath);
+	tmp = img_load(cache_fpath);
+	if (tmp == NULL) {
+		printerr("Failed to load cache image.\n");
+		return -1;
+	}
+	*dst = tmp;
+	return first;
 }
 
 int pipeline_feed(JOB *job) {
@@ -100,103 +121,77 @@ int pipeline_feed(JOB *job) {
 	*  This function returns 0 on success and 1 on failure.
 	*/
 
-	char *cache_file_path = NULL;
+	struct PLUGIN_INDATA in;
 	int ret = 0;
 
 	clock_t t_start = 0;
 	float t_delta = 0;
 	unsigned int throughput = 0;
 
-	IMAGE *buf_ptr_1 = NULL;
-	IMAGE *buf_ptr_2 = NULL;
-
 	if (plugins_get_count() != 0) {
 		// Set the job status to fail initially and correct it later.
 		job->status = JOB_STATUS_FAIL;
 
-		buf_ptr_1 = job->src_img;
-		buf_ptr_2 = img_alloc(0, 0);
-		if (!buf_ptr_2) {
+		in.src = job->src_img;
+		in.dst = img_alloc(0, 0);
+		if (!in.dst) {
 			return 1;
 		}
 
-		// Get the first plugin whose output should be generated.
-		unsigned int i = pipeline_get_first_changed_plugin(job);
-
-		if (i != 0) {
-			/*
-			*  Skip plugins by starting the pipeline at the index i.
-			*  Load the input data from the cache file of the last
-			*  plugin that hasn't changed.
-			*/
-
-			cache_file_path = cache_get_path_to_file(plugin_get(i - 1)->p_cache, job->job_id);
-			if (cache_file_path == NULL) {
-				printerr("Failed to get cache file path.\n");
-				img_free(buf_ptr_2);
-				return 1;
-			}
-
-			printverb_va("Loading image from cache: %s\n", cache_file_path);
-			buf_ptr_1 = img_load(cache_file_path);
-			if (buf_ptr_1 == NULL) {
-				img_free(buf_ptr_2);
-				return 1;
-			}
+		ret = pipeline_load_cache(job, &in.src);
+		if (ret < 0) {
+			printerr("Cache loading failed.\n");
+			ret = 0;
 		}
 
-		for (; i < plugins_get_count(); i++) {
+		for (unsigned int i = ret; i < plugins_get_count(); i++) {
 			printinfo_va("Feeding image data to plugin %i.\n", i);
 			t_start = clock();
 
-			// Feed the image data to individual plugins.
-			if (plugin_feed(i, (const char**)plugin_get(i)->args, plugin_get(i)->argc,
-					buf_ptr_1, buf_ptr_2) != 0) {
+			in.args = plugin_get(i)->args;
+			in.argc = plugin_get(i)->argc;
 
+			// Feed the image data to individual plugins.
+			if (plugin_feed(i, &in) != PLUGIN_STATUS_DONE) {
 				printerr_va("Failed to use plugin %i.\n", i);
 				continue;
 			}
 
 			// Calculate elapsed time and throughput.
 			t_delta = (float) (clock() - t_start)/CLOCKS_PER_SEC;
-			throughput = round(img_bytelen(buf_ptr_1)/t_delta);
+			throughput = round(img_bytelen(in.src)/t_delta);
 			printinfo_va("Took %f CPU seconds. Throughput %u B/s.\n", t_delta, throughput);
 
 			// Save a copy of the result into the cache file.
-			if (pipeline_write_cache(buf_ptr_2, i, job->job_id) != 0) {
+			if (pipeline_write_cache(in.dst, i, job->job_id) != 0) {
 				printerr("Failed to write cache file.\n");
 			}
 
-			/*
-			*  Only free buf_ptr_1 if it doesn't point to
-			*  the original image, which is declared const.
-			*/
-			if (buf_ptr_1 != job->src_img) {
-				img_free(buf_ptr_1);
+			// Free in.src if it doesn't point to the original image.
+			if (in.src != job->src_img) {
+				img_free(in.src);
 			}
 
-			buf_ptr_1 = buf_ptr_2;
-			buf_ptr_2 = img_alloc(0, 0);
-			if (!buf_ptr_2) {
-				img_free(buf_ptr_1);
+			in.src = in.dst;
+			in.dst = img_alloc(0, 0);
+			if (!in.dst) {
+				img_free(in.src);
 				return 1;
 			}
 		}
 
-		if (img_realloc(job->result_img, buf_ptr_1->w, buf_ptr_1->h) == 0) {
-			memcpy(job->result_img->img, buf_ptr_1->img, img_bytelen(job->result_img));
-
-			// Set the job status to success.
+		if (img_realloc(job->result_img, in.src->w, in.src->h) == 0) {
+			img_cpy(job->result_img, in.src);
 			job->status = JOB_STATUS_SUCCESS;
 		} else {
 			ret = 1;
 		}
 
 		// Cleanup
-		if (buf_ptr_1 != job->src_img) {
-			img_free(buf_ptr_1);
+		if (in.src != job->src_img) {
+			img_free(in.src);
 		}
-		img_free(buf_ptr_2);
+		img_free(in.dst);
 
 		// Update the plugin argument revisions and UIDs on success.
 		if (job_store_plugin_config(job) != 0) {

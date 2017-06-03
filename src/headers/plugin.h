@@ -24,8 +24,21 @@
 
 	#include "imgutil/imgutil.h"
 
-	#define PLUGIN_INFO_NAME_SUFFIX "_plugin_params"
-	#define PLUGIN_INFO_NAME(NAME) ( NAME ## _plugin_params )
+	#define PLUGIN_INFO_NAME_SUFFIX "_plugin_info"
+	#define PLUGIN_INFO_NAME(NAME) ( NAME ## _plugin_info )
+
+	#define PLUGIN_STATUS_ERROR       -1
+	#define PLUGIN_STATUS_WAITING      0
+	#define PLUGIN_STATUS_PROCESSING   1
+	#define PLUGIN_STATUS_DONE         2
+
+	struct PLUGIN_INDATA {
+		IMAGE *src;
+		IMAGE *dst;
+		char **args;
+		int argc;
+		int ret;
+	};
 
 	typedef struct STRUCT_PLUGIN_INFO {
 		char *name;
@@ -38,9 +51,7 @@
 
 		unsigned int *flag_print_verbose;
 
-		int (*plugin_process)(const IMAGE *img, IMAGE *img_dest,
-					const char **plugin_args,
-					const unsigned int plugin_args_count);
+		int (*plugin_process)(struct PLUGIN_INDATA *in);
 		int (*plugin_setup)(void);
 		void (*plugin_cleanup)(void);
 	} PLUGIN_INFO;
