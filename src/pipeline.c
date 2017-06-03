@@ -36,6 +36,22 @@
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *uuid);
 static int pipeline_load_cache(const JOB *job, IMAGE **dst);
 
+static clock_t cputime_last = 0.0f;
+
+static float pipeline_cputime(void) {
+	/*
+	*  Return the elapsed CPU time in seconds
+	*  since this function was last called.
+	*/
+
+	clock_t cputime_current = clock();
+	float ret = 0.0f;
+
+	ret = (float) (cputime_current - cputime_last)/CLOCKS_PER_SEC;
+	cputime_last = cputime_current;
+	return ret;
+}
+
 static int pipeline_write_cache(const IMAGE *img, unsigned int p_index, char *cache_id) {
 	/*
 	*  Write the supplied image into the cache of the supplied plugin.
@@ -124,12 +140,10 @@ int pipeline_feed(JOB *job) {
 	struct PLUGIN_INDATA in;
 	int ret = 0;
 
-	clock_t t_start = 0;
 	float t_delta = 0;
 	unsigned int throughput = 0;
 
 	if (plugins_get_count() != 0) {
-		// Set the job status to fail initially and correct it later.
 		job->status = JOB_STATUS_FAIL;
 
 		in.src = job->src_img;
@@ -145,8 +159,8 @@ int pipeline_feed(JOB *job) {
 		}
 
 		for (unsigned int i = ret; i < plugins_get_count(); i++) {
+			pipeline_cputime();
 			printinfo_va("Feeding image data to plugin %i.\n", i);
-			t_start = clock();
 
 			in.args = plugin_get(i)->args;
 			in.argc = plugin_get(i)->argc;
@@ -158,7 +172,7 @@ int pipeline_feed(JOB *job) {
 			}
 
 			// Calculate elapsed time and throughput.
-			t_delta = (float) (clock() - t_start)/CLOCKS_PER_SEC;
+			t_delta = pipeline_cputime();
 			throughput = round(img_bytelen(in.src)/t_delta);
 			printinfo_va("Took %f CPU seconds. Throughput %u B/s.\n", t_delta, throughput);
 
@@ -199,7 +213,6 @@ int pipeline_feed(JOB *job) {
 			return 1;
 		}
 		return ret;
-	} else {
-		return 1;
 	}
+	return 1;
 }
