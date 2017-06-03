@@ -2,6 +2,7 @@ core
 bin
 res
 plugins
+cache
 *.out
 *.o
 *.gch
