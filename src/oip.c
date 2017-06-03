@@ -33,6 +33,7 @@
 #include "pipeline_priv.h"
 #include "cli_priv.h"
 #include "imgutil/imgutil.h"
+#include "configloader_priv.h"
 
 static pthread_t *thread_cli_shell;
 static int exit_queued = 0;
@@ -51,6 +52,8 @@ static void oip_cleanup(void) {
 	if (pthread_join(*thread_cli_shell, NULL) != 0) {
 		perror("oip: pthread_join()");
 	}
+
+	config_cleanup();
 }
 
 void oip_exit(void) {
@@ -74,6 +77,12 @@ int main(int argc, char **argv) {
 	// Init CLI shell.
 	thread_cli_shell = cli_shell_init();
 	if (thread_cli_shell == NULL) {
+		return 1;
+	}
+
+	// Load configuration from file.
+	if (config_load() != 0) {
+		printerr("Failed to load configuration file.\n");
 		return 1;
 	}
 

@@ -33,11 +33,13 @@
 
 #include "headers/output.h"
 #include "file.h"
+#include "configloader_priv.h"
 #include "cache_priv.h"
 
-#define CACHE_ROOT "cache/"
 #define CACHE_PERMISSIONS S_IRWXU
-#define CACHE_DEFAULT_MAX_FILES 20
+
+static char *cache_root = NULL;
+static unsigned int cache_default_max_files = 0;
 
 static CACHE **caches = NULL;
 static unsigned int caches_count = 0;
@@ -356,7 +358,7 @@ CACHE *cache_create(const char *cache_name) {
 	memcpy(n_cache->name, cache_name, strlen(cache_name)*sizeof(char));
 
 	// Get the full cache path.
-	n_cache->path = file_path_join(CACHE_ROOT, cache_name);
+	n_cache->path = file_path_join(cache_root, cache_name);
 	if (n_cache->path == NULL) {
 		free(n_cache->name);
 		free(n_cache);
@@ -381,7 +383,7 @@ CACHE *cache_create(const char *cache_name) {
 	}
 
 	// Set the default max_files value.
-	n_cache->max_files = CACHE_DEFAULT_MAX_FILES;
+	n_cache->max_files = cache_default_max_files;
 
 	// Add the cache pointer to the caches array.
 	caches_count++;
@@ -441,12 +443,24 @@ int cache_setup(void) {
 	*/
 	printverb("Cache setup.\n");
 
+	cache_root = config_get_str_param("cache_root");
+	if (!cache_root) {
+		cache_root = NULL;
+		return 1;
+	}
+
+	cache_default_max_files = config_get_lint_param("cache_default_max_files");
+	if (cache_default_max_files <= 0) {
+		cache_default_max_files = 0;
+		return 1;
+	}
+
 	// Create the cache root if it doesn't exist.
 	errno = 0;
-	if (access(CACHE_ROOT, F_OK) != 0) {
+	if (access(cache_root, F_OK) != 0) {
 		if (errno == ENOENT) {
 			errno = 0;
-			if (mkdir(CACHE_ROOT, CACHE_PERMISSIONS) == -1) {
+			if (mkdir(cache_root, CACHE_PERMISSIONS) == -1) {
 				perror("cache: mkdir()");
 				return 1;
 			}
