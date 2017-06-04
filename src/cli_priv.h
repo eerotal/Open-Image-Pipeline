@@ -34,7 +34,7 @@
 	struct CLI_OPTS {
 		unsigned int opt_preserve_cache;
 		unsigned int opt_verbose;
-		unsigned int opt_dryrun;
+		char *opt_config_file;
 	};
 
 	int cli_parse_opts(int argc, char **argv);

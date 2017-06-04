@@ -19,7 +19,7 @@
 *
 */
 
-#define PRINT_IDENTIFIER "config"
+#define PRINT_IDENTIFIER "configloader"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,7 @@
 #include "configloader_priv.h"
 #include "headers/output.h"
 
-#define CONFIG_FILE_PATH "oip.conf"
+#define CONFIG_DEFAULT_PATH "oip.conf"
 #define CONFIG_BUF_LEN 100
 #define CONFIG_NUM_VALID_PARAMS 2
 
@@ -67,7 +67,6 @@ static int config_param_is_valid(const char *param) {
 	*  Return 1 if 'param' is a valid configuration
 	*  parameter and 0 otherwise.
 	*/
-
 	for (unsigned int i = 0; i < CONFIG_NUM_VALID_PARAMS; i++) {
 		if (strcmp(param, config_valid_params[i]) == 0) {
 			return 1;
@@ -116,8 +115,8 @@ static int config_parse_line(const char *ln) {
 		printerr_va("Invalid configuration parameter: %s\n", token);
 		errno = 0;
 		config = realloc(config, (--config_num_params)*2*sizeof(*config));
-		if (!config) {
-			perror("configloader: calloc()");
+		if (!config && config_num_params != 0) {
+			perror("configloader: realloc()");
 		}
 		return 1;
 	}
@@ -128,7 +127,7 @@ static int config_parse_line(const char *ln) {
 		free(tmp_ln);
 		errno = 0;
 		config = realloc(config, (--config_num_params)*2*sizeof(*config));
-		if (!config) {
+		if (!config && config_num_params != 0) {
 			perror("configloader: calloc()");
 		}
 		return 1;
@@ -143,7 +142,7 @@ static int config_parse_line(const char *ln) {
 		free(config[config_num_params*2 - 2]);
 		errno = 0;
 		config = realloc(config, (--config_num_params)*2*sizeof(*config));
-		if (!config) {
+		if (!config && config_num_params != 0) {
 			perror("configloader: calloc()");
 		}
 		return 1;
@@ -155,7 +154,8 @@ static int config_parse_line(const char *ln) {
 
 char *config_get_str_param(const char *param) {
 	/*
-	*  Get the string value of 'param'.
+	*  Get the string value of 'param' or NULL
+	*  if 'param' does not exist.
 	*/
 	for (unsigned int i = 0; i < config_num_params; i++) {
 		if (strcmp(config[i*2], param) == 0) {
@@ -167,7 +167,8 @@ char *config_get_str_param(const char *param) {
 
 long int config_get_lint_param(const char *param) {
 	/*
-	*  Get the long int value of 'param'.
+	*  Get the long int value of 'param' or 0 if
+	*  'param' does not exist.
 	*/
 	long int val = 0;
 	char *str_val = NULL;
@@ -184,7 +185,7 @@ long int config_get_lint_param(const char *param) {
 	return val;
 }
 
-int config_load(void) {
+int config_load(char *cfpath) {
 	/*
 	*  Load configuration from file. Returns 0 on success
 	*  and 1 on failure.
@@ -193,9 +194,15 @@ int config_load(void) {
 	char linebuf[CONFIG_BUF_LEN] = { '\0' };
 	char *ret = NULL;
 
-	printverb_va("Loading configuration from file '%s'.\n", CONFIG_FILE_PATH);
 	errno = 0;
-	conf = fopen(CONFIG_FILE_PATH, "r");
+	if (!cfpath) {
+		printverb_va("Loading configuration from file '%s'.\n", CONFIG_DEFAULT_PATH);
+		conf = fopen(CONFIG_DEFAULT_PATH, "r");
+	} else {
+		printverb_va("Loading configuration from file '%s'.\n", cfpath);
+		conf = fopen(cfpath, "r");
+	}
+
 	if (!conf) {
 		perror("config: fopen()");
 		return 1;
@@ -204,9 +211,7 @@ int config_load(void) {
 	while (!feof(conf)) {
 		if ((ret = fgets(linebuf, CONFIG_BUF_LEN, conf))) {
 			if (!config_lineempty(linebuf)) {
-				if (config_parse_line(linebuf) != 0) {
-					printerr("Failed to parse configuration file line.\n");
-				}
+				config_parse_line(linebuf);
 			}
 		}
 		if (ferror(conf)) {
@@ -218,6 +223,7 @@ int config_load(void) {
 }
 
 void config_cleanup(void) {
+	printverb("Configuration cleanup.\n");
 	if (config) {
 		for (unsigned int i = 0; i < config_num_params*2; i++) {
 			free(config[i]);

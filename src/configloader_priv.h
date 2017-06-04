@@ -24,6 +24,6 @@
 
 	char *config_get_str_param(const char *param);
 	long int config_get_lint_param(const char *param);
-	int config_load(void);
+	int config_load(char *cfpath);
 	void config_cleanup(void);
 #endif
