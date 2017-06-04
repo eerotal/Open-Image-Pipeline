@@ -20,7 +20,7 @@
 #
 
 CC=gcc
-CCFLAGS=-Wall -Wpedantic -std=gnu99
+CCFLAGS=-Wall -Wpedantic -fPIC -std=gnu99
 LFLAGS=-lfreeimage
 NAME=oipimgutil
 

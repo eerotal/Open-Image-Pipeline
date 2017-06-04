@@ -32,7 +32,7 @@
 #include "headers/output.h"
 #include "plugin_priv.h"
 
-static long long last_job_id = 0;
+static long long new_job_id = 0;
 
 JOB *job_create(const char *fpath) {
 	/*
@@ -40,6 +40,7 @@ JOB *job_create(const char *fpath) {
 	*  a pointer to the newly allocated job or a NULL
 	*  pointer on failure.
 	*/
+	unsigned int job_id_str_len = 0;
 	JOB *job = NULL;
 	errno = 0;
 	job = malloc(sizeof(JOB));
@@ -63,7 +64,7 @@ JOB *job_create(const char *fpath) {
 
 	// Copy the filepath to the job.
 	errno = 0;
-	job->filepath = calloc(strlen(fpath), sizeof(char));
+	job->filepath = calloc(strlen(fpath) + 1, sizeof(*fpath));
 	if (job->filepath == NULL) {
 		printerrno("calloc(): ");
 		return NULL;
@@ -72,13 +73,18 @@ JOB *job_create(const char *fpath) {
 
 	// Assign the supplied job a unique job ID.
 	errno = 0;
-	job->job_id = calloc(round(log10(last_job_id)) + 2, sizeof(char));
+	if (new_job_id == 0) {
+		job_id_str_len = 2;
+	} else {
+		job_id_str_len = round(log10(new_job_id)) + 2;
+	}
+	job->job_id = calloc(job_id_str_len, sizeof(char));
 	if (job->job_id == NULL) {
 		printerrno("calloc(): ");
 		return NULL;
 	}
-	sprintf(job->job_id, "%llu", last_job_id);
-	last_job_id++;
+	sprintf(job->job_id, "%llu", new_job_id);
+	new_job_id++;
 
 	job->status = JOB_STATUS_PENDING;
 
