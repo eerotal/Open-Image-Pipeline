@@ -19,6 +19,8 @@
 *
 */
 
+#define PRINT_IDENTIFIER "imgutil"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +28,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include "imgutil/imgutil.h"
+#include "output.h"
 
 #define IMGUTIL_OUTPUT_FORMAT FIF_JPEG
 #define IMGUTIL_INTERNAL_BPP 32
@@ -36,35 +39,36 @@ IMAGE *img_load(const char *path) {
 	FIBITMAP *fimage_converted = NULL;
 	IMAGE *ret = NULL;
 
+	errno = 0;
 	if (access(path, F_OK)){
-		printf("img_load(): %s\n", strerror(errno));
+		printerrno("access()");
 		return NULL;
 	}
 	ftype = FreeImage_GetFileType(path, 0);
 	if (ftype == FIF_UNKNOWN) {
 		ftype = FreeImage_GetFIFFromFilename(path);
 		if (ftype == FIF_UNKNOWN) {
-			printf("img_load(): Unknown filetype.\n");
+			printerr("img_load(): Unknown filetype.\n");
 			return NULL;
 		}
 	}
 	if (FreeImage_FIFSupportsReading(ftype)) {
 		fimage = FreeImage_Load(ftype, path, 0);
 		if (!fimage) {
-			printf("img_load(): Failed to load image.\n");
+			printerr("img_load(): Failed to load image.\n");
 			return NULL;
 		}
 
 		fimage_converted = FreeImage_ConvertTo32Bits(fimage);
 		if (!fimage_converted) {
-			printf("img_load(): Failed to convert image to 32-bits.\n");
+			printerr("img_load(): Failed to convert image to 32-bits.\n");
 			return NULL;
 		}
 
 		ret = img_alloc(FreeImage_GetWidth(fimage_converted),
 				FreeImage_GetHeight(fimage_converted));
 		if (!ret) {
-			printf("img_load(): Failed to allocate memory for image.\n");
+			printerr("img_load(): Failed to allocate memory for image.\n");
 			FreeImage_Unload(fimage);
 			FreeImage_Unload(fimage_converted);
 			return NULL;
@@ -76,7 +80,7 @@ IMAGE *img_load(const char *path) {
 		FreeImage_Unload(fimage_converted);
 		return ret;
 	}
-	printf("img_load(): Image plugin doesn't support reading.\n");
+	printerr("img_load(): Image plugin doesn't support reading.\n");
 	return NULL;
 }
 
@@ -95,16 +99,21 @@ int img_save(const IMAGE *img, const char *filename) {
 }
 
 IMAGE *img_alloc(uint32_t w, uint32_t h) {
-	IMAGE *ret = malloc(sizeof(IMAGE));
+	IMAGE *ret = NULL;
+	errno = 0;
+	ret = malloc(sizeof(IMAGE));
 	if (!ret) {
+		printerrno("malloc()");
 		return NULL;
 	}
 	ret->w = w;
 	ret->h = h;
 
 	if (ret->w != 0 && ret->h != 0) {
+		errno = 0;
 		ret->img = malloc(img_bytelen(ret));
 		if (!ret->img) {
+			printerrno("malloc()");
 			free(ret);
 			return NULL;
 		}
@@ -115,8 +124,11 @@ IMAGE *img_alloc(uint32_t w, uint32_t h) {
 }
 
 int img_realloc(IMAGE *img, uint32_t w, uint32_t h) {
-	RGBQUAD *tmp = realloc(img->img, w*h*sizeof(RGBQUAD));
+	RGBQUAD *tmp = NULL;
+	errno = 0;
+	tmp = realloc(img->img, w*h*sizeof(RGBQUAD));
 	if (!tmp) {
+		printerrno("realloc()");
 		return 1;
 	}
 	img->img = tmp;

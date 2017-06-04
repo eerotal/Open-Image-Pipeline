@@ -26,7 +26,7 @@ NAME=oipimgutil
 
 BINDIR=bin
 BUILDROOT=$(shell pwd)
-INCLUDES=-I$(BUILDROOT)/imgutil
+INCLUDES=-I$(shell dirname $(BUILDROOT))/headers
 FILES=$(shell find $(BUILDROOT) -name *.c -o -name *.h)
 
 .ONESHELL:
