@@ -38,7 +38,7 @@
 
 static struct CLI_OPTS cli_opts;
 
-#define CLI_GETOPT_OPTS "vp"
+#define CLI_GETOPT_OPTS "vpc:"
 #define SHELL_BUFFER_LEN 100
 
 #define NUM_CLI_CMD_PROTOS 12
@@ -102,6 +102,9 @@ int cli_parse_opts(int argc, char **argv) {
 			case 'p':
 				printf("cli: Cache preservation enabled!");
 				cli_opts.opt_preserve_cache = CLI_OPT_ENABLED;
+				break;
+			case 'c':
+				cli_opts.opt_config_file = optarg;
 				break;
 			case '?':
 				if (isprint(optopt)) {

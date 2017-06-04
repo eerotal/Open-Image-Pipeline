@@ -33,6 +33,7 @@
 #include "pipeline_priv.h"
 #include "cli_priv.h"
 #include "imgutil/imgutil.h"
+#include "configloader_priv.h"
 
 static pthread_t *thread_cli_shell;
 static int exit_queued = 0;
@@ -40,17 +41,20 @@ static int exit_queued = 0;
 static void oip_cleanup(void);
 
 static void oip_cleanup(void) {
+	// Cancel the CLI shell thread.
+	if (thread_cli_shell) {
+		if (pthread_cancel(*thread_cli_shell) != 0) {
+			perror("oip: pthread_cancel()");
+		}
+
+		if (pthread_join(*thread_cli_shell, NULL) != 0) {
+			perror("oip: pthread_join()");
+		}
+	}
+
 	// Run cleanup functions.
 	plugins_cleanup();
-
-	// Cancel the CLI shell thread.
-	if (pthread_cancel(*thread_cli_shell) != 0) {
-		perror("oip: pthread_cancel()");
-	}
-
-	if (pthread_join(*thread_cli_shell, NULL) != 0) {
-		perror("oip: pthread_join()");
-	}
+	config_cleanup();
 }
 
 void oip_exit(void) {
@@ -58,6 +62,8 @@ void oip_exit(void) {
 }
 
 int main(int argc, char **argv) {
+	atexit(&oip_cleanup);
+
 	// Read CLI options.
 	if (cli_parse_opts(argc, argv) != 0) {
 		printf("oip: CLI argument parsing failed.\n");
@@ -71,21 +77,25 @@ int main(int argc, char **argv) {
 		print_verbose_off();
 	}
 
-	// Init CLI shell.
-	thread_cli_shell = cli_shell_init();
-	if (thread_cli_shell == NULL) {
+	// Load configuration from file.
+	if (config_load(cli_get_opts()->opt_config_file) != 0) {
+		printerr("Failed to load configuration file.\n");
 		return 1;
 	}
 
 	// Setup the plugin system.
 	if (plugins_setup() != 0) {
 		printerr("Failed to setup the plugin system.\n");
-		oip_exit();
+		return 1;
+	}
+
+	// Init CLI shell.
+	thread_cli_shell = cli_shell_init();
+	if (thread_cli_shell == NULL) {
+		return 1;
 	}
 
 	while (!exit_queued) {}
 
-	// Run cleanup.
-	oip_cleanup();
 	return 0;
 }
