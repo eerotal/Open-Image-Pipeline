@@ -59,7 +59,7 @@ static int plugin_data_append(PLUGIN *plugin) {
 	errno = 0;
 	PLUGIN **tmp_plugins = realloc(plugins, sizeof(PLUGIN**)*plugin_count);
 	if (!tmp_plugins) {
-		perror("plugin: realloc(): ");
+		printerrno("plugin: realloc(): ");
 		plugin_count--;
 		return 1;
 	}
@@ -69,12 +69,12 @@ static int plugin_data_append(PLUGIN *plugin) {
 	errno = 0;
 	plugins[plugin_count - 1] = calloc(1, sizeof(PLUGIN));
 	if (!plugins[plugin_count - 1]) {
-		perror("plugin: calloc(): ");
+		printerrno("plugin: calloc(): ");
 		plugin_count--;
 		errno = 0;
 		tmp_plugins = realloc(plugins, sizeof(PLUGIN*)*plugin_count);
 		if (!tmp_plugins) {
-			perror("plugin: realloc(): ");
+			printerrno("plugin: realloc(): ");
 		} else {
 			plugins = tmp_plugins;
 		}
@@ -112,7 +112,7 @@ int plugin_load(char *dirpath, char *name) {
 	errno = 0;
 	libfname = calloc(libfname_len, sizeof(char));
 	if (libfname == NULL) {
-		perror("plugin: calloc()");
+		printerrno("plugin: calloc()");
 		return 1;
 	}
 	sprintf(libfname, "lib%s.so", name);
@@ -139,7 +139,7 @@ int plugin_load(char *dirpath, char *name) {
 		errno = 0;
 		params_struct_name = calloc(params_struct_name_len, sizeof(char));
 		if (!params_struct_name) {
-			perror("plugin: calloc(): ");
+			printerrno("plugin: calloc(): ");
 			free(path);
 			dlclose(plugin.p_handle);
 			return 1;
@@ -359,7 +359,7 @@ char *plugin_get_uid_str(PLUGIN *plugin) {
 	errno = 0;
 	ret = calloc(strlen(plugin->p_params->name) + 1 + uid_len + 1, sizeof(*ret));
 	if (ret == NULL) {
-		perror("plugin: calloc()");
+		printerrno("plugin: calloc()");
 		return NULL;
 	}
 	sprintf(ret, "%s-%llu", plugin->p_params->name, plugin->uid);

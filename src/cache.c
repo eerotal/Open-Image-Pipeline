@@ -149,7 +149,7 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 	errno = 0;
 	n_cache_file = malloc(sizeof(CACHE));
 	if (n_cache_file == NULL) {
-		perror("cache: malloc()");
+		printerrno("cache: malloc()");
 		return NULL;
 	}
 
@@ -157,7 +157,7 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 	errno = 0;
 	n_cache_file->fname = calloc(strlen(fname) + 1, sizeof(char));
 	if (n_cache_file->fname == NULL) {
-		perror("cache: calloc()");
+		printerrno("cache: calloc()");
 		free(n_cache_file);
 		return NULL;
 	}
@@ -180,7 +180,7 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto
 	cache->db_len++;
 	tmp_cache_db = realloc(cache->db, cache->db_len*sizeof(CACHE_FILE*));
 	if (tmp_cache_db == NULL) {
-		perror("cache: realloc()");
+		printerrno("cache: realloc()");
 		cache->db_len--;
 		free(n_cache_file->fname);
 		free(n_cache_file->fpath);
@@ -209,7 +209,7 @@ static int cache_db_shrink(CACHE *cache) {
 			errno = 0;
 			tmp_db = realloc(n_db, n_db_len*sizeof(CACHE_FILE*));
 			if (tmp_db == NULL) {
-				perror("cache: realloc()");
+				printerrno("cache: realloc()");
 				free(n_db);
 				return 1;
 			}
@@ -295,11 +295,11 @@ int cache_delete_file(CACHE *cache, const char *fname) {
 	if (access(cache->db[index]->fpath, F_OK) == 0) {
 		errno = 0;
 		if (unlink(cache->db[index]->fpath) == -1) {
-			perror("cache: unlink()");
+			printerrno("cache: unlink()");
 			return 1;
 		}
 	} else {
-		perror("cache: access()");
+		printerrno("cache: access()");
 		return 1;
 	}
 
@@ -342,7 +342,7 @@ CACHE *cache_create(const char *cache_name) {
 	errno = 0;
 	n_cache = malloc(sizeof(CACHE));
 	if (n_cache == NULL) {
-		perror("cache: malloc()");
+		printerrno("cache: malloc()");
 		return NULL;
 	}
 	memset(n_cache, 0, sizeof(CACHE));
@@ -351,7 +351,7 @@ CACHE *cache_create(const char *cache_name) {
 	errno = 0;
 	n_cache->name = calloc(strlen(cache_name) + 1, sizeof(char));
 	if (n_cache->name == NULL) {
-		perror("cache: calloc()");
+		printerrno("cache: calloc()");
 		free(n_cache);
 		return NULL;
 	}
@@ -371,12 +371,12 @@ CACHE *cache_create(const char *cache_name) {
 		if (errno == ENOENT) {
 			errno = 0;
 			if (mkdir(n_cache->path, CACHE_PERMISSIONS) == -1) {
-				perror("cache: mkdir()");
+				printerrno("cache: mkdir()");
 				cache_destroy(n_cache, 0);
 				return NULL;
 			}
 		} else {
-			perror("cache: access()");
+			printerrno("cache: access()");
 			cache_destroy(n_cache, 0);
 			return NULL;
 		}
@@ -390,7 +390,7 @@ CACHE *cache_create(const char *cache_name) {
 	errno = 0;
 	tmp_caches = realloc(caches, caches_count*sizeof(CACHE*));
 	if (tmp_caches == NULL) {
-		perror("cache: realloc()");
+		printerrno("cache: realloc()");
 		caches_count--;
 		cache_destroy(n_cache, 1);
 		return NULL;
@@ -417,7 +417,7 @@ void cache_destroy(CACHE *cache, int del_files) {
 					printerr("Failed to delete cache.\n");
 				}
 			} else {
-				perror("cache: access()");
+				printerrno("cache: access()");
 			}
 		}
 
@@ -461,11 +461,11 @@ int cache_setup(void) {
 		if (errno == ENOENT) {
 			errno = 0;
 			if (mkdir(cache_root, CACHE_PERMISSIONS) == -1) {
-				perror("cache: mkdir()");
+				printerrno("cache: mkdir()");
 				return 1;
 			}
 		} else {
-			perror("cache: access()");
+			printerrno("cache: access()");
 			return 1;
 		}
 	}

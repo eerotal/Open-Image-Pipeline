@@ -23,6 +23,7 @@
 	#define INCLUDED_OUTPUT_MACROS
 
 	#include <stdio.h>
+	#include <errno.h>
 
 	#ifndef PRINT_IDENTIFIER
 		#define PRINT_IDENTIFIER "unknown"
@@ -39,6 +40,9 @@
 	// Print an error message.
 	#define printerr_va(format, ...) fprintf(stderr, "%s: "format, PRINT_IDENTIFIER, __VA_ARGS__);
 	#define printerr(format) fprintf(stderr, "%s: "format, PRINT_IDENTIFIER);
+
+	// Print a text description of an error.
+	#define printerrno(format) fprintf(stderr, "%s: "format": %s\n", PRINT_IDENTIFIER, strerror(errno));
 
 	// Print an informational message.
 	#define printinfo_va(format, ...) fprintf(stdout, "%s: "format, PRINT_IDENTIFIER, __VA_ARGS__);

@@ -44,11 +44,11 @@ static void oip_cleanup(void) {
 	// Cancel the CLI shell thread.
 	if (thread_cli_shell) {
 		if (pthread_cancel(*thread_cli_shell) != 0) {
-			perror("oip: pthread_cancel()");
+			printerrno("oip: pthread_cancel()");
 		}
 
 		if (pthread_join(*thread_cli_shell, NULL) != 0) {
-			perror("oip: pthread_join()");
+			printerrno("oip: pthread_join()");
 		}
 	}
 

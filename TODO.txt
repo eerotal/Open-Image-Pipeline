@@ -1,1 +1,0 @@
- - Use plugin ID for the plugin identifier generation.

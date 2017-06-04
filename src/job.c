@@ -19,6 +19,8 @@
 *
 */
 
+#define PRINT_IDENTIFIER "job"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -27,6 +29,7 @@
 
 #include "job_priv.h"
 #include "headers/plugin.h"
+#include "headers/output.h"
 #include "plugin_priv.h"
 
 static long long last_job_id = 0;
@@ -41,7 +44,7 @@ JOB *job_create(const char *fpath) {
 	errno = 0;
 	job = malloc(sizeof(JOB));
 	if (job == NULL) {
-		perror("malloc(): ");
+		printerrno("malloc(): ");
 		return NULL;
 	}
 	memset(job, 0, sizeof(JOB));
@@ -62,7 +65,7 @@ JOB *job_create(const char *fpath) {
 	errno = 0;
 	job->filepath = calloc(strlen(fpath), sizeof(char));
 	if (job->filepath == NULL) {
-		perror("calloc(): ");
+		printerrno("calloc(): ");
 		return NULL;
 	}
 	strcpy(job->filepath, fpath);
@@ -71,7 +74,7 @@ JOB *job_create(const char *fpath) {
 	errno = 0;
 	job->job_id = calloc(round(log10(last_job_id)) + 2, sizeof(char));
 	if (job->job_id == NULL) {
-		perror("calloc(): ");
+		printerrno("calloc(): ");
 		return NULL;
 	}
 	sprintf(job->job_id, "%llu", last_job_id);
@@ -94,7 +97,7 @@ int job_store_plugin_config(JOB *job) {
 	tmp_arg_revs = realloc(job->prev_plugin_arg_revs,
 			plugins_get_count()*sizeof(unsigned long long int));
 	if (tmp_arg_revs == NULL) {
-		perror("realloc(): ");
+		printerrno("realloc(): ");
 		return 1;
 	}
 	job->prev_plugin_arg_revs = tmp_arg_revs;
@@ -103,7 +106,7 @@ int job_store_plugin_config(JOB *job) {
 	tmp_uids = realloc(job->prev_plugin_uids,
 			plugins_get_count()*sizeof(unsigned long long int));
 	if (tmp_uids == NULL) {
-		perror("realloc(): ");
+		printerrno("realloc(): ");
 		return 1;
 	}
 	job->prev_plugin_uids = tmp_uids;

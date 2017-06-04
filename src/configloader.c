@@ -93,7 +93,7 @@ static int config_parse_line(const char *ln) {
 	errno = 0;
 	tmp_ln = calloc(strlen(ln) + 1, sizeof(*ln));
 	if (!tmp_ln) {
-		perror("configloader: calloc()");
+		printerrno("configloader: calloc()");
 		return 1;
 	}
 	strcpy(tmp_ln, ln);
@@ -103,7 +103,7 @@ static int config_parse_line(const char *ln) {
 	errno = 0;
 	tmp_config = realloc(config, (++config_num_params)*2*sizeof(*config));
 	if (!tmp_config) {
-		perror("configloader: realloc()");
+		printerrno("configloader: realloc()");
 		free(tmp_ln);
 		return 1;
 	}
@@ -116,7 +116,7 @@ static int config_parse_line(const char *ln) {
 		errno = 0;
 		config = realloc(config, (--config_num_params)*2*sizeof(*config));
 		if (!config && config_num_params != 0) {
-			perror("configloader: realloc()");
+			printerrno("configloader: realloc()");
 		}
 		return 1;
 	}
@@ -128,7 +128,7 @@ static int config_parse_line(const char *ln) {
 		errno = 0;
 		config = realloc(config, (--config_num_params)*2*sizeof(*config));
 		if (!config && config_num_params != 0) {
-			perror("configloader: calloc()");
+			printerrno("configloader: calloc()");
 		}
 		return 1;
 	}
@@ -143,7 +143,7 @@ static int config_parse_line(const char *ln) {
 		errno = 0;
 		config = realloc(config, (--config_num_params)*2*sizeof(*config));
 		if (!config && config_num_params != 0) {
-			perror("configloader: calloc()");
+			printerrno("configloader: calloc()");
 		}
 		return 1;
 	}
@@ -180,7 +180,7 @@ long int config_get_lint_param(const char *param) {
 	errno = 0;
 	val = strtol(str_val, NULL, 10);
 	if (errno != 0) {
-		perror("configloader: strtol()");
+		printerrno("configloader: strtol()");
 	}
 	return val;
 }
@@ -204,7 +204,7 @@ int config_load(char *cfpath) {
 	}
 
 	if (!conf) {
-		perror("config: fopen()");
+		printerrno("config: fopen()");
 		return 1;
 	}
 
@@ -215,7 +215,7 @@ int config_load(char *cfpath) {
 			}
 		}
 		if (ferror(conf)) {
-			perror("config: fgets()");
+			printerrno("config: fgets()");
 			return 1;
 		}
 	}
