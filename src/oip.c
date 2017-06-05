@@ -32,6 +32,7 @@
 #include "plugin_priv.h"
 #include "pipeline_priv.h"
 #include "cli_priv.h"
+#include "cli_shell_priv.h"
 #include "imgutil/imgutil.h"
 #include "configloader_priv.h"
 
