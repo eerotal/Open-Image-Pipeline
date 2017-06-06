@@ -35,6 +35,7 @@
 #include "cli_shell_priv.h"
 #include "imgutil/imgutil.h"
 #include "configloader_priv.h"
+#include "ptrarray_priv.h"
 
 static pthread_t *thread_cli_shell;
 static int exit_queued = 0;

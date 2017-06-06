@@ -1,0 +1,114 @@
+/*
+*
+*  Copyright 2017 Eero Talus
+*
+*  This file is part of Open Image Pipeline.
+*
+*  Open Image Pipeline is free software: you can redistribute it and/or modify
+*  it under the terms of the GNU General Public License as published by
+*  the Free Software Foundation, either version 3 of the License, or
+*  (at your option) any later version.
+*
+*  Open Image Pipeline is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU General Public License for more details.
+*
+*  You should have received a copy of the GNU General Public License
+*  along with Open Image Pipeline.  If not, see <http://www.gnu.org/licenses/>.
+*
+*/
+
+#define PRINT_IDENTIFIER "ptrarray"
+
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+
+#include "ptrarray_priv.h"
+#include "headers/output.h"
+
+PTRARRAY *ptrarray_create(void) {
+	/*
+	*  Create a new PTRARRAY instance.
+	*/
+	PTRARRAY *ret = NULL;
+	errno = 0;
+	ret = calloc(1, sizeof(PTRARRAY));
+	if (!ret) {
+		printerrno("calloc()");
+		return NULL;
+	}
+	return ret;
+}
+
+PTRARRAY *ptrarray_realloc(PTRARRAY *ptrarray, size_t ptrc, size_t size) {
+	/*
+	*  Reallocate the internal pointer array in teh PTRARRAY instance.
+	*  Returns a pointer to the PTRARRAY instance on success or a NULL
+	*  pointer on failure.
+	*/
+	void **tmp_ptrs = NULL;
+
+	errno = 0;
+	tmp_ptrs = realloc(ptrarray->ptrs, ptrc*size);
+	if (!tmp_ptrs) {
+		printerrno("realloc()");
+		return NULL;
+	}
+	ptrarray->ptrs = tmp_ptrs;
+	ptrarray->ptrc = ptrc;
+
+	return ptrarray;
+}
+
+PTRARRAY *ptrarray_put(PTRARRAY *ptrarray, void *ptr, size_t size) {
+	/*
+	*  Add a pointer to the PTRARRAY instance. Returns the pointer
+	*  to the PTRARRAY instance on success or a NULL pointer on
+	*  failure.
+	*/
+	PTRARRAY *tmp = NULL;
+
+	tmp = ptrarray_realloc(ptrarray, ptrarray->ptrc + 1, size);
+	if (!tmp) {
+		return NULL;
+	}
+	tmp->ptrs[ptrarray->ptrc - 1] = ptr;
+
+	return tmp;
+}
+
+void ptrarray_free(PTRARRAY *ptrarray) {
+	/*
+	*  Free the PTRARRAY instance.
+	*/
+	free(ptrarray);
+}
+
+void ptrarray_free_ptrs(PTRARRAY *ptrarray) {
+	/*
+	*  Free all the pointers in the PTRARRAY instance.
+	*  This function won't free pointers multiple times
+	*  even if the same pointer is in the PTRARRAY instance
+	*  more than once. This function also won't attempt to
+	*  free NULL pointers.
+	*/
+	for (size_t a = 0; a < ptrarray->ptrc; a++) {
+		if (!ptrarray->ptrs[a]) {
+			continue;
+		}
+		for (size_t b = 0; b < ptrarray->ptrc; b++) {
+			if (a == b) {
+				continue;
+			} else if (ptrarray->ptrs[a] == ptrarray->ptrs[b]) {
+				ptrarray->ptrs[b] = NULL;
+			}
+		}
+		free(ptrarray->ptrs[a]);
+	}
+	free(ptrarray->ptrs);
+	ptrarray->ptrs = NULL;
+	ptrarray->ptrc = 0;
+}

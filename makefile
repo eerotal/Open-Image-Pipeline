@@ -19,6 +19,7 @@
 
 CC=gcc
 CCFLAGS=-Wall -Wpedantic -std=gnu99 -g -DOIP_BINARY
+CCFLAGS_MEMDEBUG=-fsanitize=address
 LFLAGS=-ldl -lfreeimage -lm -pthread
 NAME=oip
 
@@ -40,6 +41,15 @@ main: $(SRCFILES)
 	mkdir -p $(BINDIR)
 	mkdir -p $(PLUGINDIR)
 	$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
+
+memdebug: $(SRCFILES)
+	$(info ==== COMPILING MAIN ====)
+	$(info [INFO]: Submodules are compiled into the main binary automatically.\
+	If you need them as separate libraries, run 'make modules' too.)
+
+	mkdir -p $(BINDIR)
+	mkdir -p $(PLUGINDIR)
+	$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(CCFLAGS_MEMDEBUG) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
 
 modules: 
 	$(info ==== COMPILING SUBMODULES ====)

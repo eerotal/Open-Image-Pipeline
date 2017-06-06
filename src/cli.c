@@ -32,14 +32,13 @@
 #include "cli_priv.h"
 
 #define CLI_GETOPT_OPTS "vpc:"
-#define SHELL_BUFFER_LEN 100
 
 static struct CLI_OPTS cli_opts;
 
 int cli_parse_opts(int argc, char **argv) {
 	int ret;
 
-	// Set the CLI option flags to zero initially.
+	// Init CLI options to 0.
 	memset(&cli_opts, CLI_OPT_DISABLED, sizeof(cli_opts));
 
 	while ((ret = getopt(argc, argv, CLI_GETOPT_OPTS)) != -1) {
@@ -55,7 +54,7 @@ int cli_parse_opts(int argc, char **argv) {
 				break;
 			case '?':
 				if (isprint(optopt)) {
-					printerr_va("cli: Unknown option -%c.\n", optopt);
+					printerr_va("Unknown option -%c.\n", optopt);
 				} else {
 					printerr_va("Unknown option character. 0x%x.", optopt);
 				}
