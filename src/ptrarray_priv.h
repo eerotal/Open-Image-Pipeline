@@ -44,8 +44,12 @@
 	PTRARRAY_TYPE_DEF(void);
 
 	PTRARRAY_TYPE(void) *ptrarray_create(void);
-	PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray, size_t ptrc, size_t size);
-	PTRARRAY_TYPE(void) *ptrarray_put(PTRARRAY_TYPE(void) *ptrarray, void *ptr, size_t size);
+	PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray,
+						size_t ptrc);
+	PTRARRAY_TYPE(void) *ptrarray_put_ptr(PTRARRAY_TYPE(void) *ptrarray,
+						void *ptr);
+	PTRARRAY_TYPE(void) *ptrarray_put_data(PTRARRAY_TYPE(void) *ptrarray,
+						void *data, size_t data_size);
 	void ptrarray_free_ptrs(PTRARRAY_TYPE(void) *ptrarray);
 	void ptrarray_free(PTRARRAY_TYPE(void) *ptrarray);
 #endif

@@ -385,7 +385,6 @@ static int cli_shell_parse(char *str) {
 	PTRARRAY_TYPE(char) *keywords = NULL;
 	char *token = NULL;
 	char *tmp_str = NULL;
-	char *tmp_keyword = NULL;
 	int proto = -1;
 
 	tmp_str = calloc(strlen(str) + 1, sizeof(*str));
@@ -403,17 +402,9 @@ static int cli_shell_parse(char *str) {
 
 	token = strtok(tmp_str, " ");
 	while (token != NULL) {
-		tmp_keyword = calloc(strlen(token) + 1, sizeof(*token));
-		if (!tmp_keyword) {
-			ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) keywords);
-			ptrarray_free((PTRARRAY_TYPE(void)*) keywords);
-			free(tmp_str);
-			return 1;
-		}
-		strcpy(tmp_keyword, token);
+		if (!ptrarray_put_data((PTRARRAY_TYPE(void)*) keywords, token,
+				(strlen(token) + 1)*sizeof(*token))) {
 
-		if (!ptrarray_put((PTRARRAY_TYPE(void)*) keywords,
-			tmp_keyword, sizeof(tmp_keyword))) {
 			ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) keywords);
 			ptrarray_free((PTRARRAY_TYPE(void)*) keywords);
 			free(tmp_str);

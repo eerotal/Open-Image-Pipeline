@@ -43,7 +43,8 @@ PTRARRAY_TYPE(void) *ptrarray_create(void) {
 	return ret;
 }
 
-PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray, size_t ptrc, size_t size) {
+PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray,
+						size_t ptrc) {
 	/*
 	*  Reallocate the internal pointer array in teh PTRARRAY instance.
 	*  Returns a pointer to the PTRARRAY instance on success or a NULL
@@ -52,7 +53,7 @@ PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray, size_t ptrc
 	void **tmp_ptrs = NULL;
 
 	errno = 0;
-	tmp_ptrs = realloc(ptrarray->ptrs, ptrc*size);
+	tmp_ptrs = realloc(ptrarray->ptrs, ptrc*sizeof(void*));
 	if (!tmp_ptrs) {
 		printerrno("realloc()");
 		return NULL;
@@ -63,7 +64,8 @@ PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray, size_t ptrc
 	return ptrarray;
 }
 
-PTRARRAY_TYPE(void) *ptrarray_put(PTRARRAY_TYPE(void) *ptrarray, void *ptr, size_t size) {
+PTRARRAY_TYPE(void) *ptrarray_put_ptr(PTRARRAY_TYPE(void) *ptrarray,
+					void *ptr) {
 	/*
 	*  Add a pointer to the PTRARRAY instance. Returns the pointer
 	*  to the PTRARRAY instance on success or a NULL pointer on
@@ -71,13 +73,36 @@ PTRARRAY_TYPE(void) *ptrarray_put(PTRARRAY_TYPE(void) *ptrarray, void *ptr, size
 	*/
 	PTRARRAY_TYPE(void) *tmp = NULL;
 
-	tmp = ptrarray_realloc(ptrarray, ptrarray->ptrc + 1, size);
+	tmp = ptrarray_realloc(ptrarray, ptrarray->ptrc + 1);
 	if (!tmp) {
 		return NULL;
 	}
 	tmp->ptrs[ptrarray->ptrc - 1] = ptr;
 
 	return tmp;
+}
+
+PTRARRAY_TYPE(void) *ptrarray_put_data(PTRARRAY_TYPE(void) *ptrarray,
+					void *data, size_t data_size) {
+	/*
+	*  Copy 'data_size' number of bytes from 'data'
+	*  to a new memory location and add the pointer
+	*  to that location into the PTRARRAY instance.
+	*  Returns the supplied PTRARRAY pointer on
+	*  success or a NULL pointer on failure.
+	*/
+	void *tmp_ptr = NULL;
+	tmp_ptr = malloc(data_size);
+	if (!tmp_ptr) {
+		return NULL;
+	}
+
+	memcpy(tmp_ptr, data, data_size);
+	if (!ptrarray_put_ptr(ptrarray, tmp_ptr)) {
+		free(tmp_ptr);
+		return NULL;
+	}
+	return ptrarray;
 }
 
 void ptrarray_free(PTRARRAY_TYPE(void) *ptrarray) {
