@@ -20,10 +20,19 @@
 #
 
 CC=gcc
-CCFLAGS=-Wall -Wpedantic -fPIC -std=gnu99
+CCFLAGS=-Wall -Wpedantic -fPIC -std=gnu11
 LFLAGS=-lfreeimage
 NAME=oipimgutil
 
+MEMDEBUG=false
+
+# Enable memory debugging if MEMDEBUG is set to true on the CLI.
+ifeq ($(MEMDEBUG), true)
+$(info [INFO]: Enabling memory debugging options.)
+CCFLAGS+=-fsanitize=address
+endif
+
+# Setup some path variables.
 BINDIR=bin
 BUILDROOT=$(shell pwd)
 INCLUDES=-I$(shell dirname $(BUILDROOT))/headers
@@ -31,7 +40,7 @@ FILES=$(shell find $(BUILDROOT) -name *.c -o -name *.h)
 
 .ONESHELL:
 compile: $(FILES)
-	$(info ======= COMPILING IMGUTIL SUBMODULE ======== )
+	$(info [INFO]: Compiling the imgutil submodule.)
 	mkdir -p $(BINDIR)
 	cd $(BINDIR)
 	$(CC) -c $(CCFLAGS) $(INCLUDES) $(FILES) $(LFLAGS)
