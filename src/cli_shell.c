@@ -34,6 +34,7 @@
 #include "oip_priv.h"
 #include "plugin_priv.h"
 #include "pipeline_priv.h"
+#include "ptrarray_priv.h"
 
 #define SHELL_BUFFER_LEN 100
 #define NUM_CLI_CMD_PROTOS 12
@@ -376,83 +377,53 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 
 static int cli_shell_parse(char *str) {
 	/*
-	*  Parse the newline terminated command from
-	*  string and execute it afterwards. Returns 0
-	*  on success and 1 on failure.
+	*  Parse and execute a CLI shell command from str.
+	*  Returns 0 on success and 1 on failure.
 	*/
-	char **keywords = NULL;
-	unsigned int c_keywords_len = 0;
-	unsigned int num_keywords = 0;
-	unsigned int s = 0;
 
-	// Parse command keywords into an array.
-	for (int i = 0; i < strlen(str); i++) {
-		if (str[i] == ' ' || str[i] == '\n') {
-			// Extend keywords array.
-			c_keywords_len++;
-			errno = 0;
-			char **tmp_keywords = realloc(keywords, c_keywords_len*sizeof(char*));
-			if (tmp_keywords == NULL) {
-				/*
-				*  Realloc failed so decrement length back to
-				*  original and free the keywords array.
-				*/
-				printerrno("cli-shell: realloc()");
-				c_keywords_len--;
-				for (int k = 0; k < c_keywords_len; k++) {
-					free(keywords[k]);
-				}
-				free(keywords);
-				return 1;
-			}
-			keywords = tmp_keywords;
+	PTRARRAY *keywords = NULL;
+	char *token = NULL;
+	char *tmp_str = NULL;
+	char *tmp_keyword = NULL;
+	int proto = -1;
 
-			// Allocate memory for the string to be copied.
-			errno = 0;
-			keywords[c_keywords_len - 1] = calloc(i - s, sizeof(char));
-			if (keywords[c_keywords_len - 1] == NULL) {
-				// Free the keywords array.
-				printerrno("cli-shell: calloc()");
-				for (int k = 0; k < c_keywords_len; k++) {
-					free(keywords[k]);
-				}
-				free(keywords);
-				return 1;
-			}
-
-			// Copy the the original string into the keywords array.
-			memcpy(keywords[c_keywords_len - 1], str + s, i - s);
-			s = i + 1;
-		}
+	tmp_str = calloc(strlen(str) + 1, sizeof(*str));
+	if (!tmp_str) {
+		return 1;
 	}
-	num_keywords = c_keywords_len;
+	strcpy(tmp_str, str);
+	tmp_str[strcspn(tmp_str, "\n")] = '\0';
 
-	// Execute command based on matched prototype.
-	int match = cli_shell_prototype_match(keywords, num_keywords);
-	if (match >= 0) {
-		cli_shell_execute(match, keywords, num_keywords);
-	} else {
-		/*
-		*  Strip newline from input string and print
-		*  "Invalid command".
-		*/
-		errno = 0;
-		char *tmp_str = malloc(strlen(str)*sizeof(char));
-		if (tmp_str == NULL) {
-			printerrno("cli-shell: malloc()");
+	keywords = ptrarray_create();
+	if (!keywords) {
+		free(tmp_str);
+		return 1;
+	}
+
+	token = strtok(tmp_str, " ");
+	while (token != NULL) {
+		tmp_keyword = calloc(strlen(token) + 1, sizeof(*token));
+		if (!tmp_keyword) {
+			ptrarray_free_ptrs(keywords);
+			ptrarray_free(keywords);
+			free(tmp_str);
 			return 1;
 		}
-		memcpy(tmp_str, str, strlen(str)*sizeof(char));
-		tmp_str[strcspn(tmp_str, "\n")] = '\0';
-
-		printerr_va("Invalid command %s.\n", tmp_str);
-		free(tmp_str);
+		strcpy(tmp_keyword, token);
+		ptrarray_put(keywords, tmp_keyword, sizeof(tmp_keyword));
+		token = strtok(NULL, " ");
 	}
 
-	// Cleanup
-	for (int k = 0; k < c_keywords_len; k++) {
-		free(keywords[k]);
+	proto = cli_shell_prototype_match((char**) keywords->ptrs, keywords->ptrc);
+	if (proto >= 0) {
+		cli_shell_execute(proto, (char**) keywords->ptrs, keywords->ptrc);
+	} else {
+		printerr_va("Invalid command: %s\n", tmp_str);
 	}
-	free(keywords);
+
+	ptrarray_free_ptrs(keywords);
+	ptrarray_free(keywords);
+	free(tmp_str);
+
 	return 0;
 }
