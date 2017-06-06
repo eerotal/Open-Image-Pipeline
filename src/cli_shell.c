@@ -411,7 +411,14 @@ static int cli_shell_parse(char *str) {
 			return 1;
 		}
 		strcpy(tmp_keyword, token);
-		ptrarray_put((PTRARRAY_TYPE(void)*) keywords, tmp_keyword, sizeof(tmp_keyword));
+
+		if (!ptrarray_put((PTRARRAY_TYPE(void)*) keywords,
+			tmp_keyword, sizeof(tmp_keyword))) {
+			ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) keywords);
+			ptrarray_free((PTRARRAY_TYPE(void)*) keywords);
+			free(tmp_str);
+			return 1;
+		}
 		token = strtok(NULL, " ");
 	}
 
