@@ -132,7 +132,7 @@ int rmdir_recursive(const char *rpath) {
 
 		// Construct the path name for the current file.
 		errno = 0;
-		tmp_fpath = realloc(fpath, strlen(rpath_proper) + strlen(f->d_name) + 1);
+		tmp_fpath = realloc(fpath, (strlen(rpath_proper) + strlen(f->d_name) + 1)*sizeof(*rpath_proper));
 		if (tmp_fpath == NULL) {
 			printerrno("file: realloc()");
 			free(rpath_proper);
@@ -140,7 +140,7 @@ int rmdir_recursive(const char *rpath) {
 			return 1;
 		}
 		fpath = tmp_fpath;
-		memset(fpath, 0, (strlen(fpath) + 1)*sizeof(char));
+		memset(fpath, 0, (strlen(rpath_proper) + strlen(f->d_name) + 1)*sizeof(*rpath_proper));
 		strcat(fpath, rpath_proper);
 		strcat(fpath, f->d_name);
 
