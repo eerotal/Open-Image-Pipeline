@@ -29,13 +29,13 @@
 #include "ptrarray_priv.h"
 #include "headers/output.h"
 
-PTRARRAY *ptrarray_create(void) {
+PTRARRAY_TYPE(void) *ptrarray_create(void) {
 	/*
 	*  Create a new PTRARRAY instance.
 	*/
-	PTRARRAY *ret = NULL;
+	PTRARRAY_TYPE(void) *ret = NULL;
 	errno = 0;
-	ret = calloc(1, sizeof(PTRARRAY));
+	ret = calloc(1, sizeof(PTRARRAY_TYPE(void)));
 	if (!ret) {
 		printerrno("calloc()");
 		return NULL;
@@ -43,7 +43,7 @@ PTRARRAY *ptrarray_create(void) {
 	return ret;
 }
 
-PTRARRAY *ptrarray_realloc(PTRARRAY *ptrarray, size_t ptrc, size_t size) {
+PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray, size_t ptrc, size_t size) {
 	/*
 	*  Reallocate the internal pointer array in teh PTRARRAY instance.
 	*  Returns a pointer to the PTRARRAY instance on success or a NULL
@@ -63,13 +63,13 @@ PTRARRAY *ptrarray_realloc(PTRARRAY *ptrarray, size_t ptrc, size_t size) {
 	return ptrarray;
 }
 
-PTRARRAY *ptrarray_put(PTRARRAY *ptrarray, void *ptr, size_t size) {
+PTRARRAY_TYPE(void) *ptrarray_put(PTRARRAY_TYPE(void) *ptrarray, void *ptr, size_t size) {
 	/*
 	*  Add a pointer to the PTRARRAY instance. Returns the pointer
 	*  to the PTRARRAY instance on success or a NULL pointer on
 	*  failure.
 	*/
-	PTRARRAY *tmp = NULL;
+	PTRARRAY_TYPE(void) *tmp = NULL;
 
 	tmp = ptrarray_realloc(ptrarray, ptrarray->ptrc + 1, size);
 	if (!tmp) {
@@ -80,14 +80,14 @@ PTRARRAY *ptrarray_put(PTRARRAY *ptrarray, void *ptr, size_t size) {
 	return tmp;
 }
 
-void ptrarray_free(PTRARRAY *ptrarray) {
+void ptrarray_free(PTRARRAY_TYPE(void) *ptrarray) {
 	/*
 	*  Free the PTRARRAY instance.
 	*/
 	free(ptrarray);
 }
 
-void ptrarray_free_ptrs(PTRARRAY *ptrarray) {
+void ptrarray_free_ptrs(PTRARRAY_TYPE(void) *ptrarray) {
 	/*
 	*  Free all the pointers in the PTRARRAY instance.
 	*  This function won't free pointers multiple times

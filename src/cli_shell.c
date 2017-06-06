@@ -381,7 +381,8 @@ static int cli_shell_parse(char *str) {
 	*  Returns 0 on success and 1 on failure.
 	*/
 
-	PTRARRAY *keywords = NULL;
+	PTRARRAY_TYPE_DEF(char);
+	PTRARRAY_TYPE(char) *keywords = NULL;
 	char *token = NULL;
 	char *tmp_str = NULL;
 	char *tmp_keyword = NULL;
@@ -394,7 +395,7 @@ static int cli_shell_parse(char *str) {
 	strcpy(tmp_str, str);
 	tmp_str[strcspn(tmp_str, "\n")] = '\0';
 
-	keywords = ptrarray_create();
+	keywords = (PTRARRAY_TYPE(char)*) ptrarray_create();
 	if (!keywords) {
 		free(tmp_str);
 		return 1;
@@ -404,25 +405,25 @@ static int cli_shell_parse(char *str) {
 	while (token != NULL) {
 		tmp_keyword = calloc(strlen(token) + 1, sizeof(*token));
 		if (!tmp_keyword) {
-			ptrarray_free_ptrs(keywords);
-			ptrarray_free(keywords);
+			ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) keywords);
+			ptrarray_free((PTRARRAY_TYPE(void)*) keywords);
 			free(tmp_str);
 			return 1;
 		}
 		strcpy(tmp_keyword, token);
-		ptrarray_put(keywords, tmp_keyword, sizeof(tmp_keyword));
+		ptrarray_put((PTRARRAY_TYPE(void)*) keywords, tmp_keyword, sizeof(tmp_keyword));
 		token = strtok(NULL, " ");
 	}
 
-	proto = cli_shell_prototype_match((char**) keywords->ptrs, keywords->ptrc);
+	proto = cli_shell_prototype_match(keywords->ptrs, keywords->ptrc);
 	if (proto >= 0) {
-		cli_shell_execute(proto, (char**) keywords->ptrs, keywords->ptrc);
+		cli_shell_execute(proto, keywords->ptrs, keywords->ptrc);
 	} else {
 		printerr_va("Invalid command: %s\n", tmp_str);
 	}
 
-	ptrarray_free_ptrs(keywords);
-	ptrarray_free(keywords);
+	ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) keywords);
+	ptrarray_free((PTRARRAY_TYPE(void)*) keywords);
 	free(tmp_str);
 
 	return 0;

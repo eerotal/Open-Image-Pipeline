@@ -24,15 +24,29 @@
 
 	#include <stdio.h>
 
-	typedef struct STRUCT_PTRARRAY {
-		void **ptrs;
-		size_t ptrc;
-	} PTRARRAY;
+	/*
+	*  Macro for defining a PTRARRAY_[type] type.
+	*  'type' should be a valid C type.
+	*/
+	#define PTRARRAY_TYPE_DEF(type)			\
+	typedef struct STRUCT_PTRARRAY_##type {		\
+		type **ptrs;				\
+		size_t ptrc;				\
+	} PTRARRAY_##type				\
 
-	PTRARRAY *ptrarray_create(void);
-	PTRARRAY *ptrarray_realloc(PTRARRAY *ptrarray, size_t ptrc, size_t size);
-	PTRARRAY *ptrarray_put(PTRARRAY *ptrarray, void *ptr, size_t size);
-	void ptrarray_free_ptrs(PTRARRAY *ptrarray);
-	void ptrarray_free(PTRARRAY *ptrarray);
+	/*
+	*  A macro that expands to a PTRARRAY_[type]. This
+	*  can be used for type casting etc.
+	*/
+	#define PTRARRAY_TYPE(type) PTRARRAY_##type
+
+	// Define the PTRARRAY_void type.
+	PTRARRAY_TYPE_DEF(void);
+
+	PTRARRAY_TYPE(void) *ptrarray_create(void);
+	PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray, size_t ptrc, size_t size);
+	PTRARRAY_TYPE(void) *ptrarray_put(PTRARRAY_TYPE(void) *ptrarray, void *ptr, size_t size);
+	void ptrarray_free_ptrs(PTRARRAY_TYPE(void) *ptrarray);
+	void ptrarray_free(PTRARRAY_TYPE(void) *ptrarray);
 #endif
 
