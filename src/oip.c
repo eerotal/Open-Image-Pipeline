@@ -36,6 +36,7 @@
 #include "imgutil/imgutil.h"
 #include "configloader_priv.h"
 #include "ptrarray_priv.h"
+#include "jobmanager_priv.h"
 
 static pthread_t *thread_cli_shell;
 static int exit_queued = 0;
@@ -57,6 +58,7 @@ static void oip_cleanup(void) {
 	// Run cleanup functions.
 	plugins_cleanup();
 	config_cleanup();
+	jobmanager_cleanup(1);
 }
 
 void oip_exit(void) {
@@ -88,6 +90,12 @@ int main(int argc, char **argv) {
 	// Setup the plugin system.
 	if (plugins_setup() != 0) {
 		printerr("Failed to setup the plugin system.\n");
+		return 1;
+	}
+
+	// Setup the jobmanager.
+	if (jobmanager_setup() != 0) {
+		printerr("Failed to setup jobmanager.\n");
 		return 1;
 	}
 

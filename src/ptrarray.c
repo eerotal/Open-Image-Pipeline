@@ -105,6 +105,31 @@ PTRARRAY_TYPE(void) *ptrarray_put_data(PTRARRAY_TYPE(void) *ptrarray,
 	return ptrarray;
 }
 
+PTRARRAY_TYPE(void) *ptrarray_shrink(PTRARRAY_TYPE(void) *ptrarray) {
+	/*
+	*  Remove all NULL pointers from the PTRARRAY. Returns
+	*  a pointer to a new PTRARRAY on success or a NULL pointer
+	*  on failure.
+	*/
+	PTRARRAY_TYPE(void) *ret = NULL;
+	ret = ptrarray_create();
+	if (!ret) {
+		return NULL;
+	}
+
+	for (size_t i = 0; i < ptrarray->ptrc; i++) {
+		if (ptrarray->ptrs[i]) {
+			if (!ptrarray_put_ptr(ret, ptrarray->ptrs[i])) {
+				ptrarray_free((PTRARRAY_TYPE(void)*) ret);
+				return NULL;
+			}
+			ret->ptrc++;
+		}
+	}
+	ptrarray_free((PTRARRAY_TYPE(void)*) ptrarray);
+	return ret;
+}
+
 void ptrarray_free(PTRARRAY_TYPE(void) *ptrarray) {
 	/*
 	*  Free the PTRARRAY instance.

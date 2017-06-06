@@ -35,6 +35,7 @@
 #include "plugin_priv.h"
 #include "pipeline_priv.h"
 #include "ptrarray_priv.h"
+#include "jobmanager_priv.h"
 
 #define SHELL_BUFFER_LEN 100
 #define NUM_CLI_CMD_PROTOS 12
@@ -64,9 +65,9 @@ static char *cli_cmd_help[NUM_CLI_CMD_PROTOS] = {
 	"plugin list  ---------------------------------  List all loaded plugins.",
 	"plugin set-arg <plugin index> <arg> <val>  ---  Set the argument <arg> to <val> for plugin <plugin index>.",
 	"job create <filepath>  -----------------------  Create a job for <filepath>.",
-	"job feed <job index>  ------------------------  Feed the job at index <job index> to the pipeline.",
-	"job delete <job index>  ----------------------  Delete the job at index <job index>",
-	"job save <job index>  ------------------------  Save the result image of the job at index <job index>.",
+	"job feed <ID>  -------------------------------  Feed the job with the ID <ID> to the pipeline.",
+	"job delete <ID>  -----------------------------  Delete the job with the ID <ID>.",
+	"job save <ID>  -------------------------------  Save the result image of the job with the ID <ID>.",
 	"job list  ------------------------------------  List all jobs.",
 	"cache dump all  ------------------------------  Dump information about existing caches to STDOUT.",
 	"cache file delete <cache> <fname> ------------  Delete the file <fname> from <cache>.",
@@ -79,9 +80,6 @@ static void *cli_shell_run(void *args);
 static int cli_shell_parse(char *str);
 static int cli_shell_prototype_match(char **keywords, unsigned int num_keywords);
 static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int num_keywords);
-static int cli_shell_jobs_shrink(void);
-static int cli_shell_job_add(JOB *job);
-static int cli_shell_job_delete(unsigned int index);
 static void cli_shell_print_help(void);
 
 static void cli_shell_cleanup(void *arg) {
@@ -182,76 +180,6 @@ static int cli_shell_prototype_match(char **keywords, unsigned int num_keywords)
 	return ret;
 }
 
-static int cli_shell_jobs_shrink(void) {
-	/*
-	*  Shrink the cli_shell_jobs array removing any
-	*  NULL pointers from it.
-	*/
-	unsigned int new_jobs_count = 0;
-	JOB **new_jobs = NULL;
-	JOB **new_jobs_tmp = NULL;
-
-	for (unsigned int i = 0; i < cli_shell_jobs_count; i++) {
-		if (cli_shell_jobs[i] != NULL) {
-			new_jobs_count++;
-			errno = 0;
-			new_jobs_tmp = realloc(new_jobs, new_jobs_count*sizeof(JOB*));
-			if (new_jobs_tmp == NULL) {
-				printerrno("cli-shell: realloc()");
-				free(new_jobs_tmp);
-				return 1;
-			}
-			new_jobs = new_jobs_tmp;
-			new_jobs[new_jobs_count - 1] = cli_shell_jobs[i];
-		}
-	}
-	free(cli_shell_jobs);
-	cli_shell_jobs = new_jobs;
-	cli_shell_jobs_count = new_jobs_count;
-	return 0;
-}
-
-static int cli_shell_job_delete(unsigned int index) {
-	/*
-	*  Delete a job from the cli_shell_jobs array and
-	*  shrink the array afterwards.
-	*/
-	if (index >= cli_shell_jobs_count) {
-		return 1;
-	}
-	job_destroy(cli_shell_jobs[index]);
-	cli_shell_jobs[index] = NULL;
-	if (cli_shell_jobs_shrink() != 0) {
-		return 1;
-	}
-	return 0;
-}
-
-static int cli_shell_job_add(JOB *job) {
-	JOB **tmp_jobs = NULL;
-
-	if (job == NULL) {
-		return 1;
-	}
-
-	cli_shell_jobs_count++;
-
-	// Extend the cli_shell_jobs array.
-	errno = 0;
-	tmp_jobs = realloc(cli_shell_jobs, cli_shell_jobs_count*sizeof(JOB*));
-	if (tmp_jobs == NULL) {
-		cli_shell_jobs_count--;
-		printerrno("cli-shell: realloc()");
-		return 1;
-	}
-	cli_shell_jobs = tmp_jobs;
-
-	// Add the new pointer to the array.
-	cli_shell_jobs[cli_shell_jobs_count - 1] = job;
-
-	return 0;
-}
-
 static void cli_shell_print_help(void) {
 	printf("Open Image Pipeline CLI Shell interface help.\n");
 	for (unsigned int i = 0; i < NUM_CLI_CMD_PROTOS; i++) {
@@ -264,7 +192,8 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 	*  Execute the command in keywords that matches the command
 	*  prototype proto.
 	*/
-	unsigned int tmp_index = 0;
+	JOB *tmp_job = NULL;
+
 	if (proto >= NUM_CLI_CMD_PROTOS) {
 		return;
 	}
@@ -290,64 +219,44 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 			plugin_set_arg(index, keywords[3], keywords[4]);
 			break;
 		case 3: ; // job create %s %s
-			JOB *tmp_job = job_create(keywords[2]);
-			if (tmp_job == NULL) {
+			tmp_job = job_create(keywords[2]);
+			if (!tmp_job) {
 				printerr("Failed to create job.\n");
 				break;
 			}
-			if (cli_shell_job_add(tmp_job) != 0) {
-				printerr("Failed to append job to jobs array.\n");
+			if (jobmanager_reg_job(tmp_job) != 0) {
+				printerr("Failed to register the JOB with the jobmanager.\n");
 			}
 			break;
 		case 4: ; // job feed %s
-			if (!isdigit(keywords[2][0])) {
-				printerr("Invalid job index.\n");
+			tmp_job = jobmanager_get_job_by_id(keywords[2]);
+			if (!tmp_job) {
 				break;
 			}
-
-			tmp_index = strtol(keywords[2], NULL, 10);
-			if (tmp_index < cli_shell_jobs_count) {
-				if (pipeline_feed(cli_shell_jobs[tmp_index]) != 0) {
-					printerr("Image processing failed.\n");
-				}
-			} else {
-				printerr("Job index out of range.\n");
+			if (pipeline_feed(tmp_job) != 0) {
+				printerr("Image processing failed.\n");
 			}
 			break;
 		case 5: ; // job delete %s
-			if (!isdigit(keywords[2][0])) {
-				printerr("Invalid job index.\n");
+			tmp_job = jobmanager_get_job_by_id(keywords[2]);
+			if (!tmp_job) {
 				break;
 			}
-
-			tmp_index = strtol(keywords[2], NULL, 10);
-			if (tmp_index < cli_shell_jobs_count) {
-				if (cli_shell_job_delete(tmp_index) != 0) {
-					printerr("Job deletion failed.\n");
-				}
-			} else {
-				printerr("Job index out of range.\n");
+			if (jobmanager_unreg_job(tmp_job, 1) != 0) {
+				printerr("Job deletion failed.\n");
 			}
 			break;
 		case 6: ; // job save %s
-			if (!isdigit(keywords[2][0])) {
-				printerr("Invalid job index.\n");
+			tmp_job = jobmanager_get_job_by_id(keywords[2]);
+			if (!tmp_job) {
 				break;
 			}
-
-			tmp_index = strtol(keywords[2], NULL, 10);
-			if (tmp_index < cli_shell_jobs_count) {
-				if (job_save_result(cli_shell_jobs[tmp_index], keywords[3]) != 0) {
-					printerr("Failed to save image.\n");
-				}
-			} else {
-				printerr("Job index out of range.\n");
+			if (job_save_result(tmp_job, keywords[3]) != 0) {
+				printerr("Failed to save image.\n");
 			}
 			break;
 		case 7: ; // job list
-			for (unsigned int i = 0; i < cli_shell_jobs_count; i++) {
-				job_print(cli_shell_jobs[i]);
-			}
+			jobmanager_list();
 			break;
 		case 8: ; // cache dump
 			cache_dump_all();
