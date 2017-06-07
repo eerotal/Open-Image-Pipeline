@@ -385,10 +385,13 @@ void plugins_cleanup(void) {
 	*  opened library handles.
 	*/
 	printverb("Freeing plugins...\n");
-	for (unsigned int i = 0; i < plugin_count; i++) {
+	for (size_t i = 0; i < plugin_count; i++) {
 		if (plugins[i]) {
 			plugins[i]->p_params->plugin_cleanup();
 			dlclose(plugins[i]->p_handle);
+			for (size_t a = 0; a < plugins[i]->argc; a++) {
+				free(plugins[i]->args[a]);
+			}
 			free(plugins[i]->args);
 			free(plugins[i]);
 			plugins[i] = NULL;
