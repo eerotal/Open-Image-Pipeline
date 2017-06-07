@@ -39,10 +39,10 @@
 #define CACHE_PERMISSIONS S_IRWXU
 
 static char *cache_root = NULL;
-static unsigned int cache_default_max_files = 0;
+static size_t cache_default_max_files = 0;
 
 static CACHE **caches = NULL;
-static unsigned int caches_count = 0;
+static size_t caches_count = 0;
 
 static int cache_db_shrink(CACHE *cache);
 static int cache_db_get_file_index(CACHE *cache, const char *fname);
@@ -57,7 +57,7 @@ void cache_dump(CACHE *cache) {
 	printf("  Path:      %s\n", cache->path);
 	printf("  Max files: %u\n", cache->max_files);
 	printf("  Files:\n");
-	for (unsigned int i = 0; i < cache->db_len; i++) {
+	for (size_t i = 0; i < cache->db_len; i++) {
 		printf("    %s : %s\n", cache->db[i]->fname, cache->db[i]->fpath);
 	}
 }
@@ -66,7 +66,7 @@ void cache_dump_all(void) {
 	/*
 	*  Dump info about all caches to STDOUT.
 	*/
-	for (unsigned int i = 0; i < caches_count; i++) {
+	for (size_t i = 0; i < caches_count; i++) {
 		cache_dump(caches[i]);
 	}
 }
@@ -97,7 +97,8 @@ int cache_db_unreg_file(CACHE *cache, const char *fname) {
 	return 0;
 }
 
-CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto_rm) {
+CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname,
+				unsigned int auto_rm) {
 	/*
 	*  Register a file with the caching system. When a file is
 	*  written to a cache directory, this function must be called.
@@ -199,11 +200,11 @@ static int cache_db_shrink(CACHE *cache) {
 	*  Shrink the cache db by removing any NULL pointers from it.
 	*  Returns 0 on success and 1 on failure.
 	*/
-	unsigned int n_db_len = 0;
+	size_t n_db_len = 0;
 	CACHE_FILE **n_db = NULL;
 	CACHE_FILE **tmp_db = NULL;
 
-	for (unsigned int i = 0; i < cache->db_len; i++) {
+	for (size_t i = 0; i < cache->db_len; i++) {
 		if (cache->db[i] != NULL) {
 			n_db_len++;
 			errno = 0;
@@ -235,7 +236,7 @@ static int cache_db_get_file_index_oldest(CACHE *cache) {
 	if (cache->db_len > 0) {
 		tmp_tstamp = cache->db[0]->tstamp;
 		tmp_index = 0;
-		for (unsigned int i = 0; i < cache->db_len; i++) {
+		for (size_t i = 0; i < cache->db_len; i++) {
 			if (cache->db[i]->tstamp < tmp_tstamp) {
 				tmp_tstamp = cache->db[i]->tstamp;
 				tmp_index = i;
@@ -251,7 +252,7 @@ static int cache_db_get_file_index(CACHE *cache, const char *fname) {
 	*  the cache file database of 'cache'. If the file is not found,
 	*  -1 is returned.
 	*/
-	for (unsigned int i = 0; i < cache->db_len; i++) {
+	for (size_t i = 0; i < cache->db_len; i++) {
 		if (strcmp(cache->db[i]->fname, fname) == 0) {
 			return i;
 		}
@@ -318,7 +319,7 @@ CACHE *cache_get_by_name(const char *name) {
 	*  pointer otherwise.
 	*/
 
-	for (unsigned int i = 0; i < caches_count; i++) {
+	for (size_t i = 0; i < caches_count; i++) {
 		if (strcmp(caches[i]->name, name) == 0) {
 			return caches[i];
 		}
@@ -422,9 +423,10 @@ void cache_destroy(CACHE *cache, int del_files) {
 		}
 
 		// Free the cache file database.
-		for (unsigned int i = 0; i < cache->db_len; i++) {
+		for (size_t i = 0; i < cache->db_len; i++) {
 			free(cache->db[i]->fname);
 			free(cache->db[i]->fpath);
+			free(cache->db[i]);
 			free(cache->db);
 			cache->db = NULL;
 		}
@@ -478,14 +480,14 @@ void cache_cleanup(int del_files) {
 	*  directories will be left in place. Otherwise the cache
 	*  directories will be deleted.
 	*/
-	printverb("Cache cleanup.\n");
 
 	// Destroy all existing caches.
 	if (caches != NULL) {
+		printverb("Cache cleanup.\n");
 		if (!del_files) {
 			printverb("Leaving cache files in place.\n");
 		}
-		for (unsigned int i = 0; i < caches_count; i++) {
+		for (size_t i = 0; i < caches_count; i++) {
 			cache_destroy(caches[i], del_files);
 		}
 		free(caches);
