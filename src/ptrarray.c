@@ -31,7 +31,10 @@
 
 PTRARRAY_TYPE(void) *ptrarray_create(void (*free_func)(void*)) {
 	/*
-	*  Create a new PTRARRAY instance.
+	*  Create a new PTRARRAY instance. free_func is the
+	*  function to call when freeing pointers in the PTRARRAY.
+	*  If pointer freeing is not needed, free_func can be
+	*  set to NULL.
 	*/
 	PTRARRAY_TYPE(void) *ret = NULL;
 	errno = 0;
@@ -47,9 +50,10 @@ PTRARRAY_TYPE(void) *ptrarray_create(void (*free_func)(void*)) {
 PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray,
 						size_t ptrc) {
 	/*
-	*  Reallocate the internal pointer array in teh PTRARRAY instance.
-	*  Returns a pointer to the PTRARRAY instance on success or a NULL
-	*  pointer on failure.
+	*  Reallocate the internal pointer array in the PTRARRAY
+	*  instance. Returns a pointer to the PTRARRAY instance on
+	*  success or a NULL pointer on failure. On failure the
+	*  contents of the original PTRARRAY instance are not modified.
 	*/
 	void **tmp_ptrs = NULL;
 
@@ -70,7 +74,8 @@ PTRARRAY_TYPE(void) *ptrarray_put_ptr(PTRARRAY_TYPE(void) *ptrarray,
 	/*
 	*  Add a pointer to the PTRARRAY instance. Returns the pointer
 	*  to the PTRARRAY instance on success or a NULL pointer on
-	*  failure.
+	*  failure. On failure the contents of the original PTRARRAY
+	*  instance are not modified.
 	*/
 	PTRARRAY_TYPE(void) *tmp = NULL;
 
@@ -86,11 +91,12 @@ PTRARRAY_TYPE(void) *ptrarray_put_ptr(PTRARRAY_TYPE(void) *ptrarray,
 PTRARRAY_TYPE(void) *ptrarray_put_data(PTRARRAY_TYPE(void) *ptrarray,
 					void *data, size_t data_size) {
 	/*
-	*  Copy 'data_size' number of bytes from 'data'
-	*  to a new memory location and add the pointer
-	*  to that location into the PTRARRAY instance.
-	*  Returns the supplied PTRARRAY pointer on
-	*  success or a NULL pointer on failure.
+	*  Copy 'data_size' number of bytes from 'data' to a new
+	*  memory location and add the pointer to that location
+	*  into the PTRARRAY instance. Returns the supplied PTRARRAY
+	*  pointer on success or a NULL pointer on failure. On failure
+	*  the contents of the original PTRARRAY instance are not
+	*  modified.
 	*/
 	void *tmp_ptr = NULL;
 	tmp_ptr = malloc(data_size);
@@ -110,7 +116,8 @@ PTRARRAY_TYPE(void) *ptrarray_shrink(PTRARRAY_TYPE(void) *ptrarray) {
 	/*
 	*  Remove all NULL pointers from the PTRARRAY. Returns
 	*  a pointer to a new PTRARRAY on success or a NULL pointer
-	*  on failure.
+	*  on failure. On failure the contents of the original PTRARRAY
+	*  instance are not modified.
 	*/
 	PTRARRAY_TYPE(void) *ret = NULL;
 	ret = ptrarray_create(ptrarray->free_func);
@@ -134,11 +141,10 @@ PTRARRAY_TYPE(void) *ptrarray_shrink(PTRARRAY_TYPE(void) *ptrarray) {
 PTRARRAY_TYPE(void) *ptrarray_pop_ptr(PTRARRAY_TYPE(void) *ptrarray,
 					void *ptr, int free_ptr) {
 	/*
-	*  Pop a pointer from the PTRARRAY.
-	*  Returns a new PTRARRAY pointer on success
-	*  or a NULL pointer on failure. On failure
-	*  the contents of the original PTRARRAY instance
-	*  are not modified.
+	*  Pop a pointer from a PTRARRAY. Returns a new PTRARRAY
+	*  pointer on success or a NULL pointer on failure. On failure
+	*  the contents of the original PTRARRAY instance are not
+	*  modified.
 	*/
 	PTRARRAY_TYPE(void) *ret = NULL;
 	for (size_t i = 0; i < ptrarray->ptrc; i++) {
