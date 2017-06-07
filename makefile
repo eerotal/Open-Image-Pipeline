@@ -18,10 +18,19 @@
 #
 
 CC=gcc
-CCFLAGS=-Wall -Wpedantic -std=gnu99 -g -DOIP_BINARY
+CCFLAGS=-Wall -Wpedantic -std=gnu11 -g -DOIP_BINARY
 LFLAGS=-ldl -lfreeimage -lm -pthread
 NAME=oip
 
+MEMDEBUG=false
+
+# Enable memory debugging if MEMDEBUG is set to true on the CLI.
+ifeq ($(MEMDEBUG), true)
+$(info [INFO]: Enabling memory debugging options.)
+CCFLAGS+=-fsanitize=address
+endif
+
+# Setup some path variables.
 SRCDIR=src
 BINDIR=bin
 PLUGINDIR=plugins
@@ -33,7 +42,7 @@ SRCFILES=$(shell find $(BUILDROOT)/$(SRCDIR) -name *.c -o -name *.h)
 SUBMODULES=$(shell ls -d $(SRCDIR)/*/)
 
 main: $(SRCFILES)
-	$(info ==== COMPILING MAIN ====)
+	$(info [INFO]: Compiling main)
 	$(info [INFO]: Submodules are compiled into the main binary automatically.\
 	If you need them as separate libraries, run 'make modules' too.)
 
@@ -42,9 +51,9 @@ main: $(SRCFILES)
 	$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
 
 modules: 
-	$(info ==== COMPILING SUBMODULES ====)
+	$(info [INFO]: Compiling modules)
 	for DIR in $(SUBMODULES); do\
-		test -s $$DIR/makefile && make -C $$DIR;\
+		test -s $$DIR/makefile && make -C $$DIR MEMDEBUG=$(MEMDEBUG) ;\
 	done
 
 clean-modules:

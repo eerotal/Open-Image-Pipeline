@@ -19,19 +19,18 @@
 *
 */
 
-#ifndef CLI_PRIV_INCLUDED
-	#define CLI_PRIV_INCLUDED
+#ifndef INCLUDED_JOBMANAGER_PRIV
+	#define INCLUDED_JOBMANAGER_PRIV
 
-	#define CLI_OPT_ENABLED 1
-	#define CLI_OPT_DISABLED 0
+	#include "job_priv.h"
 
-	struct CLI_OPTS {
-		unsigned int opt_preserve_cache;
-		unsigned int opt_verbose;
-		char *opt_config_file;
-	};
+	int jobmanager_setup(void);
+	void jobmanager_cleanup(int destroy_jobs);
 
-	int cli_parse_opts(int argc, char **argv);
-	const struct CLI_OPTS *cli_get_opts(void);
-	void cli_opts_cleanup(void);
+	void jobmanager_list(void);
+	size_t jobmanager_get_count(void);
+	JOB *jobmanager_get_job_by_id(char *job_id);
+
+	int jobmanager_reg_job(JOB *job);
+	int jobmanager_unreg_job(JOB *job, int destroy_job);
 #endif
