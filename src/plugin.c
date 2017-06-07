@@ -181,6 +181,7 @@ int plugin_load(char *dirpath, char *name) {
 			return 1;
 		}
 		plugin.p_cache = p_cache;
+		free(cache_name);
 
 		// Append the plugin data to the plugin array.
 		plugin_data_append(&plugin);
