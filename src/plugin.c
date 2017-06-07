@@ -390,7 +390,7 @@ void plugins_cleanup(void) {
 		if (plugins[i]) {
 			plugins[i]->p_params->plugin_cleanup();
 			dlclose(plugins[i]->p_handle);
-			for (size_t a = 0; a < plugins[i]->argc; a++) {
+			for (size_t a = 0; a < plugins[i]->argc*2; a++) {
 				free(plugins[i]->args[a]);
 			}
 			free(plugins[i]->args);
