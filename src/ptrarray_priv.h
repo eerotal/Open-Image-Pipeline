@@ -32,6 +32,7 @@
 	typedef struct STRUCT_PTRARRAY_##type {		\
 		type **ptrs;				\
 		size_t ptrc;				\
+		void (*free_func)(void*);		\
 	} PTRARRAY_##type				\
 
 	/*
@@ -43,8 +44,8 @@
 	// Define the PTRARRAY_void type.
 	PTRARRAY_TYPE_DEF(void);
 
-	PTRARRAY_TYPE(void) *ptrarray_create(void);
-	void ptrarray_free_ptrs(PTRARRAY_TYPE(void) *ptrarray);
+	PTRARRAY_TYPE(void) *ptrarray_create(void (*free_func)(void*));
+	int ptrarray_free_ptrs(PTRARRAY_TYPE(void) *ptrarray);
 	void ptrarray_free(PTRARRAY_TYPE(void) *ptrarray);
 
 	PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray,
@@ -53,6 +54,8 @@
 						void *ptr);
 	PTRARRAY_TYPE(void) *ptrarray_put_data(PTRARRAY_TYPE(void) *ptrarray,
 						void *data, size_t data_size);
+	PTRARRAY_TYPE(void) *ptrarray_pop_ptr(PTRARRAY_TYPE(void) *ptrarray,
+						void *ptr, int free_ptr);
 	PTRARRAY_TYPE(void) *ptrarray_shrink(PTRARRAY_TYPE(void) *ptrarray);
 
 #endif

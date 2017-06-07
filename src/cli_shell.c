@@ -303,7 +303,7 @@ static int cli_shell_parse(char *str) {
 	strcpy(tmp_str, str);
 	tmp_str[strcspn(tmp_str, "\n")] = '\0';
 
-	keywords = (PTRARRAY_TYPE(char)*) ptrarray_create();
+	keywords = (PTRARRAY_TYPE(char)*) ptrarray_create(&free);
 	if (!keywords) {
 		free(tmp_str);
 		return 1;

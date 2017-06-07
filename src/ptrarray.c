@@ -29,7 +29,7 @@
 #include "ptrarray_priv.h"
 #include "headers/output.h"
 
-PTRARRAY_TYPE(void) *ptrarray_create(void) {
+PTRARRAY_TYPE(void) *ptrarray_create(void (*free_func)(void*)) {
 	/*
 	*  Create a new PTRARRAY instance.
 	*/
@@ -40,6 +40,7 @@ PTRARRAY_TYPE(void) *ptrarray_create(void) {
 		printerrno("calloc()");
 		return NULL;
 	}
+	ret->free_func = free_func;
 	return ret;
 }
 
@@ -112,7 +113,7 @@ PTRARRAY_TYPE(void) *ptrarray_shrink(PTRARRAY_TYPE(void) *ptrarray) {
 	*  on failure.
 	*/
 	PTRARRAY_TYPE(void) *ret = NULL;
-	ret = ptrarray_create();
+	ret = ptrarray_create(ptrarray->free_func);
 	if (!ret) {
 		return NULL;
 	}
@@ -130,21 +131,59 @@ PTRARRAY_TYPE(void) *ptrarray_shrink(PTRARRAY_TYPE(void) *ptrarray) {
 	return ret;
 }
 
+PTRARRAY_TYPE(void) *ptrarray_pop_ptr(PTRARRAY_TYPE(void) *ptrarray,
+					void *ptr, int free_ptr) {
+	/*
+	*  Pop a pointer from the PTRARRAY.
+	*  Returns a new PTRARRAY pointer on success
+	*  or a NULL pointer on failure. On failure
+	*  the contents of the original PTRARRAY instance
+	*  are not modified.
+	*/
+	PTRARRAY_TYPE(void) *ret = NULL;
+	for (size_t i = 0; i < ptrarray->ptrc; i++) {
+		if (ptrarray->ptrs[i] == ptr) {
+			ptrarray->ptrs[i] = NULL;
+			ret = ptrarray_shrink(ptrarray);
+			if (!ret) {
+				// Reset the pointer back to original.
+				ptrarray->ptrs[i] = ptr;
+				return NULL;
+			}
+			if (free_ptr) {
+				ptrarray->free_func(ptr);
+			}
+			return ret;
+		}
+	}
+	return NULL;
+}
+
 void ptrarray_free(PTRARRAY_TYPE(void) *ptrarray) {
 	/*
 	*  Free the PTRARRAY instance.
 	*/
+	if (ptrarray->ptrs) {
+		free(ptrarray->ptrs);
+	}
 	free(ptrarray);
 }
 
-void ptrarray_free_ptrs(PTRARRAY_TYPE(void) *ptrarray) {
+int ptrarray_free_ptrs(PTRARRAY_TYPE(void) *ptrarray) {
 	/*
-	*  Free all the pointers in the PTRARRAY instance.
+	*  Free all the pointers in the PTRARRAY instance using
+	*  the free_func function pointer specified by the user.
 	*  This function won't free pointers multiple times
 	*  even if the same pointer is in the PTRARRAY instance
 	*  more than once. This function also won't attempt to
-	*  free NULL pointers.
+	*  free NULL pointers, even though a PTRARRAY is actually
+	*  in an undefined state if it contains NULL pointers.
+	*  Returns 0 on success and 1 on failure.
 	*/
+	if (!ptrarray->free_func) {
+		printerr("No freeing function specified.\n");
+		return 1;
+	}
 	for (size_t a = 0; a < ptrarray->ptrc; a++) {
 		if (!ptrarray->ptrs[a]) {
 			continue;
@@ -156,9 +195,10 @@ void ptrarray_free_ptrs(PTRARRAY_TYPE(void) *ptrarray) {
 				ptrarray->ptrs[b] = NULL;
 			}
 		}
-		free(ptrarray->ptrs[a]);
+		ptrarray->free_func(ptrarray->ptrs[a]);
 	}
 	free(ptrarray->ptrs);
 	ptrarray->ptrs = NULL;
 	ptrarray->ptrc = 0;
+	return 0;
 }

@@ -32,13 +32,19 @@ PTRARRAY_TYPE_DEF(JOB);
 
 static PTRARRAY_TYPE(JOB) *jobs = NULL;
 
+static void jobmanager_job_free_wrapper(void *job);
+
+static void jobmanager_job_free_wrapper(void *job) {
+	job_destroy((JOB*) job);
+}
+
 int jobmanager_setup(void) {
 	/*
 	*  Setup the jobmanager. Returns 0 on success and
 	*  1 on failure.
 	*/
 	printverb("Setup\n");
-	jobs = (PTRARRAY_TYPE(JOB)*) ptrarray_create();
+	jobs = (PTRARRAY_TYPE(JOB)*) ptrarray_create(&jobmanager_job_free_wrapper);
 	if (!jobs) {
 		printerr("Failed to create PTRARRAY.\n");
 		return 1;
@@ -99,23 +105,14 @@ int jobmanager_unreg_job(JOB *job, int destroy_job) {
 	*/
 	PTRARRAY_TYPE(JOB) *tmp_jobs = NULL;
 	printverb_va("Unregister job '%s' (%s).\n", job->job_id, job->filepath);
-	for (size_t i = 0; i < jobs->ptrc; i++) {
-		if (strcmp(jobs->ptrs[i]->job_id, job->job_id) == 0) {
-			if (destroy_job) {
-				job_destroy(job);
-			}
-			jobs->ptrs[i] = NULL;
-			tmp_jobs = (PTRARRAY_TYPE(JOB)*) ptrarray_shrink((PTRARRAY_TYPE(void)*) jobs);
-			if (!tmp_jobs) {
-				printerr("Failed to shrink PTRARRAY.\n");
-				return 1;
-			}
-			jobs = tmp_jobs;
-			return 0;
-		}
+	tmp_jobs = (PTRARRAY_TYPE(JOB)*) ptrarray_pop_ptr((PTRARRAY_TYPE(void)*) jobs,
+								job, destroy_job);
+	if (!tmp_jobs) {
+		printerr("Failed to pop pointer from PTRARRAY.\n");
+		return 1;
 	}
-	printerr_va("No job with ID %s found.\n", job->job_id);
-	return 1;
+	jobs = tmp_jobs;
+	return 0;
 }
 
 void jobmanager_cleanup(int destroy_jobs) {
@@ -128,9 +125,7 @@ void jobmanager_cleanup(int destroy_jobs) {
 	if (jobs) {
 		if (destroy_jobs) {
 			printverb("Destroying jobs.\n");
-			for (size_t i = 0; i < jobs->ptrc; i++) {
-				job_destroy(jobs->ptrs[i]);
-			}
+			ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) jobs);
 		}
 		ptrarray_free((PTRARRAY_TYPE(void)*) jobs);
 		jobs = NULL;
