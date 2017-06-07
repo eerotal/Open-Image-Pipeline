@@ -18,16 +18,16 @@
 #
 
 CC=gcc
-CCFLAGS=-Wall -Wpedantic -std=gnu11 -g -DOIP_BINARY
+CCFLAGS=-Wall -Wpedantic -std=gnu11 -DOIP_BINARY
 LFLAGS=-ldl -lfreeimage -lm -pthread
 NAME=oip
 
-MEMDEBUG=false
+DEBUG=false
 
-# Enable memory debugging if MEMDEBUG is set to true on the CLI.
-ifeq ($(MEMDEBUG), true)
-$(info [INFO]: Enabling memory debugging options.)
-CCFLAGS+=-fsanitize=address
+# Enable debugging if DEBUG is set to true on the CLI.
+ifeq ($(DEBUG), true)
+$(info [INFO]: Enabling debugging options.)
+CCFLAGS+=-fsanitize=address -g
 endif
 
 # Setup some path variables.
@@ -53,7 +53,7 @@ main: $(SRCFILES)
 modules: 
 	$(info [INFO]: Compiling modules)
 	for DIR in $(SUBMODULES); do\
-		test -s $$DIR/makefile && make -C $$DIR MEMDEBUG=$(MEMDEBUG) ;\
+		test -s $$DIR/makefile && make -C $$DIR DEBUG=$(DEBUG) ;\
 	done
 
 clean-modules:

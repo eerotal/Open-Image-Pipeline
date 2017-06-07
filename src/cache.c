@@ -35,14 +35,15 @@
 #include "file.h"
 #include "configloader_priv.h"
 #include "cache_priv.h"
+#include "ptrarray_priv.h"
 
 #define CACHE_PERMISSIONS S_IRWXU
 
 static char *cache_root = NULL;
 static size_t cache_default_max_files = 0;
 
-static CACHE **caches = NULL;
-static size_t caches_count = 0;
+PTRARRAY_TYPE_DEF(CACHE);
+static PTRARRAY_TYPE(CACHE) *caches = NULL;
 
 static int cache_db_shrink(CACHE *cache);
 static int cache_db_get_file_index(CACHE *cache, const char *fname);
@@ -66,8 +67,8 @@ void cache_dump_all(void) {
 	/*
 	*  Dump info about all caches to STDOUT.
 	*/
-	for (size_t i = 0; i < caches_count; i++) {
-		cache_dump(caches[i]);
+	for (size_t i = 0; i < caches->ptrc; i++) {
+		cache_dump(caches->ptrs[i]);
 	}
 }
 
@@ -319,9 +320,9 @@ CACHE *cache_get_by_name(const char *name) {
 	*  pointer otherwise.
 	*/
 
-	for (size_t i = 0; i < caches_count; i++) {
-		if (strcmp(caches[i]->name, name) == 0) {
-			return caches[i];
+	for (size_t i = 0; i < caches->ptrc; i++) {
+		if (strcmp(caches->ptrs[i]->name, name) == 0) {
+			return caches->ptrs[i];
 		}
 	}
 	return NULL;
@@ -331,11 +332,10 @@ CACHE *cache_create(const char *cache_name) {
 	/*
 	*  Create a cache with the name 'cache_name'.
 	*  Returns a pointer to a new CACHE instance on success
-	*  and a NULL pointer on failure.
+	*  or a NULL pointer on failure.
 	*/
 
 	CACHE *n_cache = NULL;
-	CACHE **tmp_caches = NULL;
 
 	printverb_va("Creating cache %s.\n", cache_name);
 
@@ -386,18 +386,11 @@ CACHE *cache_create(const char *cache_name) {
 	// Set the default max_files value.
 	n_cache->max_files = cache_default_max_files;
 
+
 	// Add the cache pointer to the caches array.
-	caches_count++;
-	errno = 0;
-	tmp_caches = realloc(caches, caches_count*sizeof(CACHE*));
-	if (tmp_caches == NULL) {
-		printerrno("cache: realloc()");
-		caches_count--;
-		cache_destroy(n_cache, 1);
-		return NULL;
+	if (!ptrarray_put_ptr((PTRARRAY_TYPE(void)*) caches, n_cache)) {
+		printerr("Failed to add CACHE pointer to PTRARRAY.\n");
 	}
-	caches = tmp_caches;
-	caches[caches_count - 1] = n_cache;
 
 	return n_cache;
 }
@@ -471,6 +464,13 @@ int cache_setup(void) {
 			return 1;
 		}
 	}
+
+	// Setup the caches PTRARRAY.
+	caches = ptrarray_create(NULL);
+	if (!caches) {
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -482,14 +482,15 @@ void cache_cleanup(int del_files) {
 	*/
 
 	// Destroy all existing caches.
-	if (caches != NULL) {
+	if (caches) {
 		printverb("Cache cleanup.\n");
 		if (!del_files) {
 			printverb("Leaving cache files in place.\n");
 		}
-		for (size_t i = 0; i < caches_count; i++) {
-			cache_destroy(caches[i], del_files);
+		for (size_t i = 0; i < caches->ptrc; i++) {
+			cache_destroy(caches->ptrs[i], del_files);
+			caches->ptrs[i] = NULL;
 		}
-		free(caches);
+		ptrarray_free((PTRARRAY_TYPE(void)*) caches);
 	}
 }
