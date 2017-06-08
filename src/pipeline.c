@@ -122,6 +122,7 @@ static int pipeline_load_cache(const JOB *job, IMAGE **dst) {
 
 	printverb_va("Loading image from cache: %s\n", cache_fpath);
 	tmp = img_load(cache_fpath);
+	free(cache_fpath);
 	if (tmp == NULL) {
 		printerr("Failed to load cache image.\n");
 		return -1;
