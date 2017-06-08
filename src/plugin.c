@@ -86,7 +86,7 @@ static int plugin_data_append(PLUGIN *plugin) {
 	return 0;
 }
 
-int plugin_load(char *dirpath, char *name) {
+int plugin_load(const char *dirpath, const char *name) {
 	/*
 	*  Load plugin with 'name' from the directory 'dirpath'.
 	*/
@@ -227,7 +227,7 @@ void print_plugin_config(void) {
 	printf("\n");
 }
 
-int plugin_feed(unsigned int index, struct PLUGIN_INDATA *in) {
+int plugin_feed(const size_t index, struct PLUGIN_INDATA *in) {
 	/*
 	*  Feed data to a plugin. Returns one of the
 	*  PLUGIN_STATUS_* values defined in headers/plugin.h.
@@ -239,7 +239,7 @@ int plugin_feed(unsigned int index, struct PLUGIN_INDATA *in) {
 	return PLUGIN_STATUS_ERROR;
 }
 
-int plugin_set_arg(const unsigned int index, const char *arg,
+int plugin_set_arg(const size_t index, const char *arg,
 			const char *value) {
 	/*
 	*  Set the plugin argument 'arg' to 'value' for plugin at 'index'.
@@ -310,14 +310,14 @@ int plugin_set_arg(const unsigned int index, const char *arg,
 	}
 }
 
-int plugin_has_arg(const unsigned int index, const char *arg) {
+int plugin_has_arg(const size_t index, const char *arg) {
 	/*
 	*  Check if the plugin loaded at index 'index'
 	*  accepts 'arg' as an argument. Return 1 if it does
 	*  and 0 otherwise.
 	*/
 	if (index < plugin_count) {
-		for (unsigned int i = 0; i < plugins[index]->p_params->valid_args_count; i++) {
+		for (size_t i = 0; i < plugins[index]->p_params->valid_args_count; i++) {
 			if (strcmp(plugins[index]->p_params->valid_args[i], arg) == 0) {
 				return 1;
 			}
@@ -326,7 +326,7 @@ int plugin_has_arg(const unsigned int index, const char *arg) {
 	return 0;
 }
 
-PLUGIN *plugin_get(unsigned int index) {
+PLUGIN *plugin_get(const size_t index) {
 	/*
 	*  Return plugin data at index or NULL if
 	*  the plugin doesn't exist.

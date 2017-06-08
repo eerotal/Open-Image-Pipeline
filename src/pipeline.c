@@ -161,14 +161,14 @@ int pipeline_feed(JOB *job) {
 
 		for (size_t i = first; i < plugins_get_count(); i++) {
 			pipeline_cputime();
-			printinfo_va("Feeding image data to plugin %i.\n", i);
+			printinfo_va("Feeding image data to plugin %zu.\n", i);
 
 			in.args = plugin_get(i)->args;
 			in.argc = plugin_get(i)->argc;
 
 			// Feed the image data to individual plugins.
 			if (plugin_feed(i, &in) != PLUGIN_STATUS_DONE) {
-				printerr_va("Failed to use plugin %i.\n", i);
+				printerr_va("Failed to use plugin %zu.\n", i);
 				continue;
 			}
 

@@ -41,6 +41,8 @@
 #define NUM_CLI_CMD_PROTOS 12
 #define NUM_CLI_CMD_MAX_KEYWORDS 10
 
+PTRARRAY_TYPE_DEF(char);
+
 static pthread_t thread_cli_shell;
 static JOB **cli_shell_jobs = NULL;
 static unsigned int cli_shell_jobs_count = 0;
@@ -78,12 +80,14 @@ static char *cli_cmd_help[NUM_CLI_CMD_PROTOS] = {
 static void cli_shell_cleanup(void *arg);
 static void *cli_shell_run(void *args);
 static int cli_shell_parse(char *str);
-static int cli_shell_prototype_match(char **keywords, unsigned int num_keywords);
-static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int num_keywords);
+static int cli_shell_prototype_match(const PTRARRAY_TYPE(char) *keywords);
+static void cli_shell_execute(const size_t proto,
+		const PTRARRAY_TYPE(char) *keywords);
 static void cli_shell_print_help(void);
 
 static void cli_shell_cleanup(void *arg) {
 	// Free the jobs array.
+	(void) arg; // Suppress warning about unused parameter.
 	printverb("CLI shell cleanup.\n");
 	if (cli_shell_jobs != NULL) {
 		for (unsigned int i = 0; i < cli_shell_jobs_count; i++) {
@@ -112,6 +116,7 @@ pthread_t *cli_shell_init(void) {
 }
 
 static void *cli_shell_run(void *args) {
+	(void) args; // Suppress warning about unused parameter.
 	char shell_buff[SHELL_BUFFER_LEN] = { '\0' };
 
 	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
@@ -137,24 +142,24 @@ static void *cli_shell_run(void *args) {
 	return NULL;
 }
 
-static int cli_shell_prototype_match(char **keywords, unsigned int num_keywords) {
+static int cli_shell_prototype_match(const PTRARRAY_TYPE(char) *keywords) {
 	/*
 	*  Return the CMD prototype index that matched the supplied CMD.
 	*  If no match was found this function returns a negative number.
 	*/
 
 	int ret = -1;
-	if (num_keywords > NUM_CLI_CMD_MAX_KEYWORDS) {
+	if (keywords->ptrc > NUM_CLI_CMD_MAX_KEYWORDS) {
 		printerr("Too many keywords.");
 		return -3;
 	}
 
-	for (int proto = 0; proto < NUM_CLI_CMD_PROTOS; proto++) {
-		for (int k = 0; k < NUM_CLI_CMD_MAX_KEYWORDS; k++) {
+	for (size_t proto = 0; proto < NUM_CLI_CMD_PROTOS; proto++) {
+		for (size_t k = 0; k < NUM_CLI_CMD_MAX_KEYWORDS; k++) {
 			if (cli_cmd_prototypes[proto][k] == NULL) {
 				// Every proto keyword that wasn't NULL matched.
 				return ret;
-			} else if (k >= num_keywords) {
+			} else if (k >= keywords->ptrc) {
 				// Missing arguments.
 				ret = -2;
 				break;
@@ -164,7 +169,7 @@ static int cli_shell_prototype_match(char **keywords, unsigned int num_keywords)
 					ret = proto;
 					continue;
 				}
-				if (strcmp(cli_cmd_prototypes[proto][k], keywords[k]) != 0) {
+				if (strcmp(cli_cmd_prototypes[proto][k], keywords->ptrs[k]) != 0) {
 					// Proto keyword doesn't match.
 					ret = -1;
 					break;
@@ -187,7 +192,8 @@ static void cli_shell_print_help(void) {
 	}
 }
 
-static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int num_keywords) {
+static void cli_shell_execute(const size_t proto,
+		const PTRARRAY_TYPE(char) *keywords) {
 	/*
 	*  Execute the command in keywords that matches the command
 	*  prototype proto.
@@ -200,7 +206,7 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 
 	switch (proto) {
 		case 0: ; // plugin load %s %s
-			if (plugin_load(keywords[2], keywords[3]) != 0) {
+			if (plugin_load(keywords->ptrs[2], keywords->ptrs[3]) != 0) {
 				printerr("Failed to load plugin.\n");
 			}
 			break;
@@ -208,18 +214,18 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 			print_plugin_config();
 			break;
 		case 2: ; // plugin set-arg %s %s %s
-			unsigned int index = 0;
-			for (int i = 0; i < strlen(keywords[2]); i++) {
-				if (!isdigit(keywords[2][i])) {
+			size_t index = 0;
+			for (size_t i = 0; i < strlen(keywords->ptrs[2]); i++) {
+				if (!isdigit(keywords->ptrs[2][i])) {
 					printerr("Invalid plugin index.\n");
 					break;
 				}
 			}
-			index = strtol(keywords[2], NULL, 10);
-			plugin_set_arg(index, keywords[3], keywords[4]);
+			index = strtol(keywords->ptrs[2], NULL, 10);
+			plugin_set_arg(index, keywords->ptrs[3], keywords->ptrs[4]);
 			break;
 		case 3: ; // job create %s %s
-			tmp_job = job_create(keywords[2]);
+			tmp_job = job_create(keywords->ptrs[2]);
 			if (!tmp_job) {
 				printerr("Failed to create job.\n");
 				break;
@@ -229,7 +235,7 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 			}
 			break;
 		case 4: ; // job feed %s
-			tmp_job = jobmanager_get_job_by_id(keywords[2]);
+			tmp_job = jobmanager_get_job_by_id(keywords->ptrs[2]);
 			if (!tmp_job) {
 				break;
 			}
@@ -238,7 +244,7 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 			}
 			break;
 		case 5: ; // job delete %s
-			tmp_job = jobmanager_get_job_by_id(keywords[2]);
+			tmp_job = jobmanager_get_job_by_id(keywords->ptrs[2]);
 			if (!tmp_job) {
 				break;
 			}
@@ -247,11 +253,11 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 			}
 			break;
 		case 6: ; // job save %s
-			tmp_job = jobmanager_get_job_by_id(keywords[2]);
+			tmp_job = jobmanager_get_job_by_id(keywords->ptrs[2]);
 			if (!tmp_job) {
 				break;
 			}
-			if (job_save_result(tmp_job, keywords[3]) != 0) {
+			if (job_save_result(tmp_job, keywords->ptrs[3]) != 0) {
 				printerr("Failed to save image.\n");
 			}
 			break;
@@ -263,13 +269,13 @@ static void cli_shell_execute(unsigned int proto, char **keywords, unsigned int 
 			break;
 		case 9: ; // cache file delete %s %s
 			CACHE *tmp_cache = NULL;
-			tmp_cache = cache_get_by_name(keywords[3]);
+			tmp_cache = cache_get_by_name(keywords->ptrs[3]);
 			if (tmp_cache == NULL) {
-				printerr_va("Failed to find cache %s.\n", keywords[3]);
+				printerr_va("Failed to find cache %s.\n", keywords->ptrs[3]);
 				break;
 			}
 
-			if (cache_delete_file(tmp_cache, keywords[4]) != 0) {
+			if (cache_delete_file(tmp_cache, keywords->ptrs[4]) != 0) {
 				printerr("Failed to delete cache file.\n");
 			}
 			break;
@@ -290,7 +296,6 @@ static int cli_shell_parse(char *str) {
 	*  Returns 0 on success and 1 on failure.
 	*/
 
-	PTRARRAY_TYPE_DEF(char);
 	PTRARRAY_TYPE(char) *keywords = NULL;
 	char *token = NULL;
 	char *tmp_str = NULL;
@@ -322,9 +327,9 @@ static int cli_shell_parse(char *str) {
 		token = strtok(NULL, " ");
 	}
 
-	proto = cli_shell_prototype_match(keywords->ptrs, keywords->ptrc);
+	proto = cli_shell_prototype_match(keywords);
 	if (proto >= 0) {
-		cli_shell_execute(proto, keywords->ptrs, keywords->ptrc);
+		cli_shell_execute(proto, keywords);
 	} else {
 		printerr_va("Invalid command: %s\n", tmp_str);
 	}

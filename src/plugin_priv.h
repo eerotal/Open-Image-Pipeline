@@ -37,12 +37,12 @@
 		unsigned long long int uid;
 	} PLUGIN;
 
-	int plugin_load(char *dirpath, char *name);
+	int plugin_load(const char *dirpath, const char *name);
 	void print_plugin_config(void);
-	int plugin_feed(unsigned int index, struct PLUGIN_INDATA *in);
-	int plugin_set_arg(const unsigned int index, const char *arg, const char *value);
-	int plugin_has_arg(const unsigned int index, const char *arg);
-	PLUGIN *plugin_get(unsigned int index);
+	int plugin_feed(const size_t index, struct PLUGIN_INDATA *in);
+	int plugin_set_arg(const size_t index, const char *arg, const char *value);
+	int plugin_has_arg(const size_t index, const char *arg);
+	PLUGIN *plugin_get(const size_t index);
 	unsigned int plugins_get_count(void);
 	int plugins_setup(void);
 	void plugins_cleanup(void);
