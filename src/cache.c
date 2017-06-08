@@ -49,9 +49,9 @@ static void cache_db_file_free_wrapper(void *cache_file);
 static CACHE_FILE *cache_db_file_create(const CACHE *cache,
 					const char *fname);
 
-static int cache_db_get_file_index(const CACHE *cache,
+static int cache_db_file_get_index(const CACHE *cache,
 					const char *fname);
-static int cache_db_get_file_index_oldest(const CACHE *cache);
+static int cache_db_file_get_index_oldest(const CACHE *cache);
 
 void cache_dump(const CACHE *cache) {
 	/*
@@ -145,7 +145,7 @@ int cache_db_file_unreg(CACHE *cache, const char *fname) {
 	*/
 
 	int index = -1;
-	index = cache_db_get_file_index(cache, fname);
+	index = cache_db_file_get_index(cache, fname);
 
 	if (index < 0) {
 		printerr_va("Cache file '%s' not found.\n", fname);
@@ -174,7 +174,7 @@ CACHE_FILE *cache_db_file_reg(CACHE *cache, const char *fname,
 	CACHE_FILE *n_cache_file = NULL;
 
 	// Check if the supplied file is already registered.
-	index = cache_db_get_file_index(cache, fname);
+	index = cache_db_file_get_index(cache, fname);
 	if (index != -1) {
 		printerr_va("Cache file %s already registered.\n", fname);
 		return cache->db->ptrs[index];
@@ -190,7 +190,7 @@ CACHE_FILE *cache_db_file_reg(CACHE *cache, const char *fname,
 		printerr_va("Cache '%s' can't fit more files.\n", cache->name);
 		if (auto_rm) {
 			printverb("Removing cache files to make space for new ones.\n");
-			rm_index = cache_db_get_file_index_oldest(cache);
+			rm_index = cache_db_file_get_index_oldest(cache);
 			if (rm_index == -1) {
 				printerr("Failed to get oldest file index.\n");
 				return NULL;
@@ -221,7 +221,7 @@ CACHE_FILE *cache_db_file_reg(CACHE *cache, const char *fname,
 	return n_cache_file;
 }
 
-static int cache_db_get_file_index_oldest(const CACHE *cache) {
+static int cache_db_file_get_index_oldest(const CACHE *cache) {
 	/*
 	*  Get the index of the oldest file in the file db
 	*  of 'cache' or -1 on failure.
@@ -242,7 +242,7 @@ static int cache_db_get_file_index_oldest(const CACHE *cache) {
 	return tmp_index;
 }
 
-static int cache_db_get_file_index(const CACHE *cache, const char *fname) {
+static int cache_db_file_get_index(const CACHE *cache, const char *fname) {
 	/*
 	*  Return the index of the CACHE_FILE instance for 'fname' in
 	*  the cache file database of 'cache'. If the file is not found,
@@ -269,7 +269,7 @@ int cache_has_file(const CACHE *cache, const char *fname) {
 	*  Return 1 if 'cache' contains the file 'fname' and
 	*  return 0 otherwise;
 	*/
-	if (cache_db_get_file_index(cache, fname) != -1) {
+	if (cache_db_file_get_index(cache, fname) != -1) {
 		return 1;
 	}
 	return 0;
@@ -282,7 +282,7 @@ int cache_delete_file(CACHE *cache, const char *fname) {
 	*/
 	int index = -1;
 
-	index = cache_db_get_file_index(cache, fname);
+	index = cache_db_file_get_index(cache, fname);
 	if (index == -1) {
 		printerr_va("File %s doesn't exist in cache %s.\n", fname, cache->name);
 		return 1;
