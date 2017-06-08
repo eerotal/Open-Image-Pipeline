@@ -419,6 +419,7 @@ void cache_destroy(CACHE *cache, int del_files) {
 
 		// Free the cache file database.
 		ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) cache->db);
+		ptrarray_free((PTRARRAY_TYPE(void)*) cache->db);
 		cache->db = NULL;
 
 		// Free the cache instance.
