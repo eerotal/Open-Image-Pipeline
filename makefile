@@ -22,13 +22,21 @@ CCFLAGS=-Wall -Wpedantic -Wextra -pedantic-errors -std=gnu11 -DOIP_BINARY
 LFLAGS=-ldl -lfreeimage -lm -pthread
 NAME=oip
 
+# Define the build information constants.
+CCFLAGS+=-DBUILD_VERSION="$(shell git describe --always --tags --dirty)"
+CCFLAGS+=-DBUILD_DATE="$(shell date)"
+
 DEBUG=false
 
 # Enable debugging if DEBUG is set to true on the CLI.
 ifeq ($(DEBUG), true)
 $(info [INFO]: Enabling debugging options.)
 CCFLAGS+=-fsanitize=address -g
+CCFLAGS+=-DBUILD_DEBUG=1
+else
+CCFLAGS+=-DBUILD_DEBUG=0
 endif
+
 
 # Setup some path variables.
 SRCDIR=src

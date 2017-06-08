@@ -36,6 +36,7 @@
 #include "pipeline_priv.h"
 #include "ptrarray_priv.h"
 #include "jobmanager_priv.h"
+#include "build.h"
 
 #define SHELL_BUFFER_LEN 100
 #define NUM_CLI_CMD_PROTOS 12
@@ -111,6 +112,12 @@ pthread_t *cli_shell_init(void) {
 	printf("version 3 and comes with ABSOLUTELY NO WARRANTY. This program is\n");
 	printf("also free software. See the file LICENSE.txt for more details\n");
 	printf("about the license and the file README.md for general information.\n\n");
+
+	printf("Version: %s - %s", build_version, build_date);
+	if (build_debug) {
+		printf(" (DEBUG BUILD)");
+	}
+	printf("\n");
 
 	return &thread_cli_shell;
 }
