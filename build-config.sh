@@ -21,7 +21,7 @@
 
 #!/bin/sh
 
-HEADERS_DIR="src/headers"
+HEADERS_DIR="src"
 TEMPLATES_DIR="templates"
 
 BUILD_VERSION=$(git describe --always --tags --dirty)
@@ -44,9 +44,9 @@ REPL_DEBUG='s/<BUILD_DEBUG>/'$BUILD_DEBUG'/g'
 
 echo -n "[INFO]: Generating the build.h header file... "
 
-cp $TEMPLATES_DIR"/build.h" $HEADERS_DIR"/build.h"
-sed -i "$REPL_VERSION" $HEADERS_DIR/build.h
-sed -i "$REPL_DATE" $HEADERS_DIR/build.h
-sed -i "$REPL_DEBUG" $HEADERS_DIR/build.h
+cp $TEMPLATES_DIR"/build_info.c" $HEADERS_DIR"/build_info.c"
+sed -i "$REPL_VERSION" $HEADERS_DIR/build_info.c
+sed -i "$REPL_DATE" $HEADERS_DIR/build_info.c
+sed -i "$REPL_DEBUG" $HEADERS_DIR/build_info.c
 
 echo "Done."

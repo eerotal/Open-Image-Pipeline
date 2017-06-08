@@ -27,7 +27,12 @@
 	*  by the build-config.sh script.
 	*/
 
-	const char *build_version = <BUILD_VERSION>;
-	const char *build_date = <BUILD_DATE>;
-	const int build_debug = <BUILD_DEBUG>;
+	#include "build_priv.h"
+
+	const struct OIP_BUILD_INFO_STRUCT OIP_BUILD_INFO = {
+		.version = "9dd83c0-dirty",
+		.date = "Thu Jun  8 22:25:19 EEST 2017",
+		.debug = 0
+	};
+
 #endif
