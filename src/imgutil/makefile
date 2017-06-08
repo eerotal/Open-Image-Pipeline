@@ -38,14 +38,14 @@ BUILDROOT=$(shell pwd)
 INCLUDES=-I$(shell dirname $(BUILDROOT))/headers
 FILES=$(shell find $(BUILDROOT) -name *.c -o -name *.h)
 
-.ONESHELL:
 compile: $(FILES)
-	$(info [INFO]: Compiling the imgutil submodule.)
-	mkdir -p $(BINDIR)
-	cd $(BINDIR)
-	$(CC) -c $(CCFLAGS) $(INCLUDES) $(FILES) $(LFLAGS)
-	ar rcs lib$(NAME).a *.o
-	rm *.o
+	@echo -n "[INFO]: Compiling the imgutil submodule...";	\
+	mkdir -p $(BINDIR);					\
+	cd $(BINDIR);						\
+	$(CC) -c $(CCFLAGS) $(INCLUDES) $(FILES) $(LFLAGS);	\
+	ar rcs lib$(NAME).a *.o;				\
+	rm *.o;							\
+	echo " Done."
 	
 clean:
 	rm -rf $(BINDIR)

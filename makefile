@@ -22,21 +22,13 @@ CCFLAGS=-Wall -Wpedantic -Wextra -pedantic-errors -std=gnu11 -DOIP_BINARY
 LFLAGS=-ldl -lfreeimage -lm -pthread
 NAME=oip
 
-# Define the build information constants.
-CCFLAGS+=-DBUILD_VERSION="$(shell git describe --always --tags --dirty)"
-CCFLAGS+=-DBUILD_DATE="$(shell date)"
+DEBUG=0
 
-DEBUG=false
-
-# Enable debugging if DEBUG is set to true on the CLI.
-ifeq ($(DEBUG), true)
+# Enable debugging if DEBUG is set to 1 on the CLI.
+ifeq ($(DEBUG), 1)
 $(info [INFO]: Enabling debugging options.)
 CCFLAGS+=-fsanitize=address -g
-CCFLAGS+=-DBUILD_DEBUG=1
-else
-CCFLAGS+=-DBUILD_DEBUG=0
 endif
-
 
 # Setup some path variables.
 SRCDIR=src
@@ -50,23 +42,27 @@ SRCFILES=$(shell find $(BUILDROOT)/$(SRCDIR) -name *.c -o -name *.h)
 SUBMODULES=$(shell ls -d $(SRCDIR)/*/)
 
 main: $(SRCFILES)
-	$(info [INFO]: Compiling main)
-	$(info [INFO]: Submodules are compiled into the main binary automatically.\
-	If you need them as separate libraries, run 'make modules' too.)
+	@echo "[INFO]: Compiling main"
+	@echo "[INFO]: Submodules are compiled into the main binary automatically."\
+		"If you need them as separate libraries, run 'make modules' too."
 
-	mkdir -p $(BINDIR)
-	mkdir -p $(PLUGINDIR)
-	$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
+	@mkdir -p $(BINDIR)
+	@mkdir -p $(PLUGINDIR)
+	@sh build-config.sh $(DEBUG)
+
+	@echo -n "[INFO]: Compiling Open Image Pipeline..."
+	@$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
+	@echo " Done."
 
 modules: 
-	$(info [INFO]: Compiling modules)
-	for DIR in $(SUBMODULES); do\
+	@echo "[INFO]: Compiling submodules..."
+	@for DIR in $(SUBMODULES); do\
 		test -s $$DIR/makefile && make -C $$DIR DEBUG=$(DEBUG) ;\
 	done
 
 clean-modules:
-	$(info ==== CLEANING SUBMODULES ====)
-	for DIR in $(SUBMODULES); do\
+	@echo "[INFO]: Cleaning submodule files."
+	@for DIR in $(SUBMODULES); do\
 		test -s $$DIR/makefile && make -C $$DIR clean;\
 	done
 

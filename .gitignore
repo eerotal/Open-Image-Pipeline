@@ -3,6 +3,7 @@ bin
 res
 plugins
 cache
+src/headers/build.h
 *.out
 *.o
 *.gch
