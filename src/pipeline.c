@@ -139,6 +139,7 @@ int pipeline_feed(JOB *job) {
 
 	struct PLUGIN_INDATA in;
 	int ret = 0;
+	int first = 0;
 
 	float t_delta = 0;
 	unsigned int throughput = 0;
@@ -152,13 +153,13 @@ int pipeline_feed(JOB *job) {
 			return 1;
 		}
 
-		ret = pipeline_load_cache(job, &in.src);
-		if (ret < 0) {
+		first = pipeline_load_cache(job, &in.src);
+		if (first < 0) {
 			printerr("Cache loading failed.\n");
-			ret = 0;
+			first = 0;
 		}
 
-		for (unsigned int i = ret; i < plugins_get_count(); i++) {
+		for (size_t i = first; i < plugins_get_count(); i++) {
 			pipeline_cputime();
 			printinfo_va("Feeding image data to plugin %i.\n", i);
 
@@ -210,7 +211,7 @@ int pipeline_feed(JOB *job) {
 		// Update the plugin argument revisions and UIDs on success.
 		if (job_store_plugin_config(job) != 0) {
 			printerr("Failed to store plugin config in the job.\n");
-			return 1;
+			ret = 1;
 		}
 		return ret;
 	}
