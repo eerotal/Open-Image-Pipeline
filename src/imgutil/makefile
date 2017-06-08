@@ -24,12 +24,12 @@ CCFLAGS=-Wall -Wpedantic -fPIC -std=gnu11
 LFLAGS=-lfreeimage
 NAME=oipimgutil
 
-MEMDEBUG=false
+DEBUG=false
 
-# Enable memory debugging if MEMDEBUG is set to true on the CLI.
-ifeq ($(MEMDEBUG), true)
-$(info [INFO]: Enabling memory debugging options.)
-CCFLAGS+=-fsanitize=address
+# Enable debugging if DEBUG is set to true on the CLI.
+ifeq ($(DEBUG), true)
+$(info [INFO]: Enabling debugging options.)
+CCFLAGS+=-fsanitize=address -g
 endif
 
 # Setup some path variables.

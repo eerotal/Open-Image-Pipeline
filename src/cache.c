@@ -35,20 +35,25 @@
 #include "file.h"
 #include "configloader_priv.h"
 #include "cache_priv.h"
+#include "ptrarray_priv.h"
 
 #define CACHE_PERMISSIONS S_IRWXU
 
 static char *cache_root = NULL;
 static size_t cache_default_max_files = 0;
 
-static CACHE **caches = NULL;
-static size_t caches_count = 0;
+static PTRARRAY_TYPE(CACHE) *caches = NULL;
 
-static int cache_db_shrink(CACHE *cache);
-static int cache_db_get_file_index(CACHE *cache, const char *fname);
-static int cache_db_get_file_index_oldest(CACHE *cache);
+static void cache_db_file_free(CACHE_FILE *cache_file);
+static void cache_db_file_free_wrapper(void *cache_file);
+static CACHE_FILE *cache_db_file_create(const CACHE *cache,
+					const char *fname);
 
-void cache_dump(CACHE *cache) {
+static int cache_db_file_get_index(const CACHE *cache,
+					const char *fname);
+static int cache_db_file_get_index_oldest(const CACHE *cache);
+
+void cache_dump(const CACHE *cache) {
 	/*
 	*  Dump info about 'cache' to STDOUT.
 	*/
@@ -57,8 +62,8 @@ void cache_dump(CACHE *cache) {
 	printf("  Path:      %s\n", cache->path);
 	printf("  Max files: %u\n", cache->max_files);
 	printf("  Files:\n");
-	for (size_t i = 0; i < cache->db_len; i++) {
-		printf("    %s : %s\n", cache->db[i]->fname, cache->db[i]->fpath);
+	for (size_t i = 0; i < cache->db->ptrc; i++) {
+		printf("    %s : %s\n", cache->db->ptrs[i]->fname, cache->db->ptrs[i]->fpath);
 	}
 }
 
@@ -66,85 +71,38 @@ void cache_dump_all(void) {
 	/*
 	*  Dump info about all caches to STDOUT.
 	*/
-	for (size_t i = 0; i < caches_count; i++) {
-		cache_dump(caches[i]);
+	for (size_t i = 0; i < caches->ptrc; i++) {
+		cache_dump(caches->ptrs[i]);
 	}
 }
 
-int cache_db_unreg_file(CACHE *cache, const char *fname) {
+
+static void cache_db_file_free_wrapper(void *cache_file) {
 	/*
-	*  Unregister a cache file for 'cache'. Returns 0 if
-	*  the file is successfully unregistered and 1 if it
-	*  doesn't exist.
+	*  Wrapper for cache_db_file_free(). This is used
+	*  as the freeing function for the PTRARRAY.
 	*/
-	int index = -1;
-	index = cache_db_get_file_index(cache, fname);
-
-	if (index == -1) {
-		printerr_va("Cache doesn't have file %s.\n", fname);
-		return 1;
-	}
-
-	// Free allocated resources.
-	free(cache->db[index]->fname);
-	free(cache->db[index]->fpath);
-	free(cache->db[index]);
-	cache->db[index] = NULL;
-
-	if (cache_db_shrink(cache) != 0) {
-		return 1;
-	}
-	return 0;
+	cache_db_file_free((CACHE_FILE*) cache_file);
 }
 
-CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname,
-				unsigned int auto_rm) {
+static void cache_db_file_free(CACHE_FILE *cache_file) {
 	/*
-	*  Register a file with the caching system. When a file is
-	*  written to a cache directory, this function must be called.
-	*  If this function is not called, the file won't be treated
-	*  as a cache file and it won't get deleted automatically for
-	*  example. Returns a pointer to the new CACHE_FILE instance on
-	*  success and a NULL pointer on failure.
+	*  Free a CACHE_FILE instance.
 	*/
 
-	int index = 0;
-	int rm_index = 0;
+	free(cache_file->fname);
+	free(cache_file->fpath);
+	free(cache_file);
+}
+
+static CACHE_FILE *cache_db_file_create(const CACHE *cache,
+					const char *fname) {
+	/*
+	*  Create a CACHE_FILE instance. Returns a pointer to
+	*  the new instance on success or a NULL pointer on failure.
+	*/
+
 	CACHE_FILE *n_cache_file = NULL;
-	CACHE_FILE **tmp_cache_db = NULL;
-
-	// Check if the supplied file is already registered.
-	index = cache_db_get_file_index(cache, fname);
-	if (index != -1) {
-		printerr_va("Cache file %s already registered.\n", fname);
-		return cache->db[index];
-	}
-
-	/*
-	*  Check if the cache directory has space for new files.
-	*  If auto_rm is 1, the oldest file in the cache will
-	*  be automatically removed in order to make space for the
-	*  new one if needed.
-	*/
-	if (cache->db_len >= cache->max_files) {
-		printerr_va("Cache '%s' can't fit more files.\n", cache->name);
-		if (auto_rm) {
-			printverb("Removing cache files to make space for new ones.\n");
-			rm_index = cache_db_get_file_index_oldest(cache);
-			if (rm_index == -1) {
-				printerr("Failed to get oldest file index.\n");
-				return NULL;
-			}
-			if (cache_delete_file(cache, cache->db[rm_index]->fname) != 0) {
-				printerr("File deletion failed. Can't register file.\n");
-				return NULL;
-			}
-		} else {
-			return NULL;
-		}
-	}
-
-	printverb_va("Registering file '%s' as a cache file.\n", fname);
 
 	// Allocate memory for the CACHE_FILE instance.
 	errno = 0;
@@ -177,55 +135,93 @@ CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname,
 	// Add the file timestamp.
 	n_cache_file->tstamp = time(NULL);
 
-	// Add the CACHE_FILE instance to the cache DB.
-	cache->db_len++;
-	tmp_cache_db = realloc(cache->db, cache->db_len*sizeof(CACHE_FILE*));
-	if (tmp_cache_db == NULL) {
-		printerrno("cache: realloc()");
-		cache->db_len--;
-		free(n_cache_file->fname);
-		free(n_cache_file->fpath);
-		free(n_cache_file);
+	return n_cache_file;
+}
+
+int cache_db_file_unreg(CACHE *cache, const char *fname) {
+	/*
+	*  Unregister a cache file from 'cache'. Returns 0
+	*  on success and 1 on failure.
+	*/
+
+	int index = -1;
+	index = cache_db_file_get_index(cache, fname);
+
+	if (index < 0) {
+		printerr_va("Cache file '%s' not found.\n", fname);
+		return 1;
+	}
+
+	if (!ptrarray_pop_ptr((PTRARRAY_TYPE(void)*) cache,
+			cache->db->ptrs[index], 1)) {
+		printerr("Failed to unregister cache file.\n");
+		return 1;
+	}
+	return 0;
+}
+
+CACHE_FILE *cache_db_file_reg(CACHE *cache, const char *fname,
+				unsigned int auto_rm) {
+	/*
+	*  Register the file 'fname' as a cache file for the
+	*  cache 'cache'. Returns a pointer to the allocated
+	*  CACHE_FILE instance on success or a NULL pointer
+	*  on failure.
+	*/
+
+	int index = -1;
+	int rm_index = 0;
+	CACHE_FILE *n_cache_file = NULL;
+
+	// Check if the supplied file is already registered.
+	index = cache_db_file_get_index(cache, fname);
+	if (index != -1) {
+		printerr_va("Cache file %s already registered.\n", fname);
+		return cache->db->ptrs[index];
+	}
+
+	/*
+	*  Check if the cache directory has space for new files.
+	*  If auto_rm is 1, the oldest file in the cache will
+	*  be automatically removed in order to make space for the
+	*  new one if needed.
+	*/
+	if (cache->db->ptrc >= cache->max_files) {
+		printerr_va("Cache '%s' can't fit more files.\n", cache->name);
+		if (auto_rm) {
+			printverb("Removing cache files to make space for new ones.\n");
+			rm_index = cache_db_file_get_index_oldest(cache);
+			if (rm_index == -1) {
+				printerr("Failed to get oldest file index.\n");
+				return NULL;
+			}
+			if (cache_delete_file(cache, cache->db->ptrs[rm_index]->fname) != 0) {
+				printerr("File deletion failed. Can't register file.\n");
+				return NULL;
+			}
+		} else {
+			return NULL;
+		}
+	}
+
+	printverb_va("Registering file '%s' as a cache file.\n", fname);
+
+	n_cache_file = cache_db_file_create(cache, fname);
+	if (!n_cache_file) {
+		printerr("Failed to create cache file instance.\n");
 		return NULL;
 	}
-	cache->db = tmp_cache_db;
 
-	cache->db[cache->db_len - 1] = n_cache_file;
+	if (!ptrarray_put_ptr((PTRARRAY_TYPE(void)*) cache->db,
+				n_cache_file)) {
+		printerr_va("Failed to register cache file '%s'.\n", fname);
+		return NULL;
+	}
 
 	return n_cache_file;
 }
 
-static int cache_db_shrink(CACHE *cache) {
-	/*
-	*  Shrink the cache db by removing any NULL pointers from it.
-	*  Returns 0 on success and 1 on failure.
-	*/
-	size_t n_db_len = 0;
-	CACHE_FILE **n_db = NULL;
-	CACHE_FILE **tmp_db = NULL;
-
-	for (size_t i = 0; i < cache->db_len; i++) {
-		if (cache->db[i] != NULL) {
-			n_db_len++;
-			errno = 0;
-			tmp_db = realloc(n_db, n_db_len*sizeof(CACHE_FILE*));
-			if (tmp_db == NULL) {
-				printerrno("cache: realloc()");
-				free(n_db);
-				return 1;
-			}
-			n_db = tmp_db;
-			n_db[n_db_len - 1] = cache->db[i];
-		}
-	}
-
-	free(cache->db);
-	cache->db = n_db;
-	cache->db_len = n_db_len;
-	return 0;
-}
-
-static int cache_db_get_file_index_oldest(CACHE *cache) {
+static int cache_db_file_get_index_oldest(const CACHE *cache) {
 	/*
 	*  Get the index of the oldest file in the file db
 	*  of 'cache' or -1 on failure.
@@ -233,12 +229,12 @@ static int cache_db_get_file_index_oldest(CACHE *cache) {
 	int tmp_index = -1;
 	time_t tmp_tstamp = 0;
 
-	if (cache->db_len > 0) {
-		tmp_tstamp = cache->db[0]->tstamp;
+	if (cache->db->ptrc > 0) {
+		tmp_tstamp = cache->db->ptrs[0]->tstamp;
 		tmp_index = 0;
-		for (size_t i = 0; i < cache->db_len; i++) {
-			if (cache->db[i]->tstamp < tmp_tstamp) {
-				tmp_tstamp = cache->db[i]->tstamp;
+		for (size_t i = 0; i < cache->db->ptrc; i++) {
+			if (cache->db->ptrs[i]->tstamp < tmp_tstamp) {
+				tmp_tstamp = cache->db->ptrs[i]->tstamp;
 				tmp_index = i;
 			}
 		}
@@ -246,21 +242,21 @@ static int cache_db_get_file_index_oldest(CACHE *cache) {
 	return tmp_index;
 }
 
-static int cache_db_get_file_index(CACHE *cache, const char *fname) {
+static int cache_db_file_get_index(const CACHE *cache, const char *fname) {
 	/*
 	*  Return the index of the CACHE_FILE instance for 'fname' in
 	*  the cache file database of 'cache'. If the file is not found,
 	*  -1 is returned.
 	*/
-	for (size_t i = 0; i < cache->db_len; i++) {
-		if (strcmp(cache->db[i]->fname, fname) == 0) {
+	for (size_t i = 0; i < cache->db->ptrc; i++) {
+		if (strcmp(cache->db->ptrs[i]->fname, fname) == 0) {
 			return i;
 		}
 	}
 	return -1;
 }
 
-char *cache_get_path_to_file(CACHE *cache, const char *fname) {
+char *cache_get_path_to_file(const CACHE *cache, const char *fname) {
 	/*
 	*  Return a string pointer to the path to 'fname' or a
 	*  NULL pointer on failure.
@@ -268,12 +264,12 @@ char *cache_get_path_to_file(CACHE *cache, const char *fname) {
 	return file_path_join(cache->path, fname);
 }
 
-int cache_has_file(CACHE *cache, const char *fname) {
+int cache_has_file(const CACHE *cache, const char *fname) {
 	/*
 	*  Return 1 if 'cache' contains the file 'fname' and
 	*  return 0 otherwise;
 	*/
-	if (cache_db_get_file_index(cache, fname) != -1) {
+	if (cache_db_file_get_index(cache, fname) != -1) {
 		return 1;
 	}
 	return 0;
@@ -286,16 +282,16 @@ int cache_delete_file(CACHE *cache, const char *fname) {
 	*/
 	int index = -1;
 
-	index = cache_db_get_file_index(cache, fname);
+	index = cache_db_file_get_index(cache, fname);
 	if (index == -1) {
 		printerr_va("File %s doesn't exist in cache %s.\n", fname, cache->name);
 		return 1;
 	}
 
 	errno = 0;
-	if (access(cache->db[index]->fpath, F_OK) == 0) {
+	if (access(cache->db->ptrs[index]->fpath, F_OK) == 0) {
 		errno = 0;
-		if (unlink(cache->db[index]->fpath) == -1) {
+		if (unlink(cache->db->ptrs[index]->fpath) == -1) {
 			printerrno("cache: unlink()");
 			return 1;
 		}
@@ -305,7 +301,7 @@ int cache_delete_file(CACHE *cache, const char *fname) {
 	}
 
 	// Unregister the cache file.
-	if (cache_db_unreg_file(cache, fname) != 0) {
+	if (cache_db_file_unreg(cache, fname) != 0) {
 		printerr("Failed to unregister cache file.\n");
 		return 1;
 	}
@@ -319,9 +315,9 @@ CACHE *cache_get_by_name(const char *name) {
 	*  pointer otherwise.
 	*/
 
-	for (size_t i = 0; i < caches_count; i++) {
-		if (strcmp(caches[i]->name, name) == 0) {
-			return caches[i];
+	for (size_t i = 0; i < caches->ptrc; i++) {
+		if (strcmp(caches->ptrs[i]->name, name) == 0) {
+			return caches->ptrs[i];
 		}
 	}
 	return NULL;
@@ -331,19 +327,17 @@ CACHE *cache_create(const char *cache_name) {
 	/*
 	*  Create a cache with the name 'cache_name'.
 	*  Returns a pointer to a new CACHE instance on success
-	*  and a NULL pointer on failure.
+	*  or a NULL pointer on failure.
 	*/
 
 	CACHE *n_cache = NULL;
-	CACHE **tmp_caches = NULL;
 
 	printverb_va("Creating cache %s.\n", cache_name);
 
 	// Allocate memory for the CACHE instance.
 	errno = 0;
 	n_cache = malloc(sizeof(CACHE));
-	if (n_cache == NULL) {
-		printerrno("cache: malloc()");
+	if (n_cache == NULL) {		printerrno("cache: malloc()");
 		return NULL;
 	}
 	memset(n_cache, 0, sizeof(CACHE));
@@ -386,18 +380,19 @@ CACHE *cache_create(const char *cache_name) {
 	// Set the default max_files value.
 	n_cache->max_files = cache_default_max_files;
 
-	// Add the cache pointer to the caches array.
-	caches_count++;
-	errno = 0;
-	tmp_caches = realloc(caches, caches_count*sizeof(CACHE*));
-	if (tmp_caches == NULL) {
-		printerrno("cache: realloc()");
-		caches_count--;
-		cache_destroy(n_cache, 1);
+	// Setup the cache DB.
+	n_cache->db = (PTRARRAY_TYPE(CACHE_FILE)*) ptrarray_create(&cache_db_file_free_wrapper);
+	if (!n_cache->db) {
+		cache_destroy(n_cache, 0);
 		return NULL;
 	}
-	caches = tmp_caches;
-	caches[caches_count - 1] = n_cache;
+
+	// Add the cache pointer to the caches array.
+	if (!ptrarray_put_ptr((PTRARRAY_TYPE(void)*) caches, n_cache)) {
+		printerr("Failed to add CACHE pointer to PTRARRAY.\n");
+		cache_destroy(n_cache, 0);
+		return NULL;
+	}
 
 	return n_cache;
 }
@@ -423,13 +418,8 @@ void cache_destroy(CACHE *cache, int del_files) {
 		}
 
 		// Free the cache file database.
-		for (size_t i = 0; i < cache->db_len; i++) {
-			free(cache->db[i]->fname);
-			free(cache->db[i]->fpath);
-			free(cache->db[i]);
-			free(cache->db);
-			cache->db = NULL;
-		}
+		ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) cache->db);
+		cache->db = NULL;
 
 		// Free the cache instance.
 		free(cache->name);
@@ -471,6 +461,13 @@ int cache_setup(void) {
 			return 1;
 		}
 	}
+
+	// Setup the caches PTRARRAY.
+	caches = (PTRARRAY_TYPE(CACHE)*) ptrarray_create(NULL);
+	if (!caches) {
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -482,14 +479,15 @@ void cache_cleanup(int del_files) {
 	*/
 
 	// Destroy all existing caches.
-	if (caches != NULL) {
+	if (caches) {
 		printverb("Cache cleanup.\n");
 		if (!del_files) {
 			printverb("Leaving cache files in place.\n");
 		}
-		for (size_t i = 0; i < caches_count; i++) {
-			cache_destroy(caches[i], del_files);
+		for (size_t i = 0; i < caches->ptrc; i++) {
+			cache_destroy(caches->ptrs[i], del_files);
+			caches->ptrs[i] = NULL;
 		}
-		free(caches);
+		ptrarray_free((PTRARRAY_TYPE(void)*) caches);
 	}
 }

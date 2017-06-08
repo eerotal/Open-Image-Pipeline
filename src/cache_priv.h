@@ -25,20 +25,26 @@
 	#include <stdlib.h>
 	#include <time.h>
 
+	#include "ptrarray_priv.h"
+
+
 	typedef struct CACHE_FILE_STRUCT {
 		char *fname;
 		char *fpath;
 		time_t tstamp;
 	} CACHE_FILE;
 
+	PTRARRAY_TYPE_DEF(CACHE_FILE);
+
 	typedef struct CACHE_STRUCT {
 		char *name;
 		char *path;
 		unsigned int max_files;
 
-		CACHE_FILE **db;
-		unsigned int db_len;
+		PTRARRAY_TYPE(CACHE_FILE) *db;
 	} CACHE;
+
+	PTRARRAY_TYPE_DEF(CACHE);
 
 	CACHE *cache_create(const char *cache_name);
 	void cache_destroy(CACHE *cache, int del_files);
@@ -46,14 +52,16 @@
 	int cache_setup(void);
 	void cache_cleanup(int del_files);
 
-	int cache_db_unreg_file(CACHE *cache, const char *fname);
-	CACHE_FILE *cache_db_reg_file(CACHE *cache, const char *fname, unsigned int auto_rm);
+	int cache_db_file_unreg(CACHE *cache, const char *fname);
+	CACHE_FILE *cache_db_file_reg(CACHE *cache, const char *fname,
+					unsigned int auto_rm);
 
 	int cache_delete_file(CACHE *cache, const char *fname);
-	int cache_has_file(CACHE *cache, const char *fname);
-	char *cache_get_path_to_file(CACHE *cache, const char *fname);
+	int cache_has_file(const CACHE *cache, const char *fname);
+	char *cache_get_path_to_file(const CACHE *cache,
+					const char *fname);
 
 	void cache_dump_all(void);
-	void cache_dump(CACHE *cache);
+	void cache_dump(const CACHE *cache);
 	CACHE *cache_get_by_name(const char *name);
 #endif

@@ -65,7 +65,7 @@ static int pipeline_write_cache(const JOB *job, unsigned int p_index, const IMAG
 		return 1;
 	}
 
-	tmp_cache_file = cache_db_reg_file(tmp_plugin->p_cache, job->job_id, 1);
+	tmp_cache_file = cache_db_file_reg(tmp_plugin->p_cache, job->job_id, 1);
 	if (tmp_cache_file == NULL) {
 		printerr("Failed to register cache file.\n");
 		return 1;
@@ -73,7 +73,7 @@ static int pipeline_write_cache(const JOB *job, unsigned int p_index, const IMAG
 
 	printverb_va("Cache image: %s\n", tmp_cache_file->fpath);
 	if (img_save(img, tmp_cache_file->fpath) != 0) {
-		if (cache_db_unreg_file(tmp_plugin->p_cache, job->job_id) != 0) {
+		if (cache_db_file_unreg(tmp_plugin->p_cache, job->job_id) != 0) {
 			printerr("Failed to unregister cache file.\n");
 		}
 		return 1;
