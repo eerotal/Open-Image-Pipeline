@@ -22,14 +22,14 @@
 #ifndef INCLUDED_BUILD_PRIV
 	#define INCLUDED_BUILD_PRIV
 
-	struct OIP_BUILD_INFO_STRUCT {
+	struct BUILD_INFO_STRUCT {
 		const char *version;
 		const char *date;
 		const int debug;
 	};
 
-	extern const struct OIP_BUILD_INFO_STRUCT OIP_BUILD_INFO;
+	extern const struct BUILD_INFO_STRUCT OIP_BUILD_INFO;
 
-	int build_compare(struct OIP_BUILD_INFO_STRUCT *info);
+	int build_compare(struct BUILD_INFO_STRUCT *info);
 	void build_print_version_info(void);
 #endif

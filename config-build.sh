@@ -21,8 +21,7 @@
 
 #!/bin/sh
 
-HEADERS_DIR="src"
-TEMPLATES_DIR="templates"
+CONFIG_FILE="build-config"
 
 BUILD_VERSION=$(git describe --always --tags --dirty)
 BUILD_DATE=$(date)
@@ -38,15 +37,13 @@ echo "[INFO]: \tVersion:     "$BUILD_VERSION
 echo "[INFO]: \tDate:        "$BUILD_DATE
 echo "[INFO]: \tDebug build: "$BUILD_DEBUG"\n"
 
-REPL_VERSION='s/<BUILD_VERSION>/"'$BUILD_VERSION'"/g'
-REPL_DATE='s/<BUILD_DATE>/"'$BUILD_DATE'"/g'
-REPL_DEBUG='s/<BUILD_DEBUG>/'$BUILD_DEBUG'/g'
+echo -n "[INFO]: Generating "$CONFIG_FILE"..."
 
-echo -n "[INFO]: Generating the build.h header file... "
+echo -n "" > $CONFIG_FILE
+echo -n "VERFLAGS=" >> $CONFIG_FILE
+echo -n "-DBUILD_VERSION='\""$BUILD_VERSION"\"' " >> $CONFIG_FILE
+echo -n "-DBUILD_DATE='\""$BUILD_DATE"\"' " >> $CONFIG_FILE
+echo -n "-DBUILD_DEBUG="$BUILD_DEBUG >> $CONFIG_FILE
+echo "" >> $CONFIG_FILE
 
-cp $TEMPLATES_DIR"/build_info.c" $HEADERS_DIR"/build_info.c"
-sed -i "$REPL_VERSION" $HEADERS_DIR/build_info.c
-sed -i "$REPL_DATE" $HEADERS_DIR/build_info.c
-sed -i "$REPL_DEBUG" $HEADERS_DIR/build_info.c
-
-echo "Done."
+echo " Done."

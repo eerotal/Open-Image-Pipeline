@@ -24,10 +24,17 @@
 
 #include "build_priv.h"
 
-int build_compare(struct OIP_BUILD_INFO_STRUCT *info) {
+// Build info constants defined at builf time.
+const struct BUILD_INFO_STRUCT OIP_BUILD_INFO = {
+	.version = BUILD_VERSION,
+	.date = BUILD_DATE,
+	.debug = BUILD_DEBUG
+};
+
+int build_compare(struct BUILD_INFO_STRUCT *info) {
 	/*
-	*  Compare the OIP_BUILD_INFO_STRUCT of this build to the specified
-	*  OIP_BUILD_INFO_STRUCT instance. Returns 1 if the contents are
+	*  Compare the BUILD_INFO_STRUCT of this build to the specified
+	*  BUILD_INFO_STRUCT instance. Returns 1 if the contents are
 	*  equal and 0 otherwise.
 	*/
 
