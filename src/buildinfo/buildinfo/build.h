@@ -26,6 +26,7 @@
 		const char *version;
 		const char *date;
 		const int debug;
+		const int abi;
 	};
 
 	#ifdef OIP_BINARY
@@ -36,5 +37,6 @@
 
 	int build_compare(const struct BUILD_INFO_STRUCT *info1,
 				const struct BUILD_INFO_STRUCT *info2);
-	void build_print_version_info(const char *prefix, const struct BUILD_INFO_STRUCT *info);
+	void build_print_version_info(const char *prefix,
+				const struct BUILD_INFO_STRUCT *info);
 #endif

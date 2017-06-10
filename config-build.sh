@@ -27,6 +27,9 @@ BUILD_VERSION=$(git describe --always --tags --dirty)
 BUILD_DATE=$(date --utc|sed 's/ /-/g')
 BUILD_DEBUG=$1
 
+echo -n "What's the ABI version?: "
+read BUILD_ABI
+
 if [ "$BUILD_DEBUG" != "1" ] && [ "$BUILD_DEBUG" != "0" ]; then
 	echo "[ERROR]: Debug build parameter not specified. Exiting."
 	exit 1
@@ -35,6 +38,7 @@ fi
 echo "\n[INFO]: Version info that will be compiled into the binary: "
 echo "[INFO]: \tVersion:     "$BUILD_VERSION
 echo "[INFO]: \tDate:        "$BUILD_DATE
+echo "[INFO]: \tABI version: "$BUILD_ABI
 echo "[INFO]: \tDebug build: "$BUILD_DEBUG"\n"
 
 echo -n "[INFO]: Generating "$CONFIG_FILE"..."
@@ -42,6 +46,7 @@ echo -n "[INFO]: Generating "$CONFIG_FILE"..."
 echo -n "" > $CONFIG_FILE
 echo "export OIP_BUILD_VERSION='\""$BUILD_VERSION"\"' " >> $CONFIG_FILE
 echo "export OIP_BUILD_DATE='\""$BUILD_DATE"\"' " >> $CONFIG_FILE
+echo "export OIP_BUILD_ABI="$BUILD_ABI >> $CONFIG_FILE
 echo "export OIP_BUILD_DEBUG="$BUILD_DEBUG >> $CONFIG_FILE
 
 echo " Done."

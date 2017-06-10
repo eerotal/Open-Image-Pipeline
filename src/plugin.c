@@ -214,7 +214,8 @@ void print_plugin_config(void) {
 		printf("    Descr:           %s\n", plugins[i]->p_params->descr);
 		printf("    Author:          %s\n", plugins[i]->p_params->author);
 		printf("    Year:            %s\n", plugins[i]->p_params->year);
-		build_print_version_info("    Built against:   ", &OIP_BUILD_INFO);
+		build_print_version_info("    Built against:   ",
+				plugins[i]->p_params->built_against);
 		printf("    Args: \n");
 		for (unsigned int arg = 0; arg < plugins[i]->argc; arg++) {
 			printf("        %s: %s\n", plugins[i]->args[arg*2],
@@ -261,7 +262,8 @@ int plugin_set_arg(const size_t index, const char *arg,
 		for (unsigned int i = 0; i < p_argc; i++) {
 			if (strcmp(p_args[i*2], arg) == 0) {
 				printverb_va("Plugin arg '%s' exists. Modifying it.\n", arg);
-				p_args[i*2 + 1] = realloc(p_args[i*2 + 1], (strlen(value) + 1)*sizeof(*value));
+				p_args[i*2 + 1] = realloc(p_args[i*2 + 1],
+						(strlen(value) + 1)*sizeof(*value));
 				if (p_args[i*2 + 1] == NULL) {
 					return 1;
 				}

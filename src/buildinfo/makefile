@@ -49,6 +49,7 @@ compile: $(FILES)
 		-DOIP_BUILD_VERSION=$$OIP_BUILD_VERSION			\
 		-DOIP_BUILD_DATE=$$OIP_BUILD_DATE			\
 		-DOIP_BUILD_DEBUG=$$OIP_BUILD_DEBUG			\
+		-DOIP_BUILD_ABI=$$OIP_BUILD_ABI				\
 		$(INCLUDES) $(FILES) $(LFLAGS);				\
 	ar rcs lib$(NAME).a *.o;					\
 	rm *.o;								\

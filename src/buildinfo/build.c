@@ -30,13 +30,15 @@
 	const struct BUILD_INFO_STRUCT OIP_BUILD_INFO = {
 		.version = OIP_BUILD_VERSION,
 		.date = OIP_BUILD_DATE,
-		.debug = OIP_BUILD_DEBUG
+		.debug = OIP_BUILD_DEBUG,
+		.abi = OIP_BUILD_ABI
 	};
 #else
 	const struct BUILD_INFO_STRUCT OIP_BUILT_AGAINST = {
 		.version = OIP_BUILD_VERSION,
 		.date = OIP_BUILD_DATE,
-		.debug = OIP_BUILD_DEBUG
+		.debug = OIP_BUILD_DEBUG,
+		.abi = OIP_BUILD_ABI
 	};
 #endif
 
@@ -56,11 +58,15 @@ int build_compare(const struct BUILD_INFO_STRUCT *info1,
 	if (info1->debug != info2->debug) {
 		return 0;
 	}
+	if (info1->abi != info2->abi) {
+		return 0;
+	}
 	return 1;
 }
 
-void build_print_version_info(const char *prefix, const struct BUILD_INFO_STRUCT *info) {
-	printf("%s%s - %s", prefix, info->version, info->date);
+void build_print_version_info(const char *prefix,
+			const struct BUILD_INFO_STRUCT *info) {
+	printf("%s%s - %s (ABI: %i)", prefix, info->version, info->date, info->abi);
 	if (info->debug) {
 		printf(" (DEBUG BUILD)");
 	}
