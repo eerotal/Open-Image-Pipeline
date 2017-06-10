@@ -25,5 +25,8 @@
 	#include "imgutil/imgutil.h"
 	#include "job_priv.h"
 
+	int pipeline_reg_progress_callback(void (*callback)(int progress));
+	int pipeline_unreg_progress_callback(void (*callback)(int progress));
+
 	int pipeline_feed(JOB *job);
 #endif
