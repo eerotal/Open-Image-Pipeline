@@ -26,9 +26,7 @@ CONFIG_FILE="build-config"
 BUILD_VERSION=$(git describe --always --tags --dirty)
 BUILD_DATE=$(date --utc|sed 's/ /-/g')
 BUILD_DEBUG=$1
-
-echo -n "What's the ABI version?: "
-read BUILD_ABI
+BUILD_ABI=$(cat abi-version|sed 's/\s//g')
 
 if [ "$BUILD_DEBUG" != "1" ] && [ "$BUILD_DEBUG" != "0" ]; then
 	echo "[ERROR]: Debug build parameter not specified. Exiting."
