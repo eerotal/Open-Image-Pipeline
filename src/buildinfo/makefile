@@ -42,12 +42,16 @@ $(error Can't compile the buildinfo submodule because OIP_VERFLAGS is not define
 endif
 
 compile: $(FILES)
-	@echo -n "[INFO]: Compiling the buildinfo submodule...";			\
-	mkdir -p $(BINDIR);								\
-	cd $(BINDIR);									\
-	$(CC) -c $(CCFLAGS) $(OIP_VERFLAGS) $(INCLUDES) $(FILES) $(LFLAGS);		\
-	ar rcs lib$(NAME).a *.o;							\
-	rm *.o;										\
+	@echo -n "[INFO]: Compiling the buildinfo submodule...";	\
+	mkdir -p $(BINDIR);						\
+	cd $(BINDIR);							\
+	$(CC) -c $(CCFLAGS)						\
+		-DOIP_BUILD_VERSION=$$OIP_BUILD_VERSION			\
+		-DOIP_BUILD_DATE=$$OIP_BUILD_DATE			\
+		-DOIP_BUILD_DEBUG=$$OIP_BUILD_DEBUG			\
+		$(INCLUDES) $(FILES) $(LFLAGS);				\
+	ar rcs lib$(NAME).a *.o;					\
+	rm *.o;								\
 	echo " Done."
 	
 clean:

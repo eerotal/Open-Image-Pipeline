@@ -38,23 +38,10 @@ INCLUDES=-Isrc/imgutil -Isrc/buildinfo -Isrc/headers
 SRCFILES=$(shell find $(BUILDROOT)/$(SRCDIR) -name *.c -o -name *.h)
 SUBMODULES=$(shell ls -d $(SRCDIR)/*/)
 
-# Include the build-config makefile if it's needed.
-ifeq ($(MAKECMDGOALS),)
-include build-config
-else
-ifeq ($(findstring main,$(MAKECMDGOALS)),main)
-include build-config
-else
-ifeq ($(findstring modules,$(MAKECMDGOALS)),modules)
-include build-config
-endif
-endif
-endif
-
-export DEBUG OIP_VERFLAGS
+export DEBUG
 
 # Compile the main Open Image Pipeline binary.
-compile: $(SRCFILES)
+compile: build-config $(SRCFILES)
 	@echo "[INFO]: Submodules are compiled into the main binary automatically."\
 		"If you need them as separate libraries, run 'make modules' too."
 
@@ -62,13 +49,19 @@ compile: $(SRCFILES)
 	@mkdir -p $(PLUGINDIR)
 
 	@echo -n "[INFO]: Compiling Open Image Pipeline..."
-	@$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(OIP_VERFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
+	@. $(BUILDROOT)/build-config;				\
+	$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS)			\
+		-DOIP_BUILD_VERSION=$$OIP_BUILD_VERSION		\
+		-DOIP_BUILD_DATE=$$OIP_BUILD_DATE		\
+		-DOIP_BUILD_DEBUG=$$OIP_BUILD_DEBUG		\
+		$(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
 	@echo " Done."
 
 # Compile all the submodules.
-modules: 
+modules: build-config
 	@echo "[INFO]: Compiling submodules..."
-	@for DIR in $(SUBMODULES); do\
+	@. $(BUILDROOT)/build-config; \
+	for DIR in $(SUBMODULES); do\
 		test -s $$DIR/makefile && make -C $$DIR ;\
 	done
 
