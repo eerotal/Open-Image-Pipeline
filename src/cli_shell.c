@@ -85,6 +85,20 @@ static int cli_shell_prototype_match(const PTRARRAY_TYPE(char) *keywords);
 static void cli_shell_execute(const size_t proto,
 		const PTRARRAY_TYPE(char) *keywords);
 static void cli_shell_print_help(void);
+static void cli_shell_progress_callback(int progress);
+
+static void cli_shell_progress_callback(int progress) {
+	printf("[ ");
+	for (int i = 0; i < progress; i++) {
+		printf("#");
+	}
+	if (progress == 100) {
+		printf(" ] 100 %%\n");
+	} else {
+		printf(">> %i %%\r", progress);
+	}
+	fflush(stdout);
+}
 
 static void cli_shell_cleanup(void *arg) {
 	// Free the jobs array.
@@ -122,6 +136,8 @@ pthread_t *cli_shell_init(void) {
 static void *cli_shell_run(void *args) {
 	(void) args; // Suppress warning about unused parameter.
 	char shell_buff[SHELL_BUFFER_LEN] = { '\0' };
+
+	pipeline_reg_progress_callback(&cli_shell_progress_callback);
 
 	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);

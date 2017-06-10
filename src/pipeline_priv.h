@@ -29,4 +29,5 @@
 	int pipeline_unreg_progress_callback(void (*callback)(int progress));
 
 	int pipeline_feed(JOB *job);
+	void pipeline_cleanup(void);
 #endif

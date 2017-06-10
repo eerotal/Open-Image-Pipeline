@@ -313,3 +313,13 @@ int pipeline_feed(JOB *job) {
 	}
 	return 1;
 }
+
+void pipeline_cleanup(void) {
+	printverb("Cleanup.\n");
+	if (progress_callbacks.funcs) {
+		printverb("Freeing progress callback function stack.\n");
+		free(progress_callbacks.funcs);
+		progress_callbacks.funcs = NULL;
+	}
+	progress_callbacks.cnt = 0;
+}

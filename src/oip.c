@@ -59,6 +59,7 @@ static void oip_cleanup(void) {
 	plugins_cleanup();
 	config_cleanup();
 	jobmanager_cleanup(1);
+	pipeline_cleanup();
 }
 
 void oip_exit(void) {
