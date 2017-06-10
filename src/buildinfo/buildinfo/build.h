@@ -22,6 +22,10 @@
 #ifndef INCLUDED_BUILD_PRIV
 	#define INCLUDED_BUILD_PRIV
 
+	#define BUILD_MATCH           0
+	#define BUILD_MISMATCH_ABI   -1
+	#define BUILD_MISMATCH_DEBUG -2
+
 	struct BUILD_INFO_STRUCT {
 		const char *version;
 		const char *date;
@@ -35,7 +39,7 @@
 		extern const struct BUILD_INFO_STRUCT OIP_BUILT_AGAINST;
 	#endif
 
-	int build_compare(const struct BUILD_INFO_STRUCT *info1,
+	int build_compare_critical(const struct BUILD_INFO_STRUCT *info1,
 				const struct BUILD_INFO_STRUCT *info2);
 	void build_print_version_info(const char *prefix,
 				const struct BUILD_INFO_STRUCT *info);

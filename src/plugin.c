@@ -35,6 +35,7 @@
 #include "plugin_priv.h"
 #include "cache_priv.h"
 #include "file.h"
+#include "buildinfo/build.h"
 
 static PLUGIN **plugins;
 static unsigned int plugin_count = 0;
@@ -98,6 +99,7 @@ int plugin_load(const char *dirpath, const char *name) {
 	char *path = NULL;
 	char *params_struct_name = NULL;
 	char *dlret = NULL;
+	int ret = 0;
 
 	unsigned int libfname_len = 0;
 	unsigned int params_struct_name_len = 0;
@@ -153,6 +155,30 @@ int plugin_load(const char *dirpath, const char *name) {
 		dlret = dlerror();
 		if (dlret) {
 			printerr_va("dlsym(): %s\n", dlret);
+			free(path);
+			free(params_struct_name);
+			dlclose(plugin.p_handle);
+			return 1;
+		}
+
+		ret = build_compare_critical(plugin.p_params->built_against, &OIP_BUILD_INFO);
+		if (ret != BUILD_MATCH) {
+			if (ret == BUILD_MISMATCH_ABI) {
+				printerr_va("ABI version mismatch! %i vs. %i\n",
+					plugin.p_params->built_against->abi, OIP_BUILD_INFO.abi);
+			} else if (ret == BUILD_MISMATCH_DEBUG) {
+				printerr("Debug build mismatch!");
+				if (plugin.p_params->built_against->debug) {
+					printf(" (Plugin: Debug) vs.");
+				} else {
+					printf(" (Plugin: Non-debug) vs.");
+				}
+				if (OIP_BUILD_INFO.debug) {
+					printf(" (OIP: Debug)\n");
+				} else {
+					printf(" (OIP: Non-debug)\n");
+				}
+			}
 			free(path);
 			free(params_struct_name);
 			dlclose(plugin.p_handle);

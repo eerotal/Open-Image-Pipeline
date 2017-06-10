@@ -37,10 +37,6 @@ BUILDROOT=$(shell pwd)
 INCLUDES=-I$(shell dirname $(BUILDROOT))/headers
 FILES=$(shell find $(BUILDROOT) -name *.c -o -name *.h)
 
-ifndef OIP_VERFLAGS
-$(error Can't compile the buildinfo submodule because OIP_VERFLAGS is not defined.)
-endif
-
 compile: $(FILES)
 	@echo -n "[INFO]: Compiling the buildinfo submodule...";	\
 	mkdir -p $(BINDIR);						\

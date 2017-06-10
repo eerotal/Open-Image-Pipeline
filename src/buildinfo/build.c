@@ -25,7 +25,6 @@
 #include "buildinfo/build.h"
 
 // Build info constants defined at build time.
-
 #ifdef OIP_BINARY
 	const struct BUILD_INFO_STRUCT OIP_BUILD_INFO = {
 		.version = OIP_BUILD_VERSION,
@@ -42,26 +41,23 @@
 	};
 #endif
 
-int build_compare(const struct BUILD_INFO_STRUCT *info1,
-			const struct BUILD_INFO_STRUCT *info2) {
+int build_compare_critical(const struct BUILD_INFO_STRUCT *info1,
+				const struct BUILD_INFO_STRUCT *info2) {
 	/*
-	*  Compare the contents of two BUILD_INFO_STRUCT instances.
-	*  Returns 1 if the contents are equal and zero otherwise.
+	*  Compare the critical parts of build information in info1 and info2.
+	*  The ABI version and debug build information are critical for example.
+	*  This function is basically used to test whether plugins can be loaded
+	*  into the main OIP binary without causing a crash. This function returns
+	*  one of the BUILD_MISMATCH_* constants if there's a mismatch or
+	*  BUILD_MATCH if the builds match.
 	*/
 
-	if (strcmp(info1->version, info2->version) != 0) {
-		return 0;
-	}
-	if (strcmp(info1->date, info2->date) != 0) {
-		return 0;
-	}
-	if (info1->debug != info2->debug) {
-		return 0;
-	}
 	if (info1->abi != info2->abi) {
-		return 0;
+		return BUILD_MISMATCH_ABI;
+	} else if (info1->debug != info2->debug) {
+		return BUILD_MISMATCH_DEBUG;
 	}
-	return 1;
+	return BUILD_MATCH;
 }
 
 void build_print_version_info(const char *prefix,
