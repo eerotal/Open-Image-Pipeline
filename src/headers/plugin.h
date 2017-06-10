@@ -23,6 +23,7 @@
 	#define PLUGIN_INCLUDED
 
 	#include "imgutil/imgutil.h"
+	#include "buildinfo/build.h"
 
 	#define PLUGIN_INFO_NAME_SUFFIX "_plugin_info"
 	#define PLUGIN_INFO_NAME(NAME) ( NAME ## _plugin_info )
@@ -42,6 +43,7 @@
 		const char *descr;
 		const char *author;
 		const char *year;
+		const struct BUILD_INFO_STRUCT *built_against;
 
 		const char **valid_args;
 		const unsigned int valid_args_count;

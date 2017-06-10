@@ -34,7 +34,7 @@ SRCDIR=src
 BINDIR=bin
 PLUGINDIR=plugins
 BUILDROOT=$(shell pwd)
-INCLUDES=-Isrc/imgutil -Isrc/headers
+INCLUDES=-Isrc/imgutil -Isrc/buildinfo -Isrc/headers
 SRCFILES=$(shell find $(BUILDROOT)/$(SRCDIR) -name *.c -o -name *.h)
 SUBMODULES=$(shell ls -d $(SRCDIR)/*/)
 
@@ -51,8 +51,10 @@ endif
 endif
 endif
 
+export DEBUG OIP_VERFLAGS
+
 # Compile the main Open Image Pipeline binary.
-main: $(SRCFILES)
+compile: $(SRCFILES)
 	@echo "[INFO]: Submodules are compiled into the main binary automatically."\
 		"If you need them as separate libraries, run 'make modules' too."
 
@@ -60,14 +62,14 @@ main: $(SRCFILES)
 	@mkdir -p $(PLUGINDIR)
 
 	@echo -n "[INFO]: Compiling Open Image Pipeline..."
-	@$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(VERFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
+	@$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(OIP_VERFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
 	@echo " Done."
 
 # Compile all the submodules.
 modules: 
 	@echo "[INFO]: Compiling submodules..."
 	@for DIR in $(SUBMODULES); do\
-		test -s $$DIR/makefile && make -C $$DIR DEBUG=$(DEBUG) ;\
+		test -s $$DIR/makefile && make -C $$DIR ;\
 	done
 
 # Generate the build-config makefile.

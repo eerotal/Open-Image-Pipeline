@@ -211,18 +211,19 @@ void print_plugin_config(void) {
 	printf("\n");
 	for (unsigned int i = 0; i < plugin_count; i++) {
 		printf("%s:\n", plugins[i]->p_params->name);
-		printf("    Descr:  %s\n", plugins[i]->p_params->descr);
-		printf("    Author: %s\n", plugins[i]->p_params->author);
-		printf("    Year:   %s\n", plugins[i]->p_params->year);
+		printf("    Descr:           %s\n", plugins[i]->p_params->descr);
+		printf("    Author:          %s\n", plugins[i]->p_params->author);
+		printf("    Year:            %s\n", plugins[i]->p_params->year);
+		build_print_version_info("    Built against:   ", &OIP_BUILD_INFO);
 		printf("    Args: \n");
 		for (unsigned int arg = 0; arg < plugins[i]->argc; arg++) {
 			printf("        %s: %s\n", plugins[i]->args[arg*2],
 				plugins[i]->args[arg*2 + 1]);
 		}
-		printf("    Cache name: %s\n", plugins[i]->p_cache->name);
-		printf("    Cache path: %s\n", plugins[i]->p_cache->path);
-		printf("    UID:        %llu\n", plugins[i]->uid);
-		printf("    Arg rev:    %llu\n", plugins[i]->arg_rev);
+		printf("    Cache name:      %s\n", plugins[i]->p_cache->name);
+		printf("    Cache path:      %s\n", plugins[i]->p_cache->path);
+		printf("    UID:             %llu\n", plugins[i]->uid);
+		printf("    Arg rev:         %llu\n", plugins[i]->arg_rev);
 	}
 	printf("\n");
 }

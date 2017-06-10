@@ -28,8 +28,13 @@
 		const int debug;
 	};
 
-	extern const struct BUILD_INFO_STRUCT OIP_BUILD_INFO;
+	#ifdef OIP_BINARY
+		extern const struct BUILD_INFO_STRUCT OIP_BUILD_INFO;
+	#else
+		extern const struct BUILD_INFO_STRUCT OIP_BUILT_AGAINST;
+	#endif
 
-	int build_compare(struct BUILD_INFO_STRUCT *info);
-	void build_print_version_info(void);
+	int build_compare(const struct BUILD_INFO_STRUCT *info1,
+				const struct BUILD_INFO_STRUCT *info2);
+	void build_print_version_info(const char *prefix, const struct BUILD_INFO_STRUCT *info);
 #endif

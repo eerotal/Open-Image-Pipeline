@@ -17,7 +17,7 @@
 #  along with Open Image Pipeline.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-#!/bin/bash
+#!/bin/sh
 
 echo "What is the path to the main OIP directory on YOUR system?"
 read oipdir

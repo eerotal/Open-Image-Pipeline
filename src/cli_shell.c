@@ -36,7 +36,7 @@
 #include "pipeline_priv.h"
 #include "ptrarray_priv.h"
 #include "jobmanager_priv.h"
-#include "build_priv.h"
+#include "buildinfo/build.h"
 
 #define SHELL_BUFFER_LEN 100
 #define NUM_CLI_CMD_PROTOS 12
@@ -113,7 +113,8 @@ pthread_t *cli_shell_init(void) {
 	printf("also free software. See the file LICENSE.txt for more details\n");
 	printf("about the license and the file README.md for general information.\n\n");
 
-	build_print_version_info();
+	build_print_version_info("Version:", &OIP_BUILD_INFO);
+	printf("\n");
 
 	return &thread_cli_shell;
 }

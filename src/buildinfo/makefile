@@ -21,8 +21,8 @@
 
 CC=gcc
 CCFLAGS=-Wall -Wpedantic -fPIC -std=gnu11
-LFLAGS=-lfreeimage
-NAME=oipimgutil
+LFLAGS=
+NAME=oipbuildinfo
 
 # Enable debugging if DEBUG is set to true on the CLI.
 DEBUG=0
@@ -37,13 +37,17 @@ BUILDROOT=$(shell pwd)
 INCLUDES=-I$(shell dirname $(BUILDROOT))/headers
 FILES=$(shell find $(BUILDROOT) -name *.c -o -name *.h)
 
+ifndef OIP_VERFLAGS
+$(error Can't compile the buildinfo submodule because OIP_VERFLAGS is not defined.)
+endif
+
 compile: $(FILES)
-	@echo -n "[INFO]: Compiling the imgutil submodule...";	\
-	mkdir -p $(BINDIR);					\
-	cd $(BINDIR);						\
-	$(CC) -c $(CCFLAGS) $(INCLUDES) $(FILES) $(LFLAGS);	\
-	ar rcs lib$(NAME).a *.o;				\
-	rm *.o;							\
+	@echo -n "[INFO]: Compiling the buildinfo submodule...";			\
+	mkdir -p $(BINDIR);								\
+	cd $(BINDIR);									\
+	$(CC) -c $(CCFLAGS) $(OIP_VERFLAGS) $(INCLUDES) $(FILES) $(LFLAGS);		\
+	ar rcs lib$(NAME).a *.o;							\
+	rm *.o;										\
 	echo " Done."
 	
 clean:

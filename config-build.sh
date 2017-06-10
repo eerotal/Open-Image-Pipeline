@@ -40,10 +40,14 @@ echo "[INFO]: \tDebug build: "$BUILD_DEBUG"\n"
 echo -n "[INFO]: Generating "$CONFIG_FILE"..."
 
 echo -n "" > $CONFIG_FILE
-echo -n "VERFLAGS=" >> $CONFIG_FILE
-echo -n "-DBUILD_VERSION='\""$BUILD_VERSION"\"' " >> $CONFIG_FILE
-echo -n "-DBUILD_DATE='\""$BUILD_DATE"\"' " >> $CONFIG_FILE
-echo -n "-DBUILD_DEBUG="$BUILD_DEBUG >> $CONFIG_FILE
+echo -n "OIP_VERFLAGS=" >> $CONFIG_FILE
+echo -n "-DOIP_BUILD_VERSION='\""$BUILD_VERSION"\"' " >> $CONFIG_FILE
+echo -n "-DOIP_BUILD_DATE='\""$BUILD_DATE"\"' " >> $CONFIG_FILE
+echo -n "-DOIP_BUILD_DEBUG="$BUILD_DEBUG >> $CONFIG_FILE
 echo "" >> $CONFIG_FILE
+
+echo "OIP_BUILD_VERSION='\""$BUILD_VERSION"\"' " >> $CONFIG_FILE
+echo "OIP_BUILD_DATE='\""$BUILD_DATE"\"' " >> $CONFIG_FILE
+echo "OIP_BUILD_DEBUG="$BUILD_DEBUG >> $CONFIG_FILE
 
 echo " Done."
