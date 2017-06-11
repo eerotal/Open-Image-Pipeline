@@ -105,7 +105,7 @@ int plugin_load(const char *dirpath, const char *name) {
 	unsigned int libfname_len = 0;
 	unsigned int params_struct_name_len = 0;
 
-	printinfo_va("Loading plugin %s from directory %s.\n", name, dirpath);
+	printverb_va("Loading plugin %s from directory %s.\n", name, dirpath);
 
 	// Set plugin data struct to all zeroes initially.
 	memset(&plugin, 0, sizeof(PLUGIN));
@@ -222,7 +222,7 @@ int plugin_load(const char *dirpath, const char *name) {
 		plugin.p_params->plugin_setup();
 
 
-		printinfo_va("%s: Loaded!\n", path);
+		printverb_va("%s: Loaded!\n", path);
 		free(path);
 		free(params_struct_name);
 		return 0;

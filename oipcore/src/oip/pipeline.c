@@ -255,7 +255,7 @@ int pipeline_feed(JOB *job) {
 
 		for (size_t i = first; i < plugins_get_count(); i++) {
 			pipeline_cputime();
-			printinfo_va("Feeding image data to plugin %zu.\n", i);
+			printverb_va("Feeding image data to plugin %zu.\n", i);
 
 			in.args = plugin_get(i)->args;
 			in.argc = plugin_get(i)->argc;
@@ -270,7 +270,7 @@ int pipeline_feed(JOB *job) {
 			// Calculate elapsed time and throughput.
 			t_delta = pipeline_cputime();
 			throughput = round(img_bytelen(in.src)/t_delta);
-			printinfo_va("Took %f CPU seconds. Throughput %u B/s.\n", t_delta, throughput);
+			printverb_va("Took %f CPU seconds. Throughput %u B/s.\n", t_delta, throughput);
 
 			// Save a copy of the result into the cache file.
 			if (pipeline_write_cache(job, i, in.dst) != 0) {
