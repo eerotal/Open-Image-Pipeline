@@ -55,5 +55,4 @@ oipshell:
 
 # Run clean and clean-modules.
 clean-all:
-	Â@echo "!! TODO !!"
-
+	rm -rf $(BUILDROOT)/oipshell/bin

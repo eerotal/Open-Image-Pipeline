@@ -33,7 +33,7 @@ if [ "$BUILD_DEBUG" != "1" ] && [ "$BUILD_DEBUG" != "0" ]; then
 	exit 1
 fi
 
-echo "\n[INFO]: Version info that will be compiled into the binary: "
+echo "\n[INFO]: Version info that will be compiled into binaries: "
 echo "[INFO]: \tVersion:     "$BUILD_VERSION
 echo "[INFO]: \tDate:        "$BUILD_DATE
 echo "[INFO]: \tABI version: "$BUILD_ABI

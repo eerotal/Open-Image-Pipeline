@@ -52,5 +52,5 @@ compile: $(FILES)
 	rm *.o;							\
 	echo " Done."
 	
-clean:
+clean-all:
 	rm -rf $(BINDIR)

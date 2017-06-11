@@ -10,7 +10,5 @@ plugin list
 job list
 job feed 0
 job feed 0
-job feed 0
 job save 0 res/output_1.jpg
-cache dump all
 exit

@@ -42,13 +42,14 @@ INCLUDES+=-Isrc/oipbuildinfo
 INCLUDES+=-Isrc/oip
 
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
-SUBMODULES=$(shell ls -d $(SRCDIR)/*/)
+SUBMODULES=$(shell ls -d $(SRCDIR)/*)
+
+.ONESHELL: oipcore oipmodules oipshell
 
 # Compile the main Open Image Pipeline binary.
-.ONESHELL:
 oipcore: $(SRCFILES)
 	@mkdir -p $(BINDIR)
-	@echo -n "[INFO]: Compiling OIP core..."
+	@echo -n "[INFO]: Compiling the OIP core..."
 	@$(CC) -o $(BINDIR)/lib$(NAME).so $(CCFLAGS)		\
 		-DOIP_BUILD_VERSION=$$OIP_BUILD_VERSION		\
 		-DOIP_BUILD_DATE=$$OIP_BUILD_DATE		\
@@ -59,20 +60,19 @@ oipcore: $(SRCFILES)
 
 # Compile all the submodules.
 oipmodules:
-	@echo "[INFO]: Compiling OIP submodules..."
-	@for DIR in $(SUBMODULES); do\
-		test -s $$DIR/makefile && make -C $$DIR ;\
+	@echo "[INFO]: Compiling the OIP submodules..."
+	for DIR in $(SUBMODULES); do
+		if [ -f $$DIR/makefile ] && [ -f $$DIR/submodule ]; then
+			make -C $$DIR
+		fi
 	done
 
-# Clean all the files produced when OIP was compiled and also
-# the files left behind by OIP like the cache directory.
+# Cleanup all compilation files.
 clean-all:
-	rm -rf $(BINDIR)
-	rm -f build-config
-	rm -rf cache
-	rm -rf plugins
-
-	@echo "[INFO]: Cleaning submodule files."
-	@for DIR in $(SUBMODULES); do\
-		test -s $$DIR/makefile && make -C $$DIR clean;\
+	@rm -rf $(BINDIR)
+	echo "[INFO]: Cleaning all submodule files..."
+	for DIR in $(SUBMODULES); do
+		if [ -f $$DIR/makefile ] && [ -f $$DIR/submodule ]; then
+			make -C $$DIR clean-all
+		fi
 	done

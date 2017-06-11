@@ -37,8 +37,6 @@
 #include "oip/jobmanager.h"
 #include "oipbuildinfo/oipbuildinfo.h"
 
-#include "cli_shell_priv.h"
-
 #define SHELL_BUFFER_LEN 100
 #define NUM_CLI_CMD_PROTOS 12
 #define NUM_CLI_CMD_MAX_KEYWORDS 10

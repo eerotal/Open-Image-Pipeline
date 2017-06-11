@@ -23,30 +23,42 @@ BUILDROOT=$(shell pwd)
 DEBUG=0
 export DEBUG BUILDROOT
 
-.ONESHELL: all oipcore oipmodules oipshell
-.PHONY: all oipcore oipmodules oipshell
+.ONESHELL: all oipcore oipmodules oipshell dirs
+.PHONY: all oipcore oipmodules oipshell dirs
 
-all: build-config
+# Compile everything.
+all: build-config dirs
 	@. $(BUILDROOT)/build-config
 	make -C "oipcore/" oipcore oipmodules
 	make -C "oipshell/" oipshell
 
+# Compile the OIP core shared library.
 oipcore: build-config
 	@. $(BUILDROOT)/build-config
 	make -C "oipcore/" oipcore
 
+# Compile the OIP core submodules.
 oipmodules: build-config
 	@. $(BUILDROOT)/build-config
 	make -C "oipcore/" oipmodules
 
+# Compile the OIP shell.
 oipshell: build-config
 	@. $(BUILDROOT)/build-config
 	make -C "oipshell/" oipshell
 
-# Run clean and clean-modules.
+# Create the directory layout needed for running OIP.
+dirs:
+	@mkdir -p plugins
+
+# Clean the source tree from compilation files.
 clean-all:
-	@make -C "oipcore/" clean-all
-	@make -C "oipshell/" clean-all
+	@echo "[INFO]: Cleaning all compilation files..."
+	rm -rf plugins
+	rm -rf cache
+	rm -f build-config
+	make -C "oipcore/" clean-all
+	make -C "oipshell/" clean-all
 
 # Generate the build-config makefile.
 .PHONY: build-config
