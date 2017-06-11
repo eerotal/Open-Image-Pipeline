@@ -36,7 +36,7 @@
 		IMAGE *dst;
 		char **args;
 		int argc;
-		void (*set_progress)(int progress);
+		void (*set_progress)(const unsigned int progress);
 	};
 
 	typedef struct STRUCT_PLUGIN_INFO {

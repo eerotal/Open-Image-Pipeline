@@ -33,16 +33,17 @@
 #include "file.h"
 #include "cache_priv.h"
 
-static int pipeline_write_cache(const JOB *job, unsigned int p_index, const IMAGE *img);
+static int pipeline_write_cache(const JOB *job, const unsigned int p_index,
+				const IMAGE *img);
 static int pipeline_load_cache(const JOB *job, IMAGE **dst);
 static float pipeline_cputime(void);
-static void pipeline_update_progress(int progress);
+static void pipeline_update_progress(const unsigned int progress);
 
 static clock_t cputime_last = 0.0f;
 
-static int pipeline_progress = 0;
+static unsigned int pipeline_progress = 0;
 static struct PROGRESS_CALLBACKS {
-	void (**funcs)(int progress);
+	void (**funcs)(const unsigned int progress);
 	size_t cnt;
 } progress_callbacks = {
 	.funcs = NULL,
@@ -63,7 +64,7 @@ static float pipeline_cputime(void) {
 	return ret;
 }
 
-static int pipeline_write_cache(const JOB *job, unsigned int p_index, const IMAGE *img) {
+static int pipeline_write_cache(const JOB *job, const unsigned int p_index, const IMAGE *img) {
 	/*
 	*  Write the supplied image into the cache file of the plugin at 'p_index'.
 	*  Returns 0 on success and 1 on failure.
@@ -72,12 +73,12 @@ static int pipeline_write_cache(const JOB *job, unsigned int p_index, const IMAG
 	CACHE_FILE *tmp_cache_file = NULL;
 
 	tmp_plugin = plugin_get(p_index);
-	if (tmp_plugin == NULL) {
+	if (!tmp_plugin) {
 		return 1;
 	}
 
 	tmp_cache_file = cache_db_file_reg(tmp_plugin->p_cache, job->job_id, 1);
-	if (tmp_cache_file == NULL) {
+	if (!tmp_cache_file) {
 		printerr("Failed to register cache file.\n");
 		return 1;
 	}
@@ -142,7 +143,7 @@ static int pipeline_load_cache(const JOB *job, IMAGE **dst) {
 	return first;
 }
 
-static void pipeline_update_progress(int progress) {
+static void pipeline_update_progress(const unsigned int progress) {
 	/*
 	*  Call all the registered progress callback functions.
 	*  'progress' should be in the range 0-100. Otherwise
@@ -151,8 +152,6 @@ static void pipeline_update_progress(int progress) {
 	if (progress != pipeline_progress) {
 		if (progress > 100) {
 			pipeline_progress = 100;
-		} else if (progress < 0) {
-			pipeline_progress = 0;
 		}
 		pipeline_progress = progress;
 
@@ -162,13 +161,13 @@ static void pipeline_update_progress(int progress) {
 	}
 }
 
-int pipeline_reg_progress_callback(void (*callback)(int progress)) {
+int pipeline_reg_progress_callback(void (*const callback)(const unsigned int progress)) {
 	/*
 	*  Register a callback that will be called when there's a
 	*  change in the progress of processing an image. Returns 0
 	*  on success and 1 on failure.
 	*/
-	void (**tmp)(int progress) = NULL;
+	void (**tmp)(const unsigned int progress) = NULL;
 	if (!callback) {
 		printerr("Won't register a NULL pointer as a progress callback.\n");
 		return 1;
@@ -187,7 +186,7 @@ int pipeline_reg_progress_callback(void (*callback)(int progress)) {
 	return 0;
 }
 
-int pipeline_unreg_progress_callback(void (*callback)(int progress)) {
+int pipeline_unreg_progress_callback(void (*const callback)(const unsigned int progress)) {
 	/*
 	*  Unregister a progress callback previously registered
 	*  by calling pipeline_reg_progress_callback(). If the function
@@ -236,7 +235,7 @@ int pipeline_feed(JOB *job) {
 	int first = 0;
 
 	float t_delta = 0;
-	unsigned int throughput = 0;
+	size_t throughput = 0;
 
 	if (plugins_get_count() != 0) {
 		job->status = JOB_STATUS_FAIL;
@@ -317,7 +316,6 @@ int pipeline_feed(JOB *job) {
 void pipeline_cleanup(void) {
 	printverb("Cleanup.\n");
 	if (progress_callbacks.funcs) {
-		printverb("Freeing progress callback function stack.\n");
 		free(progress_callbacks.funcs);
 		progress_callbacks.funcs = NULL;
 	}

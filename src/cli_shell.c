@@ -85,11 +85,11 @@ static int cli_shell_prototype_match(const PTRARRAY_TYPE(char) *keywords);
 static void cli_shell_execute(const size_t proto,
 		const PTRARRAY_TYPE(char) *keywords);
 static void cli_shell_print_help(void);
-static void cli_shell_progress_callback(int progress);
+static void cli_shell_progress_callback(const unsigned int progress);
 
-static void cli_shell_progress_callback(int progress) {
+static void cli_shell_progress_callback(const unsigned int progress) {
 	printf("[ ");
-	for (int i = 0; i < progress; i++) {
+	for (unsigned int i = 0; i < progress; i++) {
 		printf("#");
 	}
 	if (progress == 100) {
