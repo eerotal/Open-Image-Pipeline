@@ -28,14 +28,15 @@
 	#define PLUGIN_INFO_NAME_SUFFIX "_plugin_info"
 	#define PLUGIN_INFO_NAME(NAME) ( NAME ## _plugin_info )
 
-	#define PLUGIN_STATUS_ERROR       -1
-	#define PLUGIN_STATUS_DONE         2
+	#define PLUGIN_STATUS_ERROR   -1
+	#define PLUGIN_STATUS_DONE     2
 
 	struct PLUGIN_INDATA {
 		IMAGE *src;
 		IMAGE *dst;
 		char **args;
 		int argc;
+		void (*set_progress)(const unsigned int progress);
 	};
 
 	typedef struct STRUCT_PLUGIN_INFO {
