@@ -152,9 +152,9 @@ static void pipeline_update_progress(const unsigned int progress) {
 	if (progress != pipeline_progress) {
 		if (progress > 100) {
 			pipeline_progress = 100;
+		} else {
+			pipeline_progress = progress;
 		}
-		pipeline_progress = progress;
-
 		for (size_t i = 0; i < progress_callbacks.cnt; i++) {
 			progress_callbacks.funcs[i](pipeline_progress);
 		}
