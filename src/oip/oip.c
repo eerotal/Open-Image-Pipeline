@@ -28,15 +28,17 @@
 #include <math.h>
 #include <pthread.h>
 
-#include "headers/output.h"
-#include "plugin_priv.h"
-#include "pipeline_priv.h"
+#include "oip/abi/output.h"
+#include "imgutil/imgutil.h"
+
+#include "oip/plugin.h"
+#include "oip/pipeline.h"
+#include "oip/ptrarray.h"
+#include "oip/jobmanager.h"
+
+#include "configloader_priv.h"
 #include "cli_priv.h"
 #include "cli_shell_priv.h"
-#include "imgutil/imgutil.h"
-#include "configloader_priv.h"
-#include "ptrarray_priv.h"
-#include "jobmanager_priv.h"
 
 static pthread_t *thread_cli_shell;
 static int exit_queued = 0;

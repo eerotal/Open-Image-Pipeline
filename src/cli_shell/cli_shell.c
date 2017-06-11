@@ -29,14 +29,15 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "headers/output.h"
-#include "cli_shell_priv.h"
-#include "oip_priv.h"
-#include "plugin_priv.h"
-#include "pipeline_priv.h"
-#include "ptrarray_priv.h"
-#include "jobmanager_priv.h"
+#include "oip/abi/output.h"
+#include "oip/oip.h"
+#include "oip/plugin.h"
+#include "oip/pipeline.h"
+#include "oip/ptrarray.h"
+#include "oip/jobmanager.h"
 #include "buildinfo/build.h"
+
+#include "cli_shell_priv.h"
 
 #define SHELL_BUFFER_LEN 100
 #define NUM_CLI_CMD_PROTOS 12

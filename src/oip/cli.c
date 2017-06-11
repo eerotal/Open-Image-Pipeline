@@ -28,7 +28,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "headers/output.h"
+#include "oip/abi/output.h"
 #include "cli_priv.h"
 
 #define CLI_GETOPT_OPTS "vpc:"

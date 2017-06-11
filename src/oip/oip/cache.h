@@ -19,14 +19,13 @@
 *
 */
 
-#ifndef INCLUDED_CACHE_PRIV
-	#define INCLUDED_CACHE_PRIV
+#ifndef INCLUDED_CACHE
+	#define INCLUDED_CACHE
 
 	#include <stdlib.h>
 	#include <time.h>
 
-	#include "ptrarray_priv.h"
-
+	#include "oip/ptrarray.h"
 
 	typedef struct CACHE_FILE_STRUCT {
 		char *fname;

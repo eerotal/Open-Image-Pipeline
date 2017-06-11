@@ -19,8 +19,8 @@
 *
 */
 
-#ifndef INCLUDED_PTRARRAY_PRIV
-	#define INCLUDED_PTRARRAY_PRIV
+#ifndef INCLUDED_PTRARRAY
+	#define INCLUDED_PTRARRAY
 
 	#include <stdio.h>
 

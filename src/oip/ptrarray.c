@@ -26,8 +26,8 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include "ptrarray_priv.h"
-#include "headers/output.h"
+#include "oip/abi/output.h"
+#include "oip/ptrarray.h"
 
 PTRARRAY_TYPE(void) *ptrarray_create(void (*free_func)(void*)) {
 	/*

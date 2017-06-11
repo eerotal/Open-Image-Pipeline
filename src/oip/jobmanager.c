@@ -24,9 +24,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "headers/output.h"
-#include "ptrarray_priv.h"
-#include "jobmanager_priv.h"
+#include "oip/abi/output.h"
+#include "oip/ptrarray.h"
+#include "oip/jobmanager.h"
 
 PTRARRAY_TYPE_DEF(JOB);
 

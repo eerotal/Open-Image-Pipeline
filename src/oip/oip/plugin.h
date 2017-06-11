@@ -22,8 +22,8 @@
 #ifndef PLUGIN_PRIV_INCLUDED
 	#define PLUGIN_PRIV_INCLUDED
 
-	#include "headers/plugin.h"
-	#include "cache_priv.h"
+	#include "abi/plugin.h"
+	#include "oip/cache.h"
 
 	typedef struct STRUCT_PLUGIN {
 		PLUGIN_INFO *p_params;

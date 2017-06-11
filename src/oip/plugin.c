@@ -29,13 +29,14 @@
 #include <math.h>
 #include <errno.h>
 
-#include "headers/output.h"
-#include "headers/plugin.h"
-#include "cli_priv.h"
-#include "plugin_priv.h"
-#include "cache_priv.h"
-#include "file.h"
+#include "oip/abi/output.h"
+#include "oip/plugin.h"
+#include "oip/plugin.h"
+#include "oip/cache.h"
+#include "oip/file.h"
 #include "buildinfo/build.h"
+
+#include "cli_priv.h"
 
 static PLUGIN **plugins;
 static unsigned int plugin_count = 0;
@@ -258,7 +259,7 @@ void print_plugin_config(void) {
 int plugin_feed(const size_t index, struct PLUGIN_INDATA *in) {
 	/*
 	*  Feed data to a plugin. Returns one of the
-	*  PLUGIN_STATUS_* values defined in headers/plugin.h.
+	*  PLUGIN_STATUS_* values defined in oip/plugin.h.
 	*/
 
 	if (index < plugin_count) {

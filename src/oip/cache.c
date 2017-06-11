@@ -31,11 +31,12 @@
 #include <unistd.h>
 #include <time.h>
 
-#include "headers/output.h"
-#include "file.h"
+#include "oip/abi/output.h"
+#include "oip/file.h"
+#include "oip/cache.h"
+#include "oip/ptrarray.h"
+
 #include "configloader_priv.h"
-#include "cache_priv.h"
-#include "ptrarray_priv.h"
 
 #define CACHE_PERMISSIONS S_IRWXU
 

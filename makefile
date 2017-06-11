@@ -34,7 +34,12 @@ SRCDIR=src
 BINDIR=bin
 PLUGINDIR=plugins
 BUILDROOT=$(shell pwd)
-INCLUDES=-Isrc/imgutil -Isrc/buildinfo -Isrc/headers
+
+INCLUDES+=-Isrc/imgutil
+INCLUDES+=-Isrc/buildinfo
+INCLUDES+=-Isrc/cli_shell
+INCLUDES+=-Isrc/oip
+
 SRCFILES=$(shell find $(BUILDROOT)/$(SRCDIR) -name *.c -o -name *.h)
 SUBMODULES=$(shell ls -d $(SRCDIR)/*/)
 

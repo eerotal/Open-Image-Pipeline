@@ -28,8 +28,8 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include "oip/abi/output.h"
 #include "configloader_priv.h"
-#include "headers/output.h"
 
 #define CONFIG_DEFAULT_PATH "oip.conf"
 #define CONFIG_BUF_LEN 100

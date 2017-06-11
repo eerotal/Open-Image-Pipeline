@@ -19,8 +19,18 @@
 *
 */
 
-#ifndef INCLUDED_OIP_PRIV
-	#define INCLUDED_OIP_PRIV
+#ifndef INCLUDED_JOBMANAGER
+	#define INCLUDED_JOBMANAGER
 
-	void oip_exit(void);
+	#include "oip/job.h"
+
+	int jobmanager_setup(void);
+	void jobmanager_cleanup(int destroy_jobs);
+
+	void jobmanager_list(void);
+	size_t jobmanager_get_count(void);
+	JOB *jobmanager_get_job_by_id(char *job_id);
+
+	int jobmanager_reg_job(JOB *job);
+	int jobmanager_unreg_job(JOB *job, int destroy_job);
 #endif

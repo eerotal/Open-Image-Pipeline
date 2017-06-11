@@ -19,18 +19,29 @@
 *
 */
 
-#ifndef INCLUDED_JOBMANAGER_PRIV
-	#define INCLUDED_JOBMANAGER_PRIV
+#ifndef INCLUDED_JOB
+	#define INCLUDED_JOB
 
-	#include "job_priv.h"
+	#include "imgutil/imgutil.h"
 
-	int jobmanager_setup(void);
-	void jobmanager_cleanup(int destroy_jobs);
+	#define JOB_STATUS_PENDING 0
+	#define JOB_STATUS_SUCCESS 1
+	#define JOB_STATUS_FAIL 2
 
-	void jobmanager_list(void);
-	size_t jobmanager_get_count(void);
-	JOB *jobmanager_get_job_by_id(char *job_id);
+	typedef struct STRUCT_JOB {
+		IMAGE *src_img;
+		IMAGE *result_img;
+		char *job_id;
+		char *filepath;
+		unsigned long long int *prev_plugin_uids;
+		unsigned long long int *prev_plugin_arg_revs;
+		unsigned int prev_plugin_count;
+		int status;
+	} JOB;
 
-	int jobmanager_reg_job(JOB *job);
-	int jobmanager_unreg_job(JOB *job, int destroy_job);
+	JOB *job_create(const char *fpath);
+	int job_save_result(JOB *job, char *fpath);
+	int job_store_plugin_config(JOB *job);
+	void job_print(JOB *job);
+	void job_destroy(JOB *job);
 #endif
