@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "buildinfo/build.h"
+#include "oipbuildinfo/oipbuildinfo.h"
 
 // Build info constants defined at build time.
 #ifdef OIP_BINARY

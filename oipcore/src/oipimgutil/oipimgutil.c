@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include "imgutil/imgutil.h"
+#include "oipimgutil/oipimgutil.h"
 #include "oip/abi/output.h"
 
 #define IMGUTIL_OUTPUT_FORMAT FIF_JPEG

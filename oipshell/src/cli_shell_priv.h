@@ -19,8 +19,9 @@
 *
 */
 
-#ifndef INCLUDED_OIP
-	#define INCLUDED_OIP
+#ifndef CLI_SHELL_PRIV_INCLUDED
+	#define CLI_SHELL_PRIV_INCLUDED
 
-	void oip_exit(void);
+	#include <pthread.h>
+
 #endif

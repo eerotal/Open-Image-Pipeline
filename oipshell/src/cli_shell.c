@@ -35,7 +35,7 @@
 #include "oip/pipeline.h"
 #include "oip/ptrarray.h"
 #include "oip/jobmanager.h"
-#include "buildinfo/build.h"
+#include "oipbuildinfo/oipbuildinfo.h"
 
 #include "cli_shell_priv.h"
 
@@ -45,7 +45,7 @@
 
 PTRARRAY_TYPE_DEF(char);
 
-static pthread_t thread_cli_shell;
+static int exit_queued = 0;
 static JOB **cli_shell_jobs = NULL;
 static unsigned int cli_shell_jobs_count = 0;
 
@@ -79,8 +79,8 @@ static char *cli_cmd_help[NUM_CLI_CMD_PROTOS] = {
 	"exit  ----------------------------------------  Exit the program."
 };
 
-static void cli_shell_cleanup(void *arg);
-static void *cli_shell_run(void *args);
+static void cli_shell_cleanup(void);
+static void cli_shell_run(void);
 static int cli_shell_parse(char *str);
 static int cli_shell_prototype_match(const PTRARRAY_TYPE(char) *keywords);
 static void cli_shell_execute(const size_t proto,
@@ -101,9 +101,8 @@ static void cli_shell_progress_callback(const unsigned int progress) {
 	fflush(stdout);
 }
 
-static void cli_shell_cleanup(void *arg) {
+static void cli_shell_cleanup(void) {
 	// Free the jobs array.
-	(void) arg; // Suppress warning about unused parameter.
 	printverb("CLI shell cleanup.\n");
 	if (cli_shell_jobs != NULL) {
 		for (unsigned int i = 0; i < cli_shell_jobs_count; i++) {
@@ -115,40 +114,18 @@ static void cli_shell_cleanup(void *arg) {
 	}
 }
 
-pthread_t *cli_shell_init(void) {
-	errno = 0;
-	if (pthread_create(&thread_cli_shell, NULL, &cli_shell_run, NULL) != 0) {
-		printerrno("cli-shell: pthread_create()");
-		return NULL;
-	}
-
-	printf("\nOpen Image Pipeline Copyright (C) 2017 Eero Talus\n");
-	printf("This program is licensed under the GNU General Public License\n");
-	printf("version 3 and comes with ABSOLUTELY NO WARRANTY. This program is\n");
-	printf("also free software. See the file LICENSE.txt for more details\n");
-	printf("about the license and the file README.md for general information.\n\n");
-
-	build_print_version_info("Version:", &OIP_BUILD_INFO);
-	printf("\n");
-
-	return &thread_cli_shell;
-}
-
-static void *cli_shell_run(void *args) {
-	(void) args; // Suppress warning about unused parameter.
+static void cli_shell_run(void) {
 	char shell_buff[SHELL_BUFFER_LEN] = { '\0' };
 
 	pipeline_reg_progress_callback(&cli_shell_progress_callback);
 
-	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
-	pthread_cleanup_push(cli_shell_cleanup, NULL);
-
 	printverb_va("Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {
+		if (exit_queued) {
+			return;
+		}
 		errno = 0;
 		while (fgets(shell_buff, SHELL_BUFFER_LEN, stdin) == NULL) {
-			pthread_testcancel();
 			if (errno != 0) {
 				printerrno("cli-shell: fgets()");
 			}
@@ -158,9 +135,7 @@ static void *cli_shell_run(void *args) {
 		}
 		memset(shell_buff, 0, SHELL_BUFFER_LEN*sizeof(char));
 	}
-
-	pthread_cleanup_pop(1);
-	return NULL;
+	return;
 }
 
 static int cli_shell_prototype_match(const PTRARRAY_TYPE(char) *keywords) {
@@ -304,7 +279,7 @@ static void cli_shell_execute(const size_t proto,
 			cli_shell_print_help();
 			break;
 		case 11: ; // exit
-			oip_exit();
+			exit_queued = 1;
 			break;
 		default:
 			break;
@@ -359,5 +334,24 @@ static int cli_shell_parse(char *str) {
 	ptrarray_free((PTRARRAY_TYPE(void)*) keywords);
 	free(tmp_str);
 
+	return 0;
+}
+
+
+int main(int argc, char *argv[]) {
+	oip_setup(argc, argv);
+
+	printf("\nOpen Image Pipeline Copyright (C) 2017 Eero Talus\n");
+	printf("This program is licensed under the GNU General Public License\n");
+	printf("version 3 and comes with ABSOLUTELY NO WARRANTY. This program is\n");
+	printf("also free software. See the file LICENSE.txt for more details\n");
+	printf("about the license and the file README.md for general information.\n\n");
+
+	build_print_version_info("Version:", &OIP_BUILD_INFO);
+	printf("\n");
+
+	cli_shell_run();
+	cli_shell_cleanup();
+	oip_cleanup();
 	return 0;
 }

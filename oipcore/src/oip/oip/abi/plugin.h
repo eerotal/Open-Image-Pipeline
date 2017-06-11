@@ -22,8 +22,8 @@
 #ifndef PLUGIN_INCLUDED
 	#define PLUGIN_INCLUDED
 
-	#include "imgutil/imgutil.h"
-	#include "buildinfo/build.h"
+	#include "oipimgutil/oipimgutil.h"
+	#include "oipbuildinfo/oipbuildinfo.h"
 
 	#define PLUGIN_INFO_NAME_SUFFIX "_plugin_info"
 	#define PLUGIN_INFO_NAME(NAME) ( NAME ## _plugin_info )

@@ -34,7 +34,7 @@
 #include "oip/plugin.h"
 #include "oip/cache.h"
 #include "oip/file.h"
-#include "buildinfo/build.h"
+#include "oipbuildinfo/oipbuildinfo.h"
 
 #include "cli_priv.h"
 

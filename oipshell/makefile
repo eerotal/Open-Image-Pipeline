@@ -1,5 +1,4 @@
 #
-#
 #  Copyright 2017 Eero Talus
 #
 #  This file is part of Open Image Pipeline.
@@ -17,39 +16,44 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Open Image Pipeline.  If not, see <http://www.gnu.org/licenses/>.
 #
-#
 
 CC=gcc
-CCFLAGS=-Wall -Wpedantic -fPIC -std=gnu11
-LFLAGS=
-NAME=oipbuildinfo
+CCFLAGS=-Wall -Wpedantic -Wextra -pedantic-errors -std=gnu11 -DOIP_BINARY
+LFLAGS=-lm -pthread -loipcore
+NAME=oipshell
 
-# Enable debugging if DEBUG is set to true on the CLI.
+# Enable debugging if DEBUG is set to 1 on the CLI.
 DEBUG=0
 ifeq ($(DEBUG), 1)
 $(info [INFO]: Enabling debugging options.)
 CCFLAGS+=-fsanitize=address -g
 endif
 
-# Setup some path variables.
-BINDIR=bin
-BUILDROOT=$(shell pwd)
-INCLUDES=-I$(shell dirname $(BUILDROOT))/headers
-FILES=$(shell find $(BUILDROOT) -name *.c -o -name *.h)
+ifndef BUILDROOT
+$(error Buildroot not defined!)
+endif
 
-compile: $(FILES)
-	@echo -n "[INFO]: Compiling the buildinfo submodule...";	\
-	mkdir -p $(BINDIR);						\
-	cd $(BINDIR);							\
-	$(CC) -c $(CCFLAGS)						\
-		-DOIP_BUILD_VERSION=$$OIP_BUILD_VERSION			\
-		-DOIP_BUILD_DATE=$$OIP_BUILD_DATE			\
-		-DOIP_BUILD_DEBUG=$$OIP_BUILD_DEBUG			\
-		-DOIP_BUILD_ABI=$$OIP_BUILD_ABI				\
-		$(INCLUDES) $(FILES) $(LFLAGS);				\
-	ar rcs lib$(NAME).a *.o;					\
-	rm *.o;								\
-	echo " Done."
+# Setup some path variables.
+SRCDIR=$(BUILDROOT)/oipshell/src
+BINDIR=$(BUILDROOT)/oipshell/bin
+
+INCLUDES+=-I$(BUILDROOT)/oipcore/src/oipbuildinfo
+INCLUDES+=-I$(BUILDROOT)/oipcore/src/oipimgutil
+INCLUDES+=-I$(BUILDROOT)/oipcore/src/oip
+
+LIBS+=-L$(BUILDROOT)/oipcore/bin
+
+SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
+
+# Compile the OIP shell interface.
+oipshell:
+	@echo "[INFO]: Compiling OIP shell..."
+
+	@mkdir -p $(BINDIR)
+	@$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
 	
-clean:
-	rm -rf $(BINDIR)
+
+# Run clean and clean-modules.
+clean-all:
+	Â@echo "!! TODO !!"
+

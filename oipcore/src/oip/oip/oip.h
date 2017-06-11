@@ -19,15 +19,9 @@
 *
 */
 
-#ifndef INCLUDED_PIPELINE
-	#define INCLUDED_PIPELINE
+#ifndef INCLUDED_OIP
+	#define INCLUDED_OIP
 
-	#include "imgutil/imgutil.h"
-	#include "oip/job.h"
-
-	int pipeline_reg_progress_callback(void (*const callback)(const unsigned int progress));
-	int pipeline_unreg_progress_callback(void (*const callback)(const unsigned int progress));
-
-	int pipeline_feed(JOB *job);
-	void pipeline_cleanup(void);
+	void oip_cleanup(void);
+	int oip_setup(int argc, char **argv);
 #endif

@@ -26,11 +26,11 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
-#include <pthread.h>
 
 #include "oip/abi/output.h"
-#include "imgutil/imgutil.h"
+#include "oipimgutil/oipimgutil.h"
 
+#include "oip/oip.h"
 #include "oip/plugin.h"
 #include "oip/pipeline.h"
 #include "oip/ptrarray.h"
@@ -38,25 +38,8 @@
 
 #include "configloader_priv.h"
 #include "cli_priv.h"
-#include "cli_shell_priv.h"
 
-static pthread_t *thread_cli_shell;
-static int exit_queued = 0;
-
-static void oip_cleanup(void);
-
-static void oip_cleanup(void) {
-	// Cancel the CLI shell thread.
-	if (thread_cli_shell) {
-		if (pthread_cancel(*thread_cli_shell) != 0) {
-			printerrno("oip: pthread_cancel()");
-		}
-
-		if (pthread_join(*thread_cli_shell, NULL) != 0) {
-			printerrno("oip: pthread_join()");
-		}
-	}
-
+void oip_cleanup(void) {
 	// Run cleanup functions.
 	plugins_cleanup();
 	config_cleanup();
@@ -64,13 +47,7 @@ static void oip_cleanup(void) {
 	pipeline_cleanup();
 }
 
-void oip_exit(void) {
-	exit_queued = 1;
-}
-
-int main(int argc, char **argv) {
-	atexit(&oip_cleanup);
-
+int oip_setup(int argc, char **argv) {
 	// Read CLI options.
 	if (cli_parse_opts(argc, argv) != 0) {
 		printf("oip: CLI argument parsing failed.\n");
@@ -101,14 +78,5 @@ int main(int argc, char **argv) {
 		printerr("Failed to setup jobmanager.\n");
 		return 1;
 	}
-
-	// Init CLI shell.
-	thread_cli_shell = cli_shell_init();
-	if (thread_cli_shell == NULL) {
-		return 1;
-	}
-
-	while (!exit_queued) {}
-
 	return 0;
 }

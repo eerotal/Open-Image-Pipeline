@@ -31,17 +31,23 @@ $(info [INFO]: Enabling debugging options.)
 CCFLAGS+=-fsanitize=address -g
 endif
 
+ifndef BUILDROOT
+$(error Buildroot not defined!)
+endif
+
 # Setup some path variables.
-BINDIR=bin
-BUILDROOT=$(shell pwd)
-INCLUDES=-I$(shell dirname $(BUILDROOT))/headers
-FILES=$(shell find $(BUILDROOT) -name *.c -o -name *.h)
+BINDIR=$(BUILDROOT)/oipcore/src/$(NAME)/bin
+SRCDIR=$(BUILDROOT)/oipcore/src/$(NAME)
+
+INCLUDES+=-I$(BUILDROOT)/oipcore/src/oip
+
+SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
 
 compile: $(FILES)
-	@echo -n "[INFO]: Compiling the imgutil submodule...";	\
+	@echo -n "[INFO]: Compiling the $(NAME) submodule...";	\
 	mkdir -p $(BINDIR);					\
 	cd $(BINDIR);						\
-	$(CC) -c $(CCFLAGS) $(INCLUDES) $(FILES) $(LFLAGS);	\
+	$(CC) -c $(CCFLAGS) $(INCLUDES) $(SRCFILES) $(LFLAGS);	\
 	ar rcs lib$(NAME).a *.o;				\
 	rm *.o;							\
 	echo " Done."
