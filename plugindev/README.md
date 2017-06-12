@@ -63,5 +63,5 @@ you'll have to use a compatible license for your plugin, provide a copy of
 the GNU GPLv3 license (OIP is licensed under the GNU GPLv3 and FreeImage is
 used under the GNU GPLv3 too) and write a note stating that your plugin uses the
 FreeImage library and Open Image Pipeline libraries. See the FreeImage website
-for further information on using FreeImage and the GNU GPLv3 license for details
-on the license itself.
+for further information on using FreeImage and the GNU GPLv3 license in the file
+`LICENSE.txt` in the source root of this repository for details on the license itself.
