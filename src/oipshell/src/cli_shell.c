@@ -84,17 +84,17 @@ static int cli_shell_prototype_match(const PTRARRAY_TYPE(char) *keywords);
 static void cli_shell_execute(const size_t proto,
 		const PTRARRAY_TYPE(char) *keywords);
 static void cli_shell_print_help(void);
-static void cli_shell_progress_callback(const unsigned int progress);
+static void cli_shell_status_callback(const struct PIPELINE_STATUS *status);
 
-static void cli_shell_progress_callback(const unsigned int progress) {
-	printf("[ ");
-	for (unsigned int i = 0; i < progress; i++) {
+static void cli_shell_status_callback(const struct PIPELINE_STATUS *status) {
+	printf("[%s : %s] [ ", status->c_plugin->p_params->name, status->c_job->filepath);
+	for (unsigned int i = 0; i < status->progress; i++) {
 		printf("#");
 	}
-	if (progress == 100) {
+	if (status->progress == 100) {
 		printf(" ] 100 %%\n");
 	} else {
-		printf(">> %i %%\r", progress);
+		printf(">> %i %%\r", status->progress);
 	}
 	fflush(stdout);
 }
@@ -115,7 +115,7 @@ static void cli_shell_cleanup(void) {
 static void cli_shell_run(void) {
 	char shell_buff[SHELL_BUFFER_LEN] = { '\0' };
 
-	pipeline_reg_progress_callback(&cli_shell_progress_callback);
+	pipeline_reg_status_callback(&cli_shell_status_callback);
 
 	printverb_va("Thread started. Shell buffer: %i b.\n", SHELL_BUFFER_LEN);
 	for (;;) {

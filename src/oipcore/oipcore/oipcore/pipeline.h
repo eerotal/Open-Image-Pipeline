@@ -24,9 +24,16 @@
 
 	#include "oipimgutil/oipimgutil.h"
 	#include "oipcore/job.h"
+	#include "oipcore/plugin.h"
 
-	int pipeline_reg_progress_callback(void (*const callback)(const unsigned int progress));
-	int pipeline_unreg_progress_callback(void (*const callback)(const unsigned int progress));
+	struct PIPELINE_STATUS {
+		unsigned int progress;
+		PLUGIN *c_plugin;
+		JOB *c_job;
+	};
+
+	int pipeline_reg_status_callback(void (*const callback)(const struct PIPELINE_STATUS *status));
+	int pipeline_unreg_status_callback(void (*const callback)(const struct PIPELINE_STATUS *status));
 
 	int pipeline_feed(JOB *job);
 	void pipeline_cleanup(void);
