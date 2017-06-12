@@ -1,14 +1,19 @@
 ## Instructions for Open Image Pipeline plugin development.
 
 This directory (plugindev) contains files to help in setting
-up a plugin development environment. 
+up a plugin development environment. The very first thing you
+should do is to make a copy of the `plugindev` directory so
+that you're not modifying the original one. You can also give
+the directory a more descriptive name since it's the place where
+all of the plugin development happens.
 
 #### 1. Directory layout setup
 
-There are already some files in place but you must change some things
-before you can start programming your very own OIP plugin.
-First of all, if you're using GIT for version control, you should 
-probably create a `.gitignore` file with at least the following lines.
+There are already some files in place in the `plugindev` directory
+but you must change some things before you can start programming your
+very own OIP plugin. First of all, if you're using GIT for version
+control, you should probably create a `.gitignore` file with at least
+the following lines.
 
 `bin`
 `build-config`
@@ -21,20 +26,21 @@ the directory where compiled binaries are put, so you probably don't
 want those in your VCS.
 
 By default the makefile compiles the plugin from files located in
-a directory calles `src`. You need to create this one by yourself.
+a directory called `src`. You'll have to create this directory yourself.
 
-#### 2. Customizing the makefile
+#### 2. Modifying the project configuration
 
-The only customization step that's needed for the makefile is to
-change the name of the plugin. The name is stored in the NAME variable
-in the makefile, so change that one to the name of your plugin.
+Open the `project-config` file in your favourite text editor. In this file
+you can edit the configuration of your plugin project. Currently the only
+tested modification you can do is to give your plugin a name by setting
+the variable `NAME` to something more unique. The `project-config` file is
+basically a makefile so you'll have to use the makefile syntax too.
 
 #### 3. Compiling Open Image Pipeline
 
-In order to compile plugins you need to compile the main OIP binary
-too. Go into the root directory of the OIP source files and then run
-`make main modules`. This command will compile the main OIP binary and
-everything that's needed to compile plugins.
+In order to compile OIP plugins you'll have to compile the main OIP binary
+aswell. Check the instructions in the README.md file in the source root
+of the main OIP repo.
 
 #### 4. Final setup steps
 
@@ -43,7 +49,11 @@ run the shell script `config-build-env.sh`. After answering the questions
 the script has asked you, you can create your source files in the `src`
 directory and once you are ready to compile the plugin, just run `make`. By
 running `make install` too, you can automatically copy the plugin
-file to the Open Image Pipeline plugins directory.
+file to the Open Image Pipeline plugins directory. If you wan't to enable
+debug information generation and a memory address sanitizer while compiling,
+you can pass `DEBUG=1` in the make command. Note that you won't be able
+to load debug builds of plugins into the main OIP binary if the OIP binary is
+not a debug build too.
 
 #### NOTICE
 
