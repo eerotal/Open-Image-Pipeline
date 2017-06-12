@@ -15,7 +15,7 @@ very own OIP plugin. First of all, if you're using GIT for version
 control, you should probably create a `.gitignore` file with at least
 the following lines.
 
-`bin`
+`bin`  
 `build-config`
 
 This applies to other version control systems too, of course, but I
@@ -57,8 +57,11 @@ not a debug build too.
 
 #### NOTICE
 
-Because Open Image Pipeline uses FreeImage, which is used under the
-GNU General Public License version 3, plugins also need to use compatible
-licenses. Additionally, plugins must include a copy of the license and a
-note stating that plugins use FreeImage. You should check the FreeImage
-website for more information about licensing.
+When you make an Open Image Pipeline plugin, you'll most likely use
+code and libraries from Open Image Pipeline and FreeImage. This means that
+you'll have to use a compatible license for your plugin, provide a copy of
+the GNU GPLv3 license (OIP is licensed under the GNU GPLv3 and FreeImage is
+used under the GNU GPLv3 too) and write a note stating that your plugin uses the
+FreeImage library and Open Image Pipeline libraries. See the FreeImage website
+for further information on using FreeImage and the GNU GPLv3 license for details
+on the license itself.

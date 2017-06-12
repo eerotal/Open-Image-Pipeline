@@ -75,7 +75,13 @@ you can try to find a more permanent way of adding the path to the
 library search path yourself.
 
 7. Now you're ready to use Open Image Pipeline by using the OIP Shell
-or by calling functions from the C language.
+or by calling functions from the C language.  
+
+You can also compile every part of Open Image Pipeline by just running
+`make all`. By passing `DEBUG=1` with the make command you can enable
+debug information genration and a memory address sanitizer while compiling.
+Note that you won't be able to use non-debug builds of plugins with a
+debug build of Open Image Pipeline and vice versa.  
 
 The makefile has the following additional targets
 
