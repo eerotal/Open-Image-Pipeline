@@ -17,79 +17,54 @@
 #  along with Open Image Pipeline.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-CC=gcc
-CCFLAGS=-Wall -Wpedantic -Wextra -pedantic-errors -std=gnu11 -DOIP_BINARY
-LFLAGS=-ldl -lfreeimage -lm -pthread
-NAME=oip
-
-# Enable debugging if DEBUG is set to 1 on the CLI.
-DEBUG=0
-ifeq ($(DEBUG), 1)
-$(info [INFO]: Enabling debugging options.)
-CCFLAGS+=-fsanitize=address -g
-endif
-
 # Setup some path variables.
-SRCDIR=src
-BINDIR=bin
-PLUGINDIR=plugins
 BUILDROOT=$(shell pwd)
-INCLUDES=-Isrc/imgutil -Isrc/buildinfo -Isrc/headers
-SRCFILES=$(shell find $(BUILDROOT)/$(SRCDIR) -name *.c -o -name *.h)
-SUBMODULES=$(shell ls -d $(SRCDIR)/*/)
 
-export DEBUG
+DEBUG=0
+export DEBUG BUILDROOT
 
-# Compile the main Open Image Pipeline binary.
-compile: build-config $(SRCFILES)
-	@echo "[INFO]: Submodules are compiled into the main binary automatically."\
-		"If you need them as separate libraries, run 'make modules' too."
+.ONESHELL: all oipcore oipmodules oipshell dirs
+.PHONY: all oipcore oipmodules oipshell dirs
 
-	@mkdir -p $(BINDIR)
-	@mkdir -p $(PLUGINDIR)
+# Compile everything.
+all: build-config dirs
+	@. $(BUILDROOT)/build-config
+	make -C "src/oipcore/" oipcore oipmodules
+	make -C "src/oipshell/" oipshell
 
-	@echo -n "[INFO]: Compiling Open Image Pipeline..."
-	@. $(BUILDROOT)/build-config;				\
-	$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS)			\
-		-DOIP_BUILD_VERSION=$$OIP_BUILD_VERSION		\
-		-DOIP_BUILD_DATE=$$OIP_BUILD_DATE		\
-		-DOIP_BUILD_DEBUG=$$OIP_BUILD_DEBUG		\
-		-DOIP_BUILD_ABI=$$OIP_BUILD_ABI		\
-		$(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
-	@echo " Done."
+# Compile the OIP core shared library.
+oipcore: build-config
+	@. $(BUILDROOT)/build-config
+	make -C "src/oipcore/" oipcore
 
-# Compile all the submodules.
-modules: build-config
-	@echo "[INFO]: Compiling submodules..."
-	@. $(BUILDROOT)/build-config; \
-	for DIR in $(SUBMODULES); do\
-		test -s $$DIR/makefile && make -C $$DIR ;\
-	done
+# Compile the OIP core submodules.
+oipmodules: build-config
+	@. $(BUILDROOT)/build-config
+	make -C "src/oipcore/" oipmodules
+
+# Compile the OIP shell.
+oipshell: build-config
+	@. $(BUILDROOT)/build-config
+	make -C "src/oipshell/" oipshell
+
+# Create the directory layout needed for running OIP.
+dirs:
+	@mkdir -p plugins
+
+# Clean the source tree from compilation files.
+clean-all:
+	@echo "[INFO]: Cleaning all compilation files..."
+	rm -rf plugins
+	rm -rf cache
+	rm -f build-config
+	make -C "src/oipcore/" clean-all
+	make -C "src/oipshell/" clean-all
 
 # Generate the build-config makefile.
 .PHONY: build-config
 build-config: config-build.sh
 	@sh config-build.sh $(DEBUG)
 
-# Clean all the files produced when the modules were compiled.
-clean-modules:
-	@echo "[INFO]: Cleaning submodule files."
-	@for DIR in $(SUBMODULES); do\
-		test -s $$DIR/makefile && make -C $$DIR clean;\
-	done
-
-# Clean all the files produced when OIP was compiled and also
-# the files left behind by OIP like the cache directory.
-clean:
-	rm -rf $(BINDIR)
-	rm -f build-config
-	rm -rf cache
-	rm -rf plugins
-
-# Run clean and clean-modules.
-clean-all: clean clean-modules
-
-# Count the LOC of this project.
+# Count the lines of code of this project.
 LOC:
-	wc -l $(SRCFILES)
-
+	wc -l $$(find . -name *.c -o -name *.h)
