@@ -28,7 +28,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "oip/abi/output.h"
+#include "oipcore/abi/output.h"
 #include "configloader_priv.h"
 
 #define CONFIG_DEFAULT_PATH "oip.conf"

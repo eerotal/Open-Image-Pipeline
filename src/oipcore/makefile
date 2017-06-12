@@ -19,7 +19,7 @@
 
 CC=gcc
 CCFLAGS=-Wall -Wpedantic -Wextra -pedantic-errors -shared -fPIC -std=gnu11 -DOIP_BINARY
-LFLAGS=-ldl -lfreeimage -lm -pthread
+LFLAGS=-ldl -lfreeimage -lm
 NAME=oipcore
 
 # Enable debugging if DEBUG is set to 1 on the CLI.
@@ -34,12 +34,12 @@ $(error Buildroot not defined!)
 endif
 
 # Setup some path variables.
-SRCDIR=$(BUILDROOT)/oipcore/src
-BINDIR=$(BUILDROOT)/oipcore/bin
+SRCDIR=$(BUILDROOT)/src/oipcore
+BINDIR=$(BUILDROOT)/src/oipcore/bin
 
-INCLUDES+=-Isrc/oipimgutil
-INCLUDES+=-Isrc/oipbuildinfo
-INCLUDES+=-Isrc/oip
+INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipimgutil
+INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipbuildinfo
+INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipcore
 
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
 SUBMODULES=$(shell ls -d $(SRCDIR)/*)

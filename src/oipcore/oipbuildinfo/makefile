@@ -21,8 +21,8 @@
 
 CC=gcc
 CCFLAGS=-Wall -Wpedantic -fPIC -std=gnu11
-LFLAGS=-lfreeimage
-NAME=oipimgutil
+LFLAGS=
+NAME=oipbuildinfo
 
 # Enable debugging if DEBUG is set to true on the CLI.
 DEBUG=0
@@ -36,21 +36,29 @@ $(error Buildroot not defined!)
 endif
 
 # Setup some path variables.
-BINDIR=$(BUILDROOT)/oipcore/src/$(NAME)/bin
-SRCDIR=$(BUILDROOT)/oipcore/src/$(NAME)
+BINDIR=$(BUILDROOT)/src/oipcore/$(NAME)/bin
+SRCDIR=$(BUILDROOT)/src/oipcore/$(NAME)
 
-INCLUDES+=-I$(BUILDROOT)/oipcore/src/oip
+INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipcore
 
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
 
+.ONESHELL:
 compile: $(FILES)
-	@echo -n "[INFO]: Compiling the $(NAME) submodule...";	\
-	mkdir -p $(BINDIR);					\
-	cd $(BINDIR);						\
-	$(CC) -c $(CCFLAGS) $(INCLUDES) $(SRCFILES) $(LFLAGS);	\
-	ar rcs lib$(NAME).a *.o;				\
-	rm *.o;							\
-	echo " Done."
+	@echo -n "[INFO]: Compiling the $(NAME) submodule..."
+	@mkdir -p $(BINDIR)
+	@cd $(BINDIR)
+
+	$(CC) -c $(SRCFILES) $(CCFLAGS) $(INCLUDES)		\
+		-DOIP_BUILD_VERSION=$$OIP_BUILD_VERSION 	\
+		-DOIP_BUILD_DATE=$$OIP_BUILD_DATE 		\
+		-DOIP_BUILD_DEBUG=$$OIP_BUILD_DEBUG 		\
+		-DOIP_BUILD_ABI=$$OIP_BUILD_ABI			\
+		$(LFLAGS);
+
+	@ar rcs lib$(NAME).a *.o
+	@rm *.o
+	@echo " Done."
 	
 clean-all:
 	rm -rf $(BINDIR)

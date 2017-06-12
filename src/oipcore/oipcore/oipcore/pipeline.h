@@ -19,31 +19,15 @@
 *
 */
 
-#ifndef PLUGIN_PRIV_INCLUDED
-	#define PLUGIN_PRIV_INCLUDED
+#ifndef INCLUDED_PIPELINE
+	#define INCLUDED_PIPELINE
 
-	#include "abi/plugin.h"
-	#include "oip/cache.h"
+	#include "oipimgutil/oipimgutil.h"
+	#include "oipcore/job.h"
 
-	typedef struct STRUCT_PLUGIN {
-		PLUGIN_INFO *p_params;
-		CACHE *p_cache;
-		void *p_handle;
+	int pipeline_reg_progress_callback(void (*const callback)(const unsigned int progress));
+	int pipeline_unreg_progress_callback(void (*const callback)(const unsigned int progress));
 
-		char **args;
-		unsigned int argc;
-
-		unsigned long long int arg_rev;
-		unsigned long long int uid;
-	} PLUGIN;
-
-	int plugin_load(const char *dirpath, const char *name);
-	void print_plugin_config(void);
-	int plugin_feed(const size_t index, struct PLUGIN_INDATA *in);
-	int plugin_set_arg(const size_t index, const char *arg, const char *value);
-	int plugin_has_arg(const size_t index, const char *arg);
-	PLUGIN *plugin_get(const size_t index);
-	unsigned int plugins_get_count(void);
-	int plugins_setup(void);
-	void plugins_cleanup(void);
+	int pipeline_feed(JOB *job);
+	void pipeline_cleanup(void);
 #endif

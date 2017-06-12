@@ -29,23 +29,23 @@ export DEBUG BUILDROOT
 # Compile everything.
 all: build-config dirs
 	@. $(BUILDROOT)/build-config
-	make -C "oipcore/" oipcore oipmodules
-	make -C "oipshell/" oipshell
+	make -C "src/oipcore/" oipcore oipmodules
+	make -C "src/oipshell/" oipshell
 
 # Compile the OIP core shared library.
 oipcore: build-config
 	@. $(BUILDROOT)/build-config
-	make -C "oipcore/" oipcore
+	make -C "src/oipcore/" oipcore
 
 # Compile the OIP core submodules.
 oipmodules: build-config
 	@. $(BUILDROOT)/build-config
-	make -C "oipcore/" oipmodules
+	make -C "src/oipcore/" oipmodules
 
 # Compile the OIP shell.
 oipshell: build-config
 	@. $(BUILDROOT)/build-config
-	make -C "oipshell/" oipshell
+	make -C "src/oipshell/" oipshell
 
 # Create the directory layout needed for running OIP.
 dirs:
@@ -57,10 +57,14 @@ clean-all:
 	rm -rf plugins
 	rm -rf cache
 	rm -f build-config
-	make -C "oipcore/" clean-all
-	make -C "oipshell/" clean-all
+	make -C "src/oipcore/" clean-all
+	make -C "src/oipshell/" clean-all
 
 # Generate the build-config makefile.
 .PHONY: build-config
 build-config: config-build.sh
 	@sh config-build.sh $(DEBUG)
+
+# Count the lines of code of this project.
+LOC:
+	wc -l $$(find . -name *.c -o -name *.h)

@@ -29,7 +29,7 @@
 #include <errno.h>
 
 #include "oipimgutil/oipimgutil.h"
-#include "oip/abi/output.h"
+#include "oipcore/abi/output.h"
 
 #define IMGUTIL_OUTPUT_FORMAT FIF_JPEG
 #define IMGUTIL_INTERNAL_BPP 32

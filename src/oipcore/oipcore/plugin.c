@@ -29,11 +29,11 @@
 #include <math.h>
 #include <errno.h>
 
-#include "oip/abi/output.h"
-#include "oip/plugin.h"
-#include "oip/plugin.h"
-#include "oip/cache.h"
-#include "oip/file.h"
+#include "oipcore/abi/output.h"
+#include "oipcore/plugin.h"
+#include "oipcore/plugin.h"
+#include "oipcore/cache.h"
+#include "oipcore/file.h"
 #include "oipbuildinfo/oipbuildinfo.h"
 
 #include "cli_priv.h"

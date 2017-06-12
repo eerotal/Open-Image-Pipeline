@@ -19,18 +19,31 @@
 *
 */
 
-#ifndef INCLUDED_JOBMANAGER
-	#define INCLUDED_JOBMANAGER
+#ifndef PLUGIN_PRIV_INCLUDED
+	#define PLUGIN_PRIV_INCLUDED
 
-	#include "oip/job.h"
+	#include "oipcore/abi/plugin.h"
+	#include "oipcore/cache.h"
 
-	int jobmanager_setup(void);
-	void jobmanager_cleanup(int destroy_jobs);
+	typedef struct STRUCT_PLUGIN {
+		PLUGIN_INFO *p_params;
+		CACHE *p_cache;
+		void *p_handle;
 
-	void jobmanager_list(void);
-	size_t jobmanager_get_count(void);
-	JOB *jobmanager_get_job_by_id(char *job_id);
+		char **args;
+		unsigned int argc;
 
-	int jobmanager_reg_job(JOB *job);
-	int jobmanager_unreg_job(JOB *job, int destroy_job);
+		unsigned long long int arg_rev;
+		unsigned long long int uid;
+	} PLUGIN;
+
+	int plugin_load(const char *dirpath, const char *name);
+	void print_plugin_config(void);
+	int plugin_feed(const size_t index, struct PLUGIN_INDATA *in);
+	int plugin_set_arg(const size_t index, const char *arg, const char *value);
+	int plugin_has_arg(const size_t index, const char *arg);
+	PLUGIN *plugin_get(const size_t index);
+	unsigned int plugins_get_count(void);
+	int plugins_setup(void);
+	void plugins_cleanup(void);
 #endif

@@ -34,20 +34,20 @@ $(error Buildroot not defined!)
 endif
 
 # Setup some path variables.
-SRCDIR=$(BUILDROOT)/oipshell/src
-BINDIR=$(BUILDROOT)/oipshell/bin
+SRCDIR=$(BUILDROOT)/src/oipshell/src
+BINDIR=$(BUILDROOT)/src/oipshell/bin
 
-INCLUDES+=-I$(BUILDROOT)/oipcore/src/oipbuildinfo
-INCLUDES+=-I$(BUILDROOT)/oipcore/src/oipimgutil
-INCLUDES+=-I$(BUILDROOT)/oipcore/src/oip
+INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipbuildinfo
+INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipimgutil
+INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipcore
 
-LIBS+=-L$(BUILDROOT)/oipcore/bin
+LIBS+=-L$(BUILDROOT)/src/oipcore/bin
 
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
 
 # Compile the OIP shell interface.
 oipshell:
-	@echo "[INFO]: Compiling OIP shell..."
+	@echo "[INFO]: Compiling the OIP shell..."
 
 	@mkdir -p $(BINDIR)
 	@$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
@@ -55,4 +55,4 @@ oipshell:
 
 # Run clean and clean-modules.
 clean-all:
-	rm -rf $(BUILDROOT)/oipshell/bin
+	rm -rf $(BUILDROOT)/src/oipshell/bin

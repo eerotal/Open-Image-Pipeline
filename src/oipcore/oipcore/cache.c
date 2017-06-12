@@ -31,10 +31,10 @@
 #include <unistd.h>
 #include <time.h>
 
-#include "oip/abi/output.h"
-#include "oip/file.h"
-#include "oip/cache.h"
-#include "oip/ptrarray.h"
+#include "oipcore/abi/output.h"
+#include "oipcore/file.h"
+#include "oipcore/cache.h"
+#include "oipcore/ptrarray.h"
 
 #include "configloader_priv.h"
 

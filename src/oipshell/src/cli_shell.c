@@ -29,12 +29,12 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "oip/abi/output.h"
-#include "oip/oip.h"
-#include "oip/plugin.h"
-#include "oip/pipeline.h"
-#include "oip/ptrarray.h"
-#include "oip/jobmanager.h"
+#include "oipcore/abi/output.h"
+#include "oipcore/oip.h"
+#include "oipcore/plugin.h"
+#include "oipcore/pipeline.h"
+#include "oipcore/ptrarray.h"
+#include "oipcore/jobmanager.h"
 #include "oipbuildinfo/oipbuildinfo.h"
 
 #define SHELL_BUFFER_LEN 100

@@ -27,10 +27,10 @@
 #include <errno.h>
 #include <math.h>
 
-#include "oip/abi/output.h"
-#include "oip/plugin.h"
-#include "oip/job.h"
-#include "oip/plugin.h"
+#include "oipcore/abi/output.h"
+#include "oipcore/plugin.h"
+#include "oipcore/job.h"
+#include "oipcore/plugin.h"
 
 static long long new_job_id = 0;
 

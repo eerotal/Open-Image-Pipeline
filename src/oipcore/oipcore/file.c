@@ -29,7 +29,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "oip/abi/output.h"
+#include "oipcore/abi/output.h"
 
 #define DIRECTORY_SEPARATOR '/'
 

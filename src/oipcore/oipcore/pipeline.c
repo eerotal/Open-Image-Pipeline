@@ -27,11 +27,11 @@
 #include <time.h>
 #include <math.h>
 
-#include "oip/abi/output.h"
-#include "oip/pipeline.h"
-#include "oip/plugin.h"
-#include "oip/file.h"
-#include "oip/cache.h"
+#include "oipcore/abi/output.h"
+#include "oipcore/pipeline.h"
+#include "oipcore/plugin.h"
+#include "oipcore/file.h"
+#include "oipcore/cache.h"
 
 static int pipeline_write_cache(const JOB *job, const unsigned int p_index,
 				const IMAGE *img);

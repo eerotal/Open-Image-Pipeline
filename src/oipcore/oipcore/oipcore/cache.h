@@ -25,7 +25,7 @@
 	#include <stdlib.h>
 	#include <time.h>
 
-	#include "oip/ptrarray.h"
+	#include "oipcore/ptrarray.h"
 
 	typedef struct CACHE_FILE_STRUCT {
 		char *fname;
