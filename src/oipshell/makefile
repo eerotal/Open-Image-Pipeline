@@ -45,12 +45,15 @@ LIBS+=-L$(BUILDROOT)/src/oipcore/bin
 
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
 
-# Compile the OIP shell interface.
-oipshell:
-	@echo "[INFO]: Compiling the OIP shell..."
+.PHONY: oipshell clean-all
 
+# Compile the OIP shell interface.
+oipshell: $(BINDIR)/$(NAME).o
+$(BINDIR)/$(NAME).o: $(SRCFILES)
+	@echo "[INFO]: Compiling the OIP shell..."
 	@mkdir -p $(BINDIR)
-	@$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES) $(INCLUDES) $(LIBS) $(LFLAGS)
+	@$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES)	\
+		$(INCLUDES) $(LIBS) $(LFLAGS)
 	
 
 # Run clean and clean-modules.

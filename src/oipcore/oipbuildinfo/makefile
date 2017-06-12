@@ -43,22 +43,25 @@ INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipcore
 
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
 
-.ONESHELL:
-compile: $(FILES)
+.ONESHELL: compile
+.PHONY: compile clean-all
+
+compile: $(BINDIR)/lib$(NAME).a
+$(BINDIR)/lib$(NAME).a: $(SRCFILES)
 	@echo -n "[INFO]: Compiling the $(NAME) submodule..."
-	@mkdir -p $(BINDIR)
-	@cd $(BINDIR)
+	mkdir -p $(BINDIR)
+	cd $(BINDIR)
 
 	$(CC) -c $(SRCFILES) $(CCFLAGS) $(INCLUDES)		\
-		-DOIP_BUILD_VERSION=$$OIP_BUILD_VERSION 	\
-		-DOIP_BUILD_DATE=$$OIP_BUILD_DATE 		\
-		-DOIP_BUILD_DEBUG=$$OIP_BUILD_DEBUG 		\
+		-DOIP_BUILD_VERSION=$$OIP_BUILD_VERSION		\
+		-DOIP_BUILD_DATE=$$OIP_BUILD_DATE		\
+		-DOIP_BUILD_DEBUG=$$OIP_BUILD_DEBUG		\
 		-DOIP_BUILD_ABI=$$OIP_BUILD_ABI			\
 		$(LFLAGS);
 
-	@ar rcs lib$(NAME).a *.o
-	@rm *.o
-	@echo " Done."
+	ar rcs lib$(NAME).a *.o
+	rm *.o
+	echo " Done."
 	
 clean-all:
 	rm -rf $(BINDIR)

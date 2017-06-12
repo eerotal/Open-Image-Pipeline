@@ -43,7 +43,10 @@ INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipcore
 
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
 
-compile: $(FILES)
+.PHONY: compile clean-all
+
+compile: $(BINDIR)/lib$(NAME).a
+$(BINDIR)/lib$(NAME).a: $(SRCFILES)
 	@echo -n "[INFO]: Compiling the $(NAME) submodule...";	\
 	mkdir -p $(BINDIR);					\
 	cd $(BINDIR);						\

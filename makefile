@@ -23,14 +23,11 @@ BUILDROOT=$(shell pwd)
 DEBUG=0
 export DEBUG BUILDROOT
 
-.ONESHELL: all oipcore oipmodules oipshell dirs
-.PHONY: all oipcore oipmodules oipshell dirs
+.PHONY: oipcore oipmodules oipshell build-config dirs LOC
+.ONESHELL: oipcore oipmodules oipshell build-config dirs
 
 # Compile everything.
-all: build-config dirs
-	@. $(BUILDROOT)/build-config
-	make -C "src/oipcore/" oipcore oipmodules
-	make -C "src/oipshell/" oipshell
+all: build-config dirs oipcore oipmodules oipshell
 
 # Compile the OIP core shared library.
 oipcore: build-config
@@ -61,7 +58,6 @@ clean-all:
 	make -C "src/oipshell/" clean-all
 
 # Generate the build-config makefile.
-.PHONY: build-config
 build-config: config-build.sh
 	@sh config-build.sh $(DEBUG)
 

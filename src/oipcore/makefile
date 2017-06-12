@@ -44,10 +44,12 @@ INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipcore
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
 SUBMODULES=$(shell ls -d $(SRCDIR)/*)
 
+.PHONY: oipcore oipmodules clean-all
 .ONESHELL: oipcore oipmodules oipshell
 
-# Compile the main Open Image Pipeline binary.
-oipcore: $(SRCFILES)
+# Compile the OIP Core library.
+oipcore: $(BINDIR)/lib$(NAME).so
+$(BINDIR)/lib$(NAME).so: $(SRCFILES)
 	@mkdir -p $(BINDIR)
 	@echo -n "[INFO]: Compiling the OIP core..."
 	@$(CC) -o $(BINDIR)/lib$(NAME).so $(CCFLAGS)		\
@@ -58,7 +60,7 @@ oipcore: $(SRCFILES)
 		$(SRCFILES) $(INCLUDES) $(LFLAGS)
 	@echo " Done."
 
-# Compile all the submodules.
+# Compile all the OIP Core submodules.
 oipmodules:
 	@echo "[INFO]: Compiling the OIP submodules..."
 	for DIR in $(SUBMODULES); do

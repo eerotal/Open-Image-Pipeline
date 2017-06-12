@@ -175,7 +175,8 @@ int pipeline_reg_progress_callback(void (*const callback)(const unsigned int pro
 
 	printverb("Registering progress callback function.\n");
 	errno = 0;
-	tmp = realloc(progress_callbacks.funcs, (++progress_callbacks.cnt)*sizeof(callback));
+	tmp = realloc(progress_callbacks.funcs,
+		(++progress_callbacks.cnt)*sizeof(callback));
 	if (!tmp) {
 		printerrno("realloc(): ");
 		progress_callbacks.cnt--;
@@ -270,7 +271,8 @@ int pipeline_feed(JOB *job) {
 			// Calculate elapsed time and throughput.
 			t_delta = pipeline_cputime();
 			throughput = round(img_bytelen(in.src)/t_delta);
-			printverb_va("Took %f CPU seconds. Throughput %u B/s.\n", t_delta, throughput);
+			printverb_va("Took %f CPU seconds. Throughput %zu B/s.\n",
+					t_delta, throughput);
 
 			// Save a copy of the result into the cache file.
 			if (pipeline_write_cache(job, i, in.dst) != 0) {
