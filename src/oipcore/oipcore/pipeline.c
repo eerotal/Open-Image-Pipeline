@@ -37,6 +37,7 @@ static int pipeline_write_cache(const JOB *job, const unsigned int p_index,
 static int pipeline_load_cache(const JOB *job, IMAGE **dst);
 static float pipeline_cputime(void);
 static void pipeline_update_progress(const unsigned int progress);
+static void pipeline_call_status_callbacks(void);
 
 static clock_t cputime_last = 0.0f;
 
@@ -150,9 +151,8 @@ static int pipeline_load_cache(const JOB *job, IMAGE **dst) {
 
 static void pipeline_update_progress(const unsigned int progress) {
 	/*
-	*  Call all the registered status callback functions.
-	*  'progress' should be in the range 0-100. Otherwise
-	*  it will be clipped at 0 or 100 depending on the value.
+	*  Set the pipeline progress in the range 0-100 and call
+	*  the status callbacks.
 	*/
 	if (progress != pipeline_status.progress) {
 		if (progress > 100) {
@@ -160,9 +160,16 @@ static void pipeline_update_progress(const unsigned int progress) {
 		} else {
 			pipeline_status.progress = progress;
 		}
-		for (size_t i = 0; i < status_callbacks.cnt; i++) {
-			status_callbacks.funcs[i](&pipeline_status);
-		}
+		pipeline_call_status_callbacks();
+	}
+}
+
+static void pipeline_call_status_callbacks(void) {
+	/*
+	*  Call every registered status callback.
+	*/
+	for (size_t i = 0; i < status_callbacks.cnt; i++) {
+		status_callbacks.funcs[i](&pipeline_status);
 	}
 }
 
@@ -266,9 +273,11 @@ int pipeline_feed(JOB *job) {
 			in.args = plugin_get(i)->args;
 			in.argc = plugin_get(i)->argc;
 
-			pipeline_update_progress(0);
+			// Update status data.
+			pipeline_status.progress = 0;
 			pipeline_status.c_plugin = plugin_get(i);
 			pipeline_status.c_job = job;
+			pipeline_call_status_callbacks();
 
 			// Feed the image data to individual plugins.
 			if (plugin_feed(i, &in) != PLUGIN_STATUS_DONE) {
