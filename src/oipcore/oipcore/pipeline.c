@@ -29,7 +29,6 @@
 
 #include "oipcore/abi/output.h"
 #include "oipcore/pipeline.h"
-#include "oipcore/plugin.h"
 #include "oipcore/file.h"
 #include "oipcore/cache.h"
 
@@ -41,11 +40,15 @@ static void pipeline_update_progress(const unsigned int progress);
 
 static clock_t cputime_last = 0.0f;
 
-static unsigned int pipeline_progress = 0;
-static struct PROGRESS_CALLBACKS {
-	void (**funcs)(const unsigned int progress);
+static struct PIPELINE_STATUS pipeline_status = {
+	.progress = 0,
+	.c_plugin = NULL
+};
+
+static struct STATUS_CALLBACKS {
+	void (**funcs)(const struct PIPELINE_STATUS *status);
 	size_t cnt;
-} progress_callbacks = {
+} status_callbacks = {
 	.funcs = NULL,
 	.cnt = 0
 };
@@ -64,7 +67,8 @@ static float pipeline_cputime(void) {
 	return ret;
 }
 
-static int pipeline_write_cache(const JOB *job, const unsigned int p_index, const IMAGE *img) {
+static int pipeline_write_cache(const JOB *job, const unsigned int p_index,
+				const IMAGE *img) {
 	/*
 	*  Write the supplied image into the cache file of the plugin at 'p_index'.
 	*  Returns 0 on success and 1 on failure.
@@ -126,7 +130,8 @@ static int pipeline_load_cache(const JOB *job, IMAGE **dst) {
 		}
 	}
 
-	cache_fpath = cache_get_path_to_file(plugin_get(first - 1)->p_cache, job->job_id);
+	cache_fpath = cache_get_path_to_file(plugin_get(first - 1)->p_cache,
+						job->job_id);
 	if (cache_fpath == NULL) {
 		printerr("Failed to get cache file path.\n");
 		return -1;
@@ -145,68 +150,68 @@ static int pipeline_load_cache(const JOB *job, IMAGE **dst) {
 
 static void pipeline_update_progress(const unsigned int progress) {
 	/*
-	*  Call all the registered progress callback functions.
+	*  Call all the registered status callback functions.
 	*  'progress' should be in the range 0-100. Otherwise
 	*  it will be clipped at 0 or 100 depending on the value.
 	*/
-	if (progress != pipeline_progress) {
+	if (progress != pipeline_status.progress) {
 		if (progress > 100) {
-			pipeline_progress = 100;
+			pipeline_status.progress = 100;
 		} else {
-			pipeline_progress = progress;
+			pipeline_status.progress = progress;
 		}
-		for (size_t i = 0; i < progress_callbacks.cnt; i++) {
-			progress_callbacks.funcs[i](pipeline_progress);
+		for (size_t i = 0; i < status_callbacks.cnt; i++) {
+			status_callbacks.funcs[i](&pipeline_status);
 		}
 	}
 }
 
-int pipeline_reg_progress_callback(void (*const callback)(const unsigned int progress)) {
+int pipeline_reg_status_callback(void (*const callback)(const struct PIPELINE_STATUS *status)) {
 	/*
 	*  Register a callback that will be called when there's a
-	*  change in the progress of processing an image. Returns 0
-	*  on success and 1 on failure.
+	*  change in the status of the pipeline. Returns 0 on
+	*  success and 1 on failure.
 	*/
-	void (**tmp)(const unsigned int progress) = NULL;
+	void (**tmp)(const struct PIPELINE_STATUS *status) = NULL;
 	if (!callback) {
-		printerr("Won't register a NULL pointer as a progress callback.\n");
+		printerr("Won't register a NULL pointer as a status callback.\n");
 		return 1;
 	}
 
-	printverb("Registering progress callback function.\n");
+	printverb("Registering status callback function.\n");
 	errno = 0;
-	tmp = realloc(progress_callbacks.funcs,
-		(++progress_callbacks.cnt)*sizeof(callback));
+	tmp = realloc(status_callbacks.funcs,
+		(++status_callbacks.cnt)*sizeof(callback));
 	if (!tmp) {
 		printerrno("realloc(): ");
-		progress_callbacks.cnt--;
+		status_callbacks.cnt--;
 		return 1;
 	}
-	progress_callbacks.funcs = tmp;
-	tmp[progress_callbacks.cnt - 1] = callback;
+	status_callbacks.funcs = tmp;
+	tmp[status_callbacks.cnt - 1] = callback;
 	return 0;
 }
 
-int pipeline_unreg_progress_callback(void (*const callback)(const unsigned int progress)) {
+int pipeline_unreg_status_callback(void (*const callback)(const struct PIPELINE_STATUS *status)) {
 	/*
-	*  Unregister a progress callback previously registered
-	*  by calling pipeline_reg_progress_callback(). If the function
+	*  Unregister a status callback previously registered
+	*  by calling pipeline_reg_status_callback(). If the function
 	*  pointer is not registered as a callback this functions returns
 	*  successfully. Returns 0 on success and 1 on failure.
 	*/
-	struct PROGRESS_CALLBACKS tmp_1 = {
+	struct STATUS_CALLBACKS tmp_1 = {
 		.funcs = NULL,
 		.cnt = 0
 	};
 
-	struct PROGRESS_CALLBACKS tmp_2 = {
+	struct STATUS_CALLBACKS tmp_2 = {
 		.funcs = NULL,
 		.cnt = 0
 	};
 
-	printverb("Unregistering progress callback function.\n");
-	for (size_t i = 0; i < progress_callbacks.cnt; i++) {
-		if (callback != progress_callbacks.funcs[i]) {
+	printverb("Unregistering a status callback function.\n");
+	for (size_t i = 0; i < status_callbacks.cnt; i++) {
+		if (callback != status_callbacks.funcs[i]) {
 			errno = 0;
 			tmp_2.funcs = realloc(tmp_1.funcs, (++tmp_1.cnt)*sizeof(callback));
 			if (!tmp_2.funcs) {
@@ -215,12 +220,12 @@ int pipeline_unreg_progress_callback(void (*const callback)(const unsigned int p
 				return 1;
 			}
 			tmp_1.funcs = tmp_2.funcs;
-			tmp_1.funcs[tmp_1.cnt - 1] = progress_callbacks.funcs[i];
+			tmp_1.funcs[tmp_1.cnt - 1] = status_callbacks.funcs[i];
 		}
 	}
-	free(progress_callbacks.funcs);
-	progress_callbacks.funcs = tmp_1.funcs;
-	progress_callbacks.cnt = tmp_1.cnt;
+	free(status_callbacks.funcs);
+	status_callbacks.funcs = tmp_1.funcs;
+	status_callbacks.cnt = tmp_1.cnt;
 	return 0;
 }
 
@@ -261,8 +266,11 @@ int pipeline_feed(JOB *job) {
 			in.args = plugin_get(i)->args;
 			in.argc = plugin_get(i)->argc;
 
-			// Feed the image data to individual plugins.
 			pipeline_update_progress(0);
+			pipeline_status.c_plugin = plugin_get(i);
+			pipeline_status.c_job = job;
+
+			// Feed the image data to individual plugins.
 			if (plugin_feed(i, &in) != PLUGIN_STATUS_DONE) {
 				printerr_va("Failed to use plugin %zu.\n", i);
 				continue;
@@ -317,9 +325,9 @@ int pipeline_feed(JOB *job) {
 
 void pipeline_cleanup(void) {
 	printverb("Cleanup.\n");
-	if (progress_callbacks.funcs) {
-		free(progress_callbacks.funcs);
-		progress_callbacks.funcs = NULL;
+	if (status_callbacks.funcs) {
+		free(status_callbacks.funcs);
+		status_callbacks.funcs = NULL;
 	}
-	progress_callbacks.cnt = 0;
+	status_callbacks.cnt = 0;
 }
