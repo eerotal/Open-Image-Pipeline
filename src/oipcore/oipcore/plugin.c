@@ -227,6 +227,7 @@ int plugin_load(const char *dirpath, const char *name) {
 		free(params_struct_name);
 		return 0;
 	}
+	free(path);
 	printerr("Plugin doesn't exist.\n");
 	return 1;
 }
