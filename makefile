@@ -40,7 +40,7 @@ oipmodules: build-config
 	make -C "src/oipcore/" oipmodules
 
 # Compile the OIP shell.
-oipshell: build-config
+oipshell: oipcore oipmodules build-config
 	@. $(BUILDROOT)/build-config
 	make -C "src/oipshell/" oipshell
 

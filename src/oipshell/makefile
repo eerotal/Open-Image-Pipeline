@@ -44,12 +44,14 @@ INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipcore
 LIBS+=-L$(BUILDROOT)/src/oipcore/bin
 
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
+HEADERFILES=$(shell find $(BUILDROOT)/src/oipcore -name *.h)
+LIBFILES=$(shell find $(BUILDROOT)/src/oipcore -name *.a -o -name *.so)
 
 .PHONY: oipshell clean-all
 
 # Compile the OIP shell interface.
 oipshell: $(BINDIR)/$(NAME).o
-$(BINDIR)/$(NAME).o: $(SRCFILES)
+$(BINDIR)/$(NAME).o: $(SRCFILES) $(HEADERFILES) $(LIBFILES)
 	@echo "[INFO]: Compiling the OIP shell..."
 	@mkdir -p $(BINDIR)
 	@$(CC) -o $(BINDIR)/$(NAME).o $(CCFLAGS) $(SRCFILES)	\
