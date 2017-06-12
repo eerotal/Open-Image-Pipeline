@@ -34,34 +34,6 @@ the only way to use them is to compile them yourself and place them in the
 - <https://github.com/eerotal/OIP-Curves-plugin>
 - <https://github.com/eerotal/OIP-Convolution-Matrix-plugin>
 
-## Developer corner
-
-So, as you already may know, all the actual hard image processing work in OIP
-is done by individual plugins which are loaded into OIP as shared libraries
-from .so files. When OIP loads a plugin, it places information about the
-plugin into a "pipeline" that is basically a sequence of the different
-plugins that have been loaded. The plugins can also accept arguments that
-tell the plugin what it needs to do to the image, however, these arguments
-are plugin specific.  
-
-Before an image can be fed into the pipeline, a JOB instance needs to be created.
-The JOB type is a container that holds basic information about the
-image to be processed. Additionally, because JOB instances can be fed to 
-the pipeline multiple times if needed, the JOB instance holds information 
-about the previous times it was fed into the pipeline. The information
-the JOB instance holds about previous image processing passes
-makes a process called plugin skipping possible. Plugin skipping happens
-when OIP detects that the output of certain plugins has already been 
-generated for the supplied image and it's stored in cache files. If this
-happens, OIP skips the plugins in question and just feeds the cached
-versions of the image to the plugins that don't have up-to-date data
-in their cache files.
-
-After the pipeline has processed the image contained in the JOB instance,
-it puts it into a destination image buffer that's also located in
-the JOB instance. The image can then be saved using job_save() and passing
-the JOB instance and the requested filepath as the two arguments.
-
 ### Dependencies
 
 FreeImage 3
@@ -75,24 +47,42 @@ OIP are listed below.
 Jessie this can be accomplished by running
 `sudo apt-get install libfreeimage3 libfreeimage-dev`.
 
-2. Run `make main`. If you intend to do plugin development run
-`make modules` too. The resulting binary is put into the directory
-`bin`. Plugins can be copied into the `plugins` directory.  
+2. Compile the Open Image Pipeline Core by running `make oipcore`.
+
+3. [Optional] Compile the Open Image Pipeline submodules by running
+`make oipmodules`. These modules are only needed if you intend to
+develop and compile plugins.
+
+4. [Optional] Compile the Open Image Pipeline Shell by running
+`make oipshell`. This part is technically optional, however, the
+OIP Shell is currently the only way to use Open Image Pipeline apart
+from directly using it from the C language. The compiled binary is
+placed into the folder `src/oipshell/bin/`.
+
+5. Obtain source code for plugins and compile them yourself or obtain
+the plugin binaries directly. For now you most likely need to compile
+the plugins yourself, so remember to follow the instructions in step 3.
+first and then follow the compilation instructions of the plugins.
+
+6. Place the plugin libraries into the `plugins` folder in the main
+Open Image Pipeline directory.
+
+8. Add the path to the OIP Core shared library to your library search
+path by running `export LD_LIBRARY_PATH=<PATH_TO_OIP_DIR>/src/oipcore/oipcore/bin`.
+You must run this after every reboot if you want to use OIP since
+the setting resets every time the computer is restarted. Alternatively
+you can try to find a more permanent way of adding the path to the
+library search path yourself.
+
+7. Now you're ready to use Open Image Pipeline by using the OIP Shell
+or by calling functions from the C language.
 
 The makefile has the following additional targets
-
-#### clean
-
-Delete the files created by the compilation of the main OIP binary.
 
 #### clean-all
 
 Delete all the files created by the compilation including the files
 created when compiling the modules.
-
-#### clean-modules
-
-Delete the files created by the module compilation.
 
 #### LOC
 
@@ -101,7 +91,7 @@ Count the total lines of code in this project.
 
 ## Open Source Libraries used
 
-### Freeimage
+### FreeImage
 
 This software uses the FreeImage open source image library.
 See http://freeimage.sourceforge.net for details.
