@@ -94,7 +94,6 @@ int plugin_load(const char *dirpath, const char *name) {
 	*/
 
 	PLUGIN plugin;
-	CACHE *p_cache;
 	char *cache_name = NULL;
 	char *libfname = NULL;
 	char *path = NULL;
@@ -191,7 +190,7 @@ int plugin_load(const char *dirpath, const char *name) {
 
 		// Create plugin cache.
 		cache_name = plugin_get_uid_str(&plugin);
-		if (cache_name == NULL) {
+		if (!cache_name) {
 			printerr("Failed to get plugin identifier.\n");
 			free(path);
 			free(params_struct_name);
@@ -199,28 +198,35 @@ int plugin_load(const char *dirpath, const char *name) {
 			return 1;
 		}
 
-		p_cache = cache_create(cache_name);
-		if (p_cache == NULL) {
+		plugin.p_cache = cache_create(cache_name);
+		if (!plugin.p_cache) {
 			printerr("Failed to create plugin cache.\n");
 			free(path);
 			free(params_struct_name);
 			dlclose(plugin.p_handle);
 			return 1;
 		}
-		plugin.p_cache = p_cache;
 		free(cache_name);
+
+		plugin.args = (PTRARRAY_TYPE(char)*) ptrarray_create(&free);
+		if (!plugin.args) {
+			free(path);
+			free(params_struct_name);
+			dlclose(plugin.p_handle);
+			cache_destroy(plugin.p_cache, 0);
+			return 1;
+		}
 
 		// Append the plugin data to the plugin array.
 		plugin_data_append(&plugin);
 
 		// Set the flag_print_verbose value of the plugin.
-		if (plugin.p_params->flag_print_verbose != NULL) {
+		if (plugin.p_params->flag_print_verbose) {
 			*plugin.p_params->flag_print_verbose = cli_get_opts()->opt_verbose;
 		}
 
 		// Run the setup function.
 		plugin.p_params->plugin_setup();
-
 
 		printverb_va("%s: Loaded!\n", path);
 		free(path);
@@ -245,9 +251,9 @@ void print_plugin_config(void) {
 		build_print_version_info("    Built against:   ",
 				plugins[i]->p_params->built_against);
 		printf("    Args: \n");
-		for (unsigned int arg = 0; arg < plugins[i]->argc; arg++) {
-			printf("        %s: %s\n", plugins[i]->args[arg*2],
-				plugins[i]->args[arg*2 + 1]);
+		for (size_t arg = 0; arg < plugins[i]->args->ptrc; arg += 2) {
+			printf("        %s: %s\n", plugins[i]->args->ptrs[arg],
+				plugins[i]->args->ptrs[arg + 1]);
 		}
 		printf("    Cache name:      %s\n", plugins[i]->p_cache->name);
 		printf("    Cache path:      %s\n", plugins[i]->p_cache->path);
@@ -269,12 +275,51 @@ int plugin_feed(const size_t index, struct PLUGIN_INDATA *in) {
 	return PLUGIN_STATUS_ERROR;
 }
 
-int plugin_set_arg(const size_t index, const char *arg,
-			const char *value) {
+int plugin_set_arg(const size_t index, char *arg, char *value) {
 	/*
 	*  Set the plugin argument 'arg' to 'value' for plugin at 'index'.
 	*  Returns 0 on success and 1 on failure.
 	*/
+
+	int ret = -1;
+	char *tmp_str = NULL;
+	if (index < plugin_count) {
+		if (!plugin_has_arg(index, arg)) {
+			return 1;
+		}
+
+		// If the arg exists, modify it.
+		ret = ptrarray_get_ptr_index((PTRARRAY_TYPE(void)*) plugins[index]->args, arg);
+		if (ret >= 0) {
+			printverb_va("Plugin arg '%s' exists. Modifying it.\n", arg);
+			tmp_str = realloc(plugins[index]->args->ptrs[ret + 1],
+				(strlen(value) + 1)*sizeof(*value));
+			if (!tmp_str) {
+				return 1;
+			}
+			strcpy(tmp_str, value);
+			plugins[index]->args->ptrs[ret + 1] = tmp_str;
+			return 0;
+		}
+
+		printverb_va("Adding plugin arg '%s'.\n", arg);
+		tmp_str = ptrarray_put_data((PTRARRAY_TYPE(void)*) plugins[index]->args,
+				arg, (strlen(arg) + 1)*sizeof(*arg));
+		if (!tmp_str) {
+			return 1;
+		}
+		tmp_str = ptrarray_put_data((PTRARRAY_TYPE(void)*) plugins[index]->args,
+				value, (strlen(value) + 1)*sizeof(*value));
+		if (!tmp_str) {
+			ptrarray_pop_ptr((PTRARRAY_TYPE(void)*) plugins[index]->args, arg, 0);
+			return 1;
+		}
+		plugins[index]->arg_rev++;
+		return 0;
+	}
+	return 1;
+
+/*
 	unsigned int p_argc = 0;
 	char **p_args = NULL;
 
@@ -338,7 +383,7 @@ int plugin_set_arg(const size_t index, const char *arg,
 		return 0;
 	} else {
 		return 1;
-	}
+	}*/
 }
 
 int plugin_has_arg(const size_t index, const char *arg) {
@@ -421,10 +466,8 @@ void plugins_cleanup(void) {
 		if (plugins[i]) {
 			plugins[i]->p_params->plugin_cleanup();
 			dlclose(plugins[i]->p_handle);
-			for (size_t a = 0; a < plugins[i]->argc*2; a++) {
-				free(plugins[i]->args[a]);
-			}
-			free(plugins[i]->args);
+			ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) plugins[i]->args);
+			ptrarray_free((PTRARRAY_TYPE(void)*) plugins[i]->args);
 			free(plugins[i]);
 			plugins[i] = NULL;
 		}

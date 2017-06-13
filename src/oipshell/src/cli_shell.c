@@ -41,8 +41,6 @@
 #define NUM_CLI_CMD_PROTOS 12
 #define NUM_CLI_CMD_MAX_KEYWORDS 10
 
-PTRARRAY_TYPE_DEF(char);
-
 static int exit_queued = 0;
 static JOB **cli_shell_jobs = NULL;
 static unsigned int cli_shell_jobs_count = 0;
