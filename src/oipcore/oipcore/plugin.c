@@ -34,6 +34,7 @@
 #include "oipcore/plugin.h"
 #include "oipcore/cache.h"
 #include "oipcore/file.h"
+#include "oipcore/strutils.h"
 #include "oipbuildinfo/oipbuildinfo.h"
 
 #include "cli_priv.h"
@@ -78,25 +79,19 @@ int plugin_load(const char *dirpath, const char *name) {
 	char *dlret = NULL;
 	int ret = 0;
 
-	size_t libfname_len = 0;
-	size_t info_struct_name_len = 0;
-
 	printverb_va("Loading plugin %s from directory %s.\n", name, dirpath);
 
 	// Set plugin data struct to all zeroes initially.
 	memset(&plugin, 0, sizeof(PLUGIN));
 
-	// Construct the plugin .so filename.
-	libfname_len = strlen("lib") + strlen(name) + strlen(".so") + 1;
-	errno = 0;
-	libfname = calloc(libfname_len, sizeof(char));
-	if (libfname == NULL) {
-		printerrno("plugin: calloc()");
+	// Construct the plugin filename.
+	libfname = strutils_cat(3, "", "lib", name, ".so");
+	if (!libfname) {
+		printerr("Failed to construct shared library filename.");
 		return 1;
 	}
-	sprintf(libfname, "lib%s.so", name);
 
-	// Construct plugin filepath.
+	// Construct the plugin filepath.
 	path = file_path_join(dirpath, libfname);
 	free(libfname);
 	if (path == NULL) {
@@ -105,7 +100,7 @@ int plugin_load(const char *dirpath, const char *name) {
 	}
 
 	if (access(path, F_OK) == 0) {
-		// Load shared library file.
+		// Load the shared library file.
 		plugin.p_handle = dlopen(path, RTLD_NOW);
 		free(path);
 		if (!plugin.p_handle) {
@@ -113,16 +108,12 @@ int plugin_load(const char *dirpath, const char *name) {
 			return 1;
 		}
 
-		// Construct the plugin info structure name.
-		info_struct_name_len = strlen(name) + strlen(PLUGIN_INFO_NAME_SUFFIX) + 1;
-		errno = 0;
-		info_struct_name = calloc(info_struct_name_len, sizeof(char));
+		// Construct the plugin info struct name.
+		info_struct_name = strutils_cat(2, "", name, PLUGIN_INFO_NAME_SUFFIX);
 		if (!info_struct_name) {
-			printerrno("plugin: calloc(): ");
 			dlclose(plugin.p_handle);
 			return 1;
 		}
-		sprintf(info_struct_name, "%s"PLUGIN_INFO_NAME_SUFFIX, name);
 
 		// Store the plugin parameter pointer in plugin.p_params.
 		dlerror();
