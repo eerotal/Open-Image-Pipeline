@@ -43,7 +43,7 @@
 	int plugin_set_arg(const size_t index, char *arg, char *value);
 	int plugin_has_arg(const size_t index, const char *arg);
 	PLUGIN *plugin_get(const size_t index);
-	unsigned int plugins_get_count(void);
+	size_t plugins_get_count(void);
 	int plugins_setup(void);
 	void plugins_cleanup(void);
 #endif

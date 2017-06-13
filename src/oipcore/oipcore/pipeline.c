@@ -259,7 +259,7 @@ int pipeline_feed(JOB *job) {
 			printverb_va("Feeding image data to plugin %zu.\n", i);
 
 			in.args = plugin_get(i)->args->ptrs;
-			in.argc = plugin_get(i)->args->ptrc/2;
+			in.argc = plugin_get(i)->args->ptrc/2; // ptrc/2 since an arg is a pair of strings.
 
 			// Feed the image data to individual plugins.
 			pipeline_update_progress(0);
