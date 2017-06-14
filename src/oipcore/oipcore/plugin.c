@@ -92,7 +92,7 @@ int plugin_load(const char *dirpath, const char *name) {
 	}
 
 	// Construct the plugin filepath.
-	path = file_path_join(dirpath, libfname);
+	path = file_path_join(2, dirpath, libfname);
 	free(libfname);
 	if (path == NULL) {
 		printerr("Failed to create plugin shared library path.\n");

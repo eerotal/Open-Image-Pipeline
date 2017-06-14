@@ -23,6 +23,9 @@
 	#define INCLUDED_STRUTILS
 
 	#include <stdlib.h>
+	#include <stdarg.h>
 
 	char *strutils_cat(size_t n, char *sep, ...);
+	char *strutils_cat_va(size_t n, char *sep, va_list *va);
+	char *strutils_strip_subseq(char* str, char strip);
 #endif
