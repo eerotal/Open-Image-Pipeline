@@ -36,6 +36,12 @@
 #define DIRECTORY_SEPARATOR '/'
 
 char *file_path_join(size_t n, ...) {
+	/*
+	*  Join 'n' number of path components from the variadic
+	*  argument list into a filepath. Returns a pointer to
+	*  a new string on success or a NULL pointer on failure.
+	*/
+
 	char *tmp = NULL;
 	char *ret = NULL;
 	va_list va;
@@ -55,6 +61,11 @@ char *file_path_join(size_t n, ...) {
 }
 
 int file_rmdir_recursive(const char *rpath) {
+	/*
+	*  Recursively remove a directory and it's contents. The
+	*  directory path is specified in 'rpath'. Returns 0 on
+	*  success and 1 on failure.
+	*/
 	struct stat statbuf;
 	struct dirent *f = NULL;
 	DIR *dir = NULL;
