@@ -28,128 +28,82 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "oipcore/abi/output.h"
+#include "oipcore/strutils.h"
 
 #define DIRECTORY_SEPARATOR '/'
 
-char *path_ensure_trailing_slash(const char *path) {
+char *file_path_join(size_t n, ...) {
 	/*
-	*  Make sure the supplied path has a trailing slash and if
-	*  it doesn't, add one. This function returns a pointer to
-	*  a newly allocated string containing the result.
-	*  A NULL pointer is returned if an error occurs.
-	*/
-	char *path_proper = NULL;
-
-	errno = 0;
-	if (path[strlen(path) - 1] == DIRECTORY_SEPARATOR) {
-		path_proper = calloc(strlen(path) + 1, sizeof(char));
-		if (path_proper == NULL) {
-			printerrno("file: calloc()");
-			return NULL;
-		}
-		strcpy(path_proper, path);
-	} else {
-		path_proper = calloc(strlen(path) + 2, sizeof(char));
-		if (path_proper == NULL) {
-			printerrno("file: calloc()");
-			return NULL;
-		}
-		strcat(path_proper, path);
-		path_proper[strlen(path)] = '/';
-	}
-	return path_proper;
-}
-
-char *file_path_join(const char *s1, const char *s2) {
-	/*
-	*  Join two strings into a filepath. This function
-	*  returns a pointer to a new string on success and
-	*  NULL on failure. Note that this function will fail
-	*  if either one of the arguments are NULL.
+	*  Join 'n' number of path components from the variadic
+	*  argument list into a filepath. Returns a pointer to
+	*  a new string on success or a NULL pointer on failure.
 	*/
 
+	char *tmp = NULL;
 	char *ret = NULL;
-	char *s1_proper = NULL;
-	if (s1 == NULL || s2 == NULL) {
+	va_list va;
+
+	va_start(va, n);
+	tmp = strutils_cat_va(n, "/", &va);
+	if (!tmp) {
 		return NULL;
 	}
-
-	s1_proper = path_ensure_trailing_slash(s1);
-	if (s1_proper == NULL) {
+	ret = strutils_strip_subseq(tmp, DIRECTORY_SEPARATOR);
+	if (!ret) {
+		free(tmp);
 		return NULL;
 	}
-
-	ret = calloc(strlen(s1_proper) + strlen(s2) + 1, sizeof(char));
-	if (ret == NULL) {
-		printerrno("file: calloc()");
-		free(s1_proper);
-		return NULL;
-	}
-
-	strcat(ret, s1_proper);
-	strcat(ret, s2);
-	free(s1_proper);
-
+	va_end(va);
 	return ret;
 }
 
-int rmdir_recursive(const char *rpath) {
+int file_rmdir_recursive(const char *rpath) {
+	/*
+	*  Recursively remove a directory and it's contents. The
+	*  directory path is specified in 'rpath'. Returns 0 on
+	*  success and 1 on failure.
+	*/
 	struct stat statbuf;
 	struct dirent *f = NULL;
 	DIR *dir = NULL;
 	char *fpath = NULL;
-	char *tmp_fpath = NULL;
-	char *rpath_proper = NULL;
-
-	rpath_proper = path_ensure_trailing_slash(rpath);
-	if (rpath_proper == NULL) {
-		return 1;
-	}
 
 	errno = 0;
-	if (access(rpath_proper, F_OK) != 0) {
+	if (access(rpath, F_OK) != 0) {
 		printerrno("file: access()");
-		free(rpath_proper);
 		return 1;
 	}
 
 	errno = 0;
-	dir = opendir(rpath_proper);
-	if (dir == NULL) {
+	dir = opendir(rpath);
+	if (!dir) {
 		printerrno("file: opendir()");
-		free(rpath_proper);
 		return 1;
 	}
 
 	errno = 0;
-	while ((f = readdir(dir)) != NULL) {
+	while ((f = readdir(dir))) {
 		// Exclude . and ..
 		if (strcmp(f->d_name, "..") == 0 || strcmp(f->d_name, ".") == 0) {
 			continue;
 		}
 
 		// Construct the path name for the current file.
-		errno = 0;
-		tmp_fpath = realloc(fpath, (strlen(rpath_proper) + strlen(f->d_name) + 1)*sizeof(*rpath_proper));
-		if (tmp_fpath == NULL) {
-			printerrno("file: realloc()");
-			free(rpath_proper);
+		fpath = strutils_cat(2, "/", rpath, f->d_name);
+		if (!fpath) {
+			printerr("Failed to construct filepath for unlink.\n");
 			closedir(dir);
 			return 1;
 		}
-		fpath = tmp_fpath;
-		memset(fpath, 0, (strlen(rpath_proper) + strlen(f->d_name) + 1)*sizeof(*rpath_proper));
-		strcat(fpath, rpath_proper);
-		strcat(fpath, f->d_name);
 
 		// Get information about the path.
 		errno = 0;
 		if (stat(fpath, &statbuf) == -1) {
-			printerrno("file: stat()");
+			printerrno("stat()");
 			free(fpath);
-			free(rpath_proper);
 			closedir(dir);
 			return 1;
 		}
@@ -160,12 +114,11 @@ int rmdir_recursive(const char *rpath) {
 		*  one too. Otherwise unlink the file.
 		*/
 		if (S_ISDIR(statbuf.st_mode)) {
-			rmdir_recursive(fpath);
+			file_rmdir_recursive(fpath);
 		} else {
 			if (unlink(fpath) == -1) {
-				printerrno("file: unlink()");
+				printerrno("unlink()");
 				free(fpath);
-				free(rpath_proper);
 				closedir(dir);
 				return 1;
 			}
@@ -173,21 +126,19 @@ int rmdir_recursive(const char *rpath) {
 	}
 
 	if (errno != 0) {
-		printerrno("file: readdir()");
+		printerrno("readdir()");
 		free(fpath);
-		free(rpath_proper);
 		closedir(dir);
 		return 1;
 	}
 
 	free(fpath);
-	free(rpath_proper);
 	closedir(dir);
 
 	// Remove the (now empty) directory.
 	errno = 0;
 	if (rmdir(rpath) == -1) {
-		printerrno("file: rmdir()");
+		printerrno("rmdir()");
 		return 1;
 	}
 

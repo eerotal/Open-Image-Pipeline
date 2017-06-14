@@ -270,8 +270,8 @@ int pipeline_feed(JOB *job) {
 			pipeline_cputime();
 			printverb_va("Feeding image data to plugin %zu.\n", i);
 
-			in.args = plugin_get(i)->args;
-			in.argc = plugin_get(i)->argc;
+			in.args = plugin_get(i)->args->ptrs;
+			in.argc = plugin_get(i)->args->ptrc/2; // ptrc/2 since an arg is a pair of strings.
 
 			// Update status data.
 			pipeline_status.progress = 0;

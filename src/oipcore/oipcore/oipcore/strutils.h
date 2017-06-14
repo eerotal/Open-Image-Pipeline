@@ -19,11 +19,13 @@
 *
 */
 
-#ifndef INCLUDED_FILE
-	#define INCLUDED_FILE
+#ifndef INCLUDED_STRUTILS
+	#define INCLUDED_STRUTILS
 
 	#include <stdlib.h>
+	#include <stdarg.h>
 
-	char *file_path_join(size_t n, ...);
-	int file_rmdir_recursive(const char *rpath);
+	char *strutils_cat(size_t n, char *sep, ...);
+	char *strutils_cat_va(size_t n, char *sep, va_list *va);
+	char *strutils_strip_subseq(char* str, char strip);
 #endif

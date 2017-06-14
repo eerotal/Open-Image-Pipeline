@@ -22,6 +22,7 @@
 #ifndef PLUGIN_PRIV_INCLUDED
 	#define PLUGIN_PRIV_INCLUDED
 
+	#include "oipcore/ptrarray.h"
 	#include "oipcore/abi/plugin.h"
 	#include "oipcore/cache.h"
 
@@ -30,8 +31,7 @@
 		CACHE *p_cache;
 		void *p_handle;
 
-		char **args;
-		unsigned int argc;
+		PTRARRAY_TYPE(char) *args;
 
 		unsigned long long int arg_rev;
 		unsigned long long int uid;
@@ -40,10 +40,10 @@
 	int plugin_load(const char *dirpath, const char *name);
 	void print_plugin_config(void);
 	int plugin_feed(const size_t index, struct PLUGIN_INDATA *in);
-	int plugin_set_arg(const size_t index, const char *arg, const char *value);
+	int plugin_set_arg(const size_t index, char *arg, char *value);
 	int plugin_has_arg(const size_t index, const char *arg);
 	PLUGIN *plugin_get(const size_t index);
-	unsigned int plugins_get_count(void);
+	size_t plugins_get_count(void);
 	int plugins_setup(void);
 	void plugins_cleanup(void);
 #endif

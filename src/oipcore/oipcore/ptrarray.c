@@ -29,7 +29,7 @@
 #include "oipcore/abi/output.h"
 #include "oipcore/ptrarray.h"
 
-PTRARRAY_TYPE(void) *ptrarray_create(void (*free_func)(void*)) {
+PTRARRAY_TYPE(void) *ptrarray_create(void (*const free_func)(void*)) {
 	/*
 	*  Create a new PTRARRAY instance. free_func is the
 	*  function to call when freeing pointers in the PTRARRAY.
@@ -48,7 +48,7 @@ PTRARRAY_TYPE(void) *ptrarray_create(void (*free_func)(void*)) {
 }
 
 PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray,
-						size_t ptrc) {
+						const size_t ptrc) {
 	/*
 	*  Reallocate the internal pointer array in the PTRARRAY
 	*  instance. Returns a pointer to the PTRARRAY instance on
@@ -69,13 +69,11 @@ PTRARRAY_TYPE(void) *ptrarray_realloc(PTRARRAY_TYPE(void) *ptrarray,
 	return ptrarray;
 }
 
-PTRARRAY_TYPE(void) *ptrarray_put_ptr(PTRARRAY_TYPE(void) *ptrarray,
-					void *ptr) {
+void *ptrarray_put_ptr(PTRARRAY_TYPE(void) *ptrarray, void *ptr) {
 	/*
-	*  Add a pointer to the PTRARRAY instance. Returns the pointer
-	*  to the PTRARRAY instance on success or a NULL pointer on
-	*  failure. On failure the contents of the original PTRARRAY
-	*  instance are not modified.
+	*  Add a pointer to the PTRARRAY instance. Returns a the added
+	*  pointer on success or a NULL pointer on failure. On failure
+	*  the contents of the original PTRARRAY instance are not modified.
 	*/
 	PTRARRAY_TYPE(void) *tmp = NULL;
 
@@ -84,17 +82,16 @@ PTRARRAY_TYPE(void) *ptrarray_put_ptr(PTRARRAY_TYPE(void) *ptrarray,
 		return NULL;
 	}
 	tmp->ptrs[ptrarray->ptrc - 1] = ptr;
-
-	return tmp;
+	return ptr;
 }
 
-PTRARRAY_TYPE(void) *ptrarray_put_data(PTRARRAY_TYPE(void) *ptrarray,
-					void *data, size_t data_size) {
+void *ptrarray_put_data(PTRARRAY_TYPE(void) *ptrarray,
+			void *data, const size_t data_size) {
 	/*
 	*  Copy 'data_size' number of bytes from 'data' to a new
 	*  memory location and add the pointer to that location
-	*  into the PTRARRAY instance. Returns the supplied PTRARRAY
-	*  pointer on success or a NULL pointer on failure. On failure
+	*  into the PTRARRAY instance. Returns the allocated pointer
+	*  on success or a NULL pointer on failure. On failure
 	*  the contents of the original PTRARRAY instance are not
 	*  modified.
 	*/
@@ -109,7 +106,7 @@ PTRARRAY_TYPE(void) *ptrarray_put_data(PTRARRAY_TYPE(void) *ptrarray,
 		free(tmp_ptr);
 		return NULL;
 	}
-	return ptrarray;
+	return tmp_ptr;
 }
 
 PTRARRAY_TYPE(void) *ptrarray_shrink(PTRARRAY_TYPE(void) *ptrarray) {
@@ -139,7 +136,7 @@ PTRARRAY_TYPE(void) *ptrarray_shrink(PTRARRAY_TYPE(void) *ptrarray) {
 }
 
 PTRARRAY_TYPE(void) *ptrarray_pop_ptr(PTRARRAY_TYPE(void) *ptrarray,
-					void *ptr, int free_ptr) {
+					void *ptr, const int free_ptr) {
 	/*
 	*  Pop a pointer from a PTRARRAY. Returns a new PTRARRAY
 	*  pointer on success or a NULL pointer on failure. On failure
@@ -147,22 +144,35 @@ PTRARRAY_TYPE(void) *ptrarray_pop_ptr(PTRARRAY_TYPE(void) *ptrarray,
 	*  modified.
 	*/
 	PTRARRAY_TYPE(void) *ret = NULL;
+	int i = ptrarray_get_ptr_index(ptrarray, ptr);
+	if (i < 0) {
+		return NULL;
+	}
+
+	ptrarray->ptrs[i] = NULL;
+	ret = ptrarray_shrink(ptrarray);
+	if (!ret) {
+		// Reset the pointer back to original.
+		ptrarray->ptrs[i] = ptr;
+		return NULL;
+	}
+	if (free_ptr) {
+		ptrarray->free_func(ptr);
+	}
+	return ret;
+}
+
+int ptrarray_get_ptr_index(PTRARRAY_TYPE(void) *ptrarray, const void *ptr) {
+	/*
+	*  Get the index of ptr in the ptrarray or -1 if the
+	*  ptrarray doesn't contain ptr.
+	*/
 	for (size_t i = 0; i < ptrarray->ptrc; i++) {
 		if (ptrarray->ptrs[i] == ptr) {
-			ptrarray->ptrs[i] = NULL;
-			ret = ptrarray_shrink(ptrarray);
-			if (!ret) {
-				// Reset the pointer back to original.
-				ptrarray->ptrs[i] = ptr;
-				return NULL;
-			}
-			if (free_ptr) {
-				ptrarray->free_func(ptr);
-			}
-			return ret;
+			return i;
 		}
 	}
-	return NULL;
+	return -1;
 }
 
 void ptrarray_free(PTRARRAY_TYPE(void) *ptrarray) {

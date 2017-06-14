@@ -262,7 +262,7 @@ char *cache_get_path_to_file(const CACHE *cache, const char *fname) {
 	*  Return a string pointer to the path to 'fname' or a
 	*  NULL pointer on failure.
 	*/
-	return file_path_join(cache->path, fname);
+	return file_path_join(2, cache->path, fname);
 }
 
 int cache_has_file(const CACHE *cache, const char *fname) {
@@ -354,7 +354,7 @@ CACHE *cache_create(const char *cache_name) {
 	memcpy(n_cache->name, cache_name, strlen(cache_name)*sizeof(char));
 
 	// Get the full cache path.
-	n_cache->path = file_path_join(cache_root, cache_name);
+	n_cache->path = file_path_join(2, cache_root, cache_name);
 	if (n_cache->path == NULL) {
 		free(n_cache->name);
 		free(n_cache);
@@ -410,7 +410,7 @@ void cache_destroy(CACHE *cache, int del_files) {
 			// Delete the cache directory recursively.
 			errno = 0;
 			if (access(cache->path, F_OK) == 0) {
-				if (rmdir_recursive(cache->path) != 0) {
+				if (file_rmdir_recursive(cache->path) != 0) {
 					printerr("Failed to delete cache.\n");
 				}
 			} else {
