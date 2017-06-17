@@ -26,7 +26,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "oipcore/dataparser.h"
+#include "oipdataparser/oipdataparser.h"
 #include "oipcore/abi/output.h"
 
 #define DP_ASSIGN "="
