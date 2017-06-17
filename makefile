@@ -23,8 +23,8 @@ BUILDROOT=$(shell pwd)
 DEBUG=0
 export DEBUG BUILDROOT
 
-.PHONY: oipcore oipmodules oipshell build-config dirs LOC
-.ONESHELL: oipcore oipmodules oipshell build-config dirs
+.PHONY: oipcore oipmodules oipshell oipgui build-config dirs LOC
+.ONESHELL: oipcore oipmodules oipshell oipgui build-config dirs
 
 # Compile everything.
 all: build-config dirs oipcore oipmodules oipshell
@@ -43,6 +43,11 @@ oipmodules: build-config
 oipshell: oipcore oipmodules build-config
 	@. $(BUILDROOT)/build-config
 	make -C "src/oipshell/" oipshell
+
+# Compile the OIP GUI.
+oipgui: oipcore oipmodules build-config
+	@. $(BUILDROOT)/build-config
+	make -C "src/oipgui/" oipgui
 
 # Create the directory layout needed for running OIP.
 dirs:

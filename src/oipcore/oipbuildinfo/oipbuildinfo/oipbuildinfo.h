@@ -43,4 +43,6 @@
 				const struct BUILD_INFO_STRUCT *info2);
 	void build_print_version_info(const char *prefix,
 				const struct BUILD_INFO_STRUCT *info);
+	char *build_get_version_string(const char *prefix,
+				const struct BUILD_INFO_STRUCT *info);
 #endif

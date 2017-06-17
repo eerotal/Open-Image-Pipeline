@@ -19,9 +19,14 @@
 *
 */
 
+#define PRINT_IDENTIFIER "oipbuildinfo"
+
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
+#include <stdlib.h>
 
+#include "oipcore/abi/output.h"
 #include "oipbuildinfo/oipbuildinfo.h"
 
 // Build info constants defined at build time.
@@ -40,6 +45,8 @@
 		.abi = OIP_BUILD_ABI
 	};
 #endif
+
+#define VER_SUFFIX_DEBUG " (DEBUG)"
 
 int build_compare_critical(const struct BUILD_INFO_STRUCT *info1,
 				const struct BUILD_INFO_STRUCT *info2) {
@@ -62,9 +69,55 @@ int build_compare_critical(const struct BUILD_INFO_STRUCT *info1,
 
 void build_print_version_info(const char *prefix,
 			const struct BUILD_INFO_STRUCT *info) {
-	printf("%s%s - %s (ABI: %i)", prefix, info->version, info->date, info->abi);
-	if (info->debug) {
-		printf(" (DEBUG BUILD)");
+	char *str = NULL;
+	str = build_get_version_string(prefix, info);
+	if (str) {
+		printf("%s\n", str);
+		free(str);
+	} else {
+		printf("(unknown)\n");
 	}
-	printf("\n");
 }
+
+char *build_get_version_string(const char *prefix,
+				const struct BUILD_INFO_STRUCT *info) {
+	/*
+	*  Return a version string constructed from data in info.
+	*  Prefix is appended in front of the string. Returns a pointer
+	*  to the new string on success or a NULL pointer on failure.
+	*/
+	char *ret = NULL;
+	size_t ret_len = strlen(prefix) + strlen(info->version) + strlen(info->date);
+
+	// Add space for abi->info after conversion to string.
+	if (info->abi == 0) {
+		ret_len += 1;
+	} else {
+		ret_len += (size_t) floor(log10(info->abi)) + 1;
+	}
+
+	// Add space for the VERSTR_DEBUG string.
+	if (info->debug) {
+		ret_len += strlen(VER_SUFFIX_DEBUG);
+	}
+
+	// Add space for the extra chars and the NULL byte.
+	ret_len += 11 + 1;
+
+	errno = 0;
+	ret = calloc(ret_len, sizeof(char));
+	if (!ret) {
+		printerrno("calloc()");
+		return NULL;
+	}
+
+	if (info->debug) {
+		sprintf(ret, "%s%s - %s (ABI: %i)%s", prefix, info->version,
+				info->date, info->abi, VER_SUFFIX_DEBUG);
+	} else {
+		sprintf(ret, "%s%s - %s (ABI: %i)", prefix, info->version,
+				info->date, info->abi);
+	}
+	return ret;
+}
+
