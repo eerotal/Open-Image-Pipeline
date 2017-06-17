@@ -33,8 +33,9 @@
 #include "oipcore/oip.h"
 #include "oipcore/plugin.h"
 #include "oipcore/pipeline.h"
-#include "oipcore/ptrarray.h"
 #include "oipcore/jobmanager.h"
+
+#include "oipptrarray/ptrarray.h"
 #include "oipbuildinfo/oipbuildinfo.h"
 
 #define SHELL_BUFFER_LEN 100

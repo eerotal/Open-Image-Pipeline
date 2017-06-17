@@ -22,7 +22,7 @@
 #ifndef PLUGIN_PRIV_INCLUDED
 	#define PLUGIN_PRIV_INCLUDED
 
-	#include "oipcore/ptrarray.h"
+	#include "oipptrarray/ptrarray.h"
 	#include "oipcore/abi/plugin.h"
 	#include "oipcore/cache.h"
 

@@ -22,7 +22,7 @@
 CC=gcc
 CCFLAGS=-Wall -Wpedantic -fPIC -std=gnu11
 LFLAGS=
-NAME=oipdataparser
+NAME=oipptrarray
 
 # Enable debugging if DEBUG is set to true on the CLI.
 DEBUG=0
@@ -40,7 +40,6 @@ BINDIR=$(BUILDROOT)/src/oipcore/$(NAME)/bin
 SRCDIR=$(BUILDROOT)/src/oipcore/$(NAME)
 
 INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipcore
-INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipptrarray
 
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)
 

@@ -33,8 +33,10 @@
 #include "oipcore/oip.h"
 #include "oipcore/plugin.h"
 #include "oipcore/pipeline.h"
-#include "oipcore/ptrarray.h"
 #include "oipcore/jobmanager.h"
+
+#include "oipptrarray/ptrarray.h"
+#include "oipdataparser/oipdataparser.h"
 
 #include "configloader_priv.h"
 #include "cli_priv.h"
@@ -78,5 +80,6 @@ int oip_setup(int argc, char **argv) {
 		printerr("Failed to setup jobmanager.\n");
 		return 1;
 	}
+
 	return 0;
 }

@@ -27,7 +27,7 @@
 #include <errno.h>
 
 #include "oipcore/abi/output.h"
-#include "oipcore/ptrarray.h"
+#include "oipptrarray/ptrarray.h"
 
 PTRARRAY_TYPE(void) *ptrarray_create(void (*const free_func)(void*)) {
 	/*

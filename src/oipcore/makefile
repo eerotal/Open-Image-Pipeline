@@ -40,6 +40,7 @@ BINDIR=$(BUILDROOT)/src/oipcore/bin
 INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipimgutil
 INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipbuildinfo
 INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipdataparser
+INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipptrarray
 INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipcore
 
 SRCFILES=$(shell find $(SRCDIR) -name *.c -o -name *.h)

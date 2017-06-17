@@ -34,7 +34,6 @@
 #include "oipcore/abi/output.h"
 #include "oipcore/file.h"
 #include "oipcore/cache.h"
-#include "oipcore/ptrarray.h"
 
 #include "configloader_priv.h"
 

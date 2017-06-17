@@ -39,6 +39,7 @@ BINDIR=$(BUILDROOT)/src/oipshell/bin
 
 INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipbuildinfo
 INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipimgutil
+INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipptrarray
 INCLUDES+=-I$(BUILDROOT)/src/oipcore/oipcore
 
 LIBS+=-L$(BUILDROOT)/src/oipcore/bin

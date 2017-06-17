@@ -22,7 +22,7 @@
 #ifndef INCLUDED_DATAPARSER
 	#define INCLUDED_DATAPARSER
 
-	#include "oipcore/ptrarray.h"
+	#include "oipptrarray/ptrarray.h"
 
 	typedef struct {
 		char *var;
