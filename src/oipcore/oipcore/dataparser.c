@@ -91,6 +91,39 @@ static void dp_var_free_wrapper(void *var) {
 	dp_var_free((DP_VAR*) var);
 }
 
+PTRARRAY_TYPE(char) *dp_var_strarr(DP_VAR *var) {
+	/*
+	*  Return a pointer to the string PTRARRAY in var.
+	*/
+	return var->data;
+}
+
+PTRARRAY_TYPE(long) *dp_var_lintarr(DP_VAR *var) {
+	/*
+	*  Return the value of arg as a PTRARRAY instance
+	*  where every item in the PTRARRAY has been converted
+	*  to a long int value. This function returns a NULL
+	*  pointer on failure.
+	*/
+	PTRARRAY_TYPE(long)* res = NULL;
+	long tmp = 0;
+
+	res = (PTRARRAY_TYPE(long)*) ptrarray_create(&free);
+	if (!res) {
+		return NULL;
+	}
+	for (size_t i = 0; i < var->data->ptrc; i++) {
+		tmp = strtol(var->data->ptrs[i], NULL, 10);
+		if (!ptrarray_put_data((PTRARRAY_TYPE(void)*) res,
+					&tmp, sizeof(tmp))) {
+			ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) res);
+			ptrarray_free((PTRARRAY_TYPE(void)*) res);
+			return NULL;
+		}
+	}
+	return res;
+}
+
 PTRARRAY_TYPE(DP_VAR) *dp_parse_multipart(const char *str) {
 	/*
 	*  Parse a comma separated list of variable definitions

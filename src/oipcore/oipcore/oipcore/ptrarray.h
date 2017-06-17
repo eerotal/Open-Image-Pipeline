@@ -45,6 +45,7 @@
 	PTRARRAY_TYPE_DEF(void);
 	PTRARRAY_TYPE_DEF(char);
 	PTRARRAY_TYPE_DEF(int);
+	PTRARRAY_TYPE_DEF(long);
 
 	PTRARRAY_TYPE(void) *ptrarray_create(void (*const free_func)(void*));
 	int ptrarray_free_ptrs(PTRARRAY_TYPE(void) *ptrarray);
