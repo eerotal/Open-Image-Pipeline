@@ -91,6 +91,21 @@ static void dp_var_free_wrapper(void *var) {
 	dp_var_free((DP_VAR*) var);
 }
 
+int dp_var_validate_numeric(DP_VAR *var) {
+	/*
+	*  Check whether the data in a DP_VAR instance only
+	*  contains the characters 0-9, + and -. Returns 1
+	*  if it does and 0 otherwise.
+	*/
+	for (size_t i = 0; i < var->data->ptrc; i++) {
+		if (strspn(var->data->ptrs[i], "0123456789+-")
+			!= strlen(var->data->ptrs[i])) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
 PTRARRAY_TYPE(char) *dp_var_strarr(DP_VAR *var) {
 	/*
 	*  Return a pointer to the string PTRARRAY in var.

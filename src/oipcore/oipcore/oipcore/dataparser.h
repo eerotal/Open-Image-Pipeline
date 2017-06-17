@@ -35,6 +35,8 @@
 	DP_VAR *dp_parse_single(const char *str);
 	PTRARRAY_TYPE(DP_VAR) *dp_parse_multipart(const char *str);
 
+	int dp_var_validate_numeric(DP_VAR *var);
+
 	PTRARRAY_TYPE(char) *dp_var_strarr(DP_VAR *var);
 	PTRARRAY_TYPE(long) *dp_var_lintarr(DP_VAR *var);
 #endif
