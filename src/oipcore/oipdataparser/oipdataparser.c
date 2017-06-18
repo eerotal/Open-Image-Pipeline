@@ -29,11 +29,18 @@
 #include "oipdataparser/oipdataparser.h"
 #include "oipcore/abi/output.h"
 
+/*
+*  Define some error values.
+*/
 #define DP_SYNTAX_OK				0
 #define DP_SYNTAX_ERR_MISSING_VAR_IDENTIFIER	1
 #define DP_SYNTAX_ERR_MULTIPLE_ASSIGNMENTS	2
 #define DP_SYNTAX_ERR_NO_ASSIGNMENT		3
 
+/*
+*  Define the different delimiter characters used
+*  while parsing strings.
+*/
 #define DP_ASSIGN_CHAR       '='
 #define DP_ASSIGN_STR        "="
 
@@ -168,10 +175,12 @@ PTRARRAY_TYPE(long) *dp_var_lintarr(DP_VAR *var) {
 
 PTRARRAY_TYPE(DP_VAR) *dp_parse_multipart(const char *str) {
 	/*
-	*  Parse a comma separated list of variable definitions
-	*  eg. a=1,b=3,c=5. This function returns a pointer to
-	*  a DP_VAR PTRARRAY on success or a NULL pointer on failure.
+	*  Parse a list of variable definitions separated by
+	*  DP_LINE_DELIM_CHAR eg. a=1;b=3;c=5. This function returns
+	*  a pointer to a DP_VAR PTRARRAY on success or a NULL
+	*  pointer on failure.
 	*/
+
 	PTRARRAY_TYPE(DP_VAR) *vars = NULL;
 	DP_VAR *tmp_var = NULL;
 	char *token = NULL;
@@ -216,7 +225,11 @@ PTRARRAY_TYPE(DP_VAR) *dp_parse_multipart(const char *str) {
 static int dp_chk_syntax(const char *str) {
 	/*
 	*  Check for assignment syntax errors in str.
-	*  Return one of the DP_SYNTAX_* constants.
+	*  This function should only be used on strings
+	*  that contain a single variable definition.
+	*  Using this function on strings with multiple
+	*  variable definitions won't give correct results.
+	*  Returns one of the DP_SYNTAX_* constants.
 	*/
 	size_t assign_cnt = 0;
 	for (size_t i = 0; i < strlen(str); i++) {
