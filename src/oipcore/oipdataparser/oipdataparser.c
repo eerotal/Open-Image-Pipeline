@@ -29,11 +29,22 @@
 #include "oipdataparser/oipdataparser.h"
 #include "oipcore/abi/output.h"
 
-#define DP_ASSIGN "="
-#define DP_VAR_DELIM ";"
-#define DP_ARRAY_DELIM  ","
+#define DP_SYNTAX_OK				0
+#define DP_SYNTAX_ERR_MISSING_VAR_IDENTIFIER	1
+#define DP_SYNTAX_ERR_MULTIPLE_ASSIGNMENTS	2
+#define DP_SYNTAX_ERR_NO_ASSIGNMENT		3
+
+#define DP_ASSIGN_CHAR       '='
+#define DP_ASSIGN_STR        "="
+
+#define DP_LINE_DELIM_STR     ";\n"
+
+#define DP_ARRAY_DELIM_CHAR  ','
+#define DP_ARRAY_DELIM_STR   ","
 
 static void dp_var_free_wrapper(void *var);
+static int dp_chk_syntax(const char *str);
+static int dp_print_error(int err);
 
 void dp_dump(DP_VAR *var) {
 	/*
@@ -57,14 +68,30 @@ DP_VAR *dp_var_create(const char *var) {
 	*  on failure.
 	*/
 	DP_VAR *ret = NULL;
+
+	errno = 0;
 	ret = calloc(1, sizeof(DP_VAR));
-	ret->var = strdup(var);
-	if (!ret->var) {
+	if (!ret) {
+		printerrno("calloc()");
 		return NULL;
 	}
+
+	if (var) {
+		errno = 0;
+		ret->var = strdup(var);
+		if (!ret->var) {
+			printerrno("strdup()");
+			free(ret);
+			return NULL;
+		}
+	}
+
 	ret->data = (PTRARRAY_TYPE(char)*) ptrarray_create(&free);
 	if (!ret->data) {
-		free(ret->var);
+		if (ret->var) {
+			free(ret->var);
+		}
+		free(ret);
 		return NULL;
 	}
 	return ret;
@@ -165,7 +192,7 @@ PTRARRAY_TYPE(DP_VAR) *dp_parse_multipart(const char *str) {
 		return NULL;
 	}
 
-	token = strtok_r(tmp, DP_VAR_DELIM, &saveptr);
+	token = strtok_r(tmp, DP_LINE_DELIM_STR, &saveptr);
 	while (token) {
 		tmp_var = dp_parse_single(token);
 		if (!ptrarray_put_ptr((PTRARRAY_TYPE(void)*) vars, tmp_var)) {
@@ -180,10 +207,61 @@ PTRARRAY_TYPE(DP_VAR) *dp_parse_multipart(const char *str) {
 			ptrarray_free((PTRARRAY_TYPE(void)*) vars);
 			return NULL;
 		}
-		token = strtok_r(NULL, DP_VAR_DELIM, &saveptr);
+		token = strtok_r(NULL, DP_LINE_DELIM_STR, &saveptr);
 	}
 	free(tmp);
 	return vars;
+}
+
+static int dp_chk_syntax(const char *str) {
+	/*
+	*  Check for assignment syntax errors in str.
+	*  Return one of the DP_SYNTAX_* constants.
+	*/
+	size_t assign_cnt = 0;
+	for (size_t i = 0; i < strlen(str); i++) {
+		if (str[i] == DP_ASSIGN_CHAR) {
+			if (i == 0) {
+				// No variable identifier.
+				return DP_SYNTAX_ERR_MISSING_VAR_IDENTIFIER;
+			}
+			assign_cnt++;
+			if (assign_cnt > 1) {
+				// Too many assignments.
+				return DP_SYNTAX_ERR_MULTIPLE_ASSIGNMENTS;
+			}
+		}
+	}
+	if (assign_cnt == 0) {
+		// No assignment.
+		return DP_SYNTAX_ERR_NO_ASSIGNMENT;
+	}
+	return DP_SYNTAX_OK;
+}
+
+static int dp_print_error(int err) {
+	/*
+	*  Print an error message corresponding to the different
+	*  error constants used in the dataparser system.
+	*/
+	switch (err) {
+		case DP_SYNTAX_ERR_MISSING_VAR_IDENTIFIER:
+			printerr("Syntax error: Missing variable identifier.");
+			break;
+		case DP_SYNTAX_ERR_MULTIPLE_ASSIGNMENTS:
+			printerr("Syntax error: Multiple assignments.\n");
+			break;
+		case DP_SYNTAX_ERR_NO_ASSIGNMENT:
+			printerr("Syntax error: No assignment.\n");
+			break;
+		case DP_SYNTAX_OK:
+			printerr("Syntax OK.\n");
+			break;
+		default:
+			printerr("Unknown error.\n");
+			break;
+	}
+	return err;
 }
 
 DP_VAR *dp_parse_single(const char *str) {
@@ -192,10 +270,17 @@ DP_VAR *dp_parse_single(const char *str) {
 	*  This function returns a pointer to a DP_VAR instance
 	*  on success or a NULL pointer on failure.
 	*/
+	DP_VAR *res = NULL;
+	char *tmp = NULL;
 	char *token = NULL;
 	char *saveptr = NULL;
-	char *tmp = NULL;
-	DP_VAR *res = NULL;
+	int ret = 0;
+
+	ret = dp_chk_syntax(str);
+	if (ret != DP_SYNTAX_OK) {
+		dp_print_error(ret);
+		return NULL;
+	}
 
 	errno = 0;
 	tmp = strdup(str);
@@ -204,28 +289,21 @@ DP_VAR *dp_parse_single(const char *str) {
 		return NULL;
 	}
 
-	errno = 0;
-	res = calloc(1, sizeof(DP_VAR));
+	res = dp_var_create(NULL);
 	if (!res) {
-		printerrno("calloc()");
 		free(tmp);
 		return NULL;
 	}
 
-	res->data = (PTRARRAY_TYPE(char)*) ptrarray_create(&free);
-	if (!res->data) {
-		free(tmp);
-		dp_var_free(res);
-		return NULL;
-	}
-
-	token = strtok_r(tmp, DP_ASSIGN, &saveptr);
+	// Parse the variable identifier.
+	token = strtok_r(tmp, DP_ASSIGN_STR, &saveptr);
 	if (!token) {
 		printerr("Failed to read variable value.\n")
 		free(tmp);
 		dp_var_free(res);
 		return NULL;
 	}
+
 	errno = 0;
 	res->var = strdup(token);
 	if (!res->var) {
@@ -235,18 +313,19 @@ DP_VAR *dp_parse_single(const char *str) {
 		return NULL;
 	}
 
-	token = strtok_r(NULL, DP_ARRAY_DELIM, &saveptr);
+	// Parse the variable data.
+	token = strtok_r(NULL, DP_ARRAY_DELIM_STR, &saveptr);
 	while (token) {
 		if (!ptrarray_put_data((PTRARRAY_TYPE(void)*) res->data,
 				token, (strlen(token) + 1)*sizeof(*token))) {
-			printerr("Failed to add value to variable PTRARRAY.\n");
+			printerr("Failed to add parsed value to PTRARRAY.\n");
 			ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) res->data);
 			ptrarray_free((PTRARRAY_TYPE(void)*) res->data);
 			free(tmp);
 			dp_var_free(res);
 			return NULL;
 		}
-		token = strtok_r(NULL, DP_ARRAY_DELIM, &saveptr);
+		token = strtok_r(NULL, DP_ARRAY_DELIM_STR, &saveptr);
 	}
 	free(tmp);
 	return res;
