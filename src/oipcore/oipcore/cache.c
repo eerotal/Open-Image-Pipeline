@@ -436,17 +436,21 @@ int cache_setup(void) {
 	*/
 	printverb("Cache setup.\n");
 
-	cache_root = config_get_str_param("cache_root");
+	cache_root = config_get_str_param("cache_root", 0);
 	if (!cache_root) {
 		cache_root = NULL;
 		return 1;
 	}
 
-	cache_default_max_files = config_get_lint_param("cache_default_max_files");
+	cache_default_max_files = config_get_lint_param("cache_default_max_files", 0);
 	if (cache_default_max_files <= 0) {
 		cache_default_max_files = 0;
 		return 1;
 	}
+
+	printverb("Cache settings:\n");
+	printverb_va("    Cache root: %s\n", cache_root);
+	printverb_va("    Max files:  %zu\n", cache_default_max_files);
 
 	// Create the cache root if it doesn't exist.
 	errno = 0;

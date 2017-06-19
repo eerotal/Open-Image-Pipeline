@@ -19,15 +19,6 @@
 *
 */
 
-#ifndef INCLUDED_CONFIGLOADER_PRIV
-	#define INCLUDE_CONFIGLOADER_PRIV
+#include "oipcore/abi/output.h"
 
-	#include "oipdataparser/oipdataparser.h"
-
-	PTRARRAY_TYPE(DP_VAR) *config_get(void);
-	long config_get_lint_param(const char *param, size_t index);
-	char *config_get_str_param(const char *param, size_t index);
-
-	int config_load(char *cfpath);
-	void config_cleanup(void);
-#endif
+unsigned int print_verbose = 0;

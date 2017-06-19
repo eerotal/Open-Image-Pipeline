@@ -29,7 +29,7 @@
 		#define PRINT_IDENTIFIER "unknown"
 	#endif
 
-	unsigned int print_verbose;
+	extern unsigned int print_verbose;
 
 	#ifdef OIP_BINARY
 		// Define printing control macros for the main OIP binary.

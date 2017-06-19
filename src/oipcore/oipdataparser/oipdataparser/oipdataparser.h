@@ -31,12 +31,17 @@
 
 	PTRARRAY_TYPE_DEF(DP_VAR);
 
-	void dp_dump(DP_VAR *var);
-	DP_VAR *dp_parse_single(const char *str);
-	PTRARRAY_TYPE(DP_VAR) *dp_parse_multipart(const char *str);
+	DP_VAR *dp_parse_line(const char *str, const char **valid,
+				const size_t validc);
+	PTRARRAY_TYPE(DP_VAR) *dp_parse_multiline(const char *str,
+						const char **valid,
+						const size_t validc);
 
-	int dp_var_validate_numeric(DP_VAR *var);
-
+	void dp_var_dump(DP_VAR *var);
+	int dp_var_validate_numeric(const DP_VAR *var);
+	DP_VAR *dp_get_var(PTRARRAY_TYPE(DP_VAR) *vars, const char *var);
+	long dp_var_lint_value(DP_VAR *var, const size_t index);
+	char *dp_var_str_value(DP_VAR *var, const size_t index);
 	PTRARRAY_TYPE(char) *dp_var_strarr(DP_VAR *var);
 	PTRARRAY_TYPE(long) *dp_var_lintarr(DP_VAR *var);
 #endif

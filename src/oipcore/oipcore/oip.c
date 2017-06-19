@@ -80,14 +80,5 @@ int oip_setup(int argc, char **argv) {
 		printerr("Failed to setup jobmanager.\n");
 		return 1;
 	}
-
-	PTRARRAY_TYPE(DP_VAR) *test = dp_parse_multipart("a=1;b=23;334=;c=a,g,t");
-	if (test) {
-		for (size_t i = 0; i < test->ptrc; i++) {
-			dp_dump(test->ptrs[i]);
-		}
-		ptrarray_free_ptrs((PTRARRAY_TYPE(void)*) test);
-		ptrarray_free((PTRARRAY_TYPE(void)*) test);
-	}
 	return 0;
 }
