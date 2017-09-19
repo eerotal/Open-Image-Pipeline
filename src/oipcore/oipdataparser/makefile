@@ -28,7 +28,7 @@ NAME=oipdataparser
 DEBUG=0
 ifeq ($(DEBUG), 1)
 $(info [INFO]: Enabling debugging options.)
-CCFLAGS+=-fsanitize=address -g
+CCFLAGS+=-fsanitize=address -static-libasan -g
 endif
 
 ifndef BUILDROOT
